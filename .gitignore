@@ -399,3 +399,10 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# NestJS and environment overrides
+dist/
+*.log
+.env
+.env.local
+.env.*.local
