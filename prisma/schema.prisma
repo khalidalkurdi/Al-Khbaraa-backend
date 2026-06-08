@@ -141,8 +141,7 @@ model CenterSettings {
   term3              String?  @db.Text
   term4              String?  @db.Text
   logoPath           String?  @map("logo_path") @db.VarChar(500)
-  taxNumber          String?  @map("tax_number") @db.VarChar(100)
-  commercialRegister String?  @map("commercial_register") @db.VarChar(100)
+  dollarExchangeRate Decimal  @default(1.0000) @map("dollar_exchange_rate") @db.Decimal(12, 4)
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
@@ -150,15 +149,6 @@ model CenterSettings {
   @@index([centerName], map: "idx_center_name")
   @@index([phone1], map: "idx_phone1")
   @@index([email], map: "idx_email")
-}
-
-model ExchangeRate {
-  id                 String   @id @default(uuid()) @db.Char(36)
-  dollarExchangeRate Decimal  @default(1.0000) @map("dollar_exchange_rate") @db.Decimal(12, 4)
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
-
-  @@map("exchange_rates")
 }
 
 model Customer {

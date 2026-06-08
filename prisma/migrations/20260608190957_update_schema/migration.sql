@@ -84,24 +84,13 @@ CREATE TABLE `center_settings` (
     `term3` TEXT NULL,
     `term4` TEXT NULL,
     `logo_path` VARCHAR(500) NULL,
-    `tax_number` VARCHAR(100) NULL,
-    `commercial_register` VARCHAR(100) NULL,
+    `dollar_exchange_rate` DECIMAL(12, 4) NOT NULL DEFAULT 1.0000,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `idx_center_name`(`center_name`),
     INDEX `idx_phone1`(`phone1`),
     INDEX `idx_email`(`email`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
-CREATE TABLE `exchange_rates` (
-    `id` CHAR(36) NOT NULL,
-    `dollar_exchange_rate` DECIMAL(12, 4) NOT NULL DEFAULT 1.0000,
-    `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
-
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
