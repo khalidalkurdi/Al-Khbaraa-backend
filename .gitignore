@@ -406,3 +406,5 @@ dist/
 .env
 .env.local
 .env.*.local
+backend.md
+schema.md
