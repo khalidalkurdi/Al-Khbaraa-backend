@@ -10,7 +10,7 @@ export default () => ({
     refreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
   },
   throttler: {
-    ttl: parseInt(process.env.THROTTLER_TTL, 10) || 60,
-    limit: parseInt(process.env.THROTTLER_LIMIT, 10) || 100,
+    ttl: parseInt(process.env.THROTTLER_TTL || '60', 10),
+    limit: parseInt(process.env.THROTTLER_LIMIT || '100', 10),
   },
 });
