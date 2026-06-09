@@ -467,3 +467,17 @@ schema.md
 .specify/workflows/speckit/workflow.yml
 AGENTS.md
 plan.md
+GEMINI.md
+implementation_plan.md
+task.md
+.gemini/commands/speckit.agent-context.update.toml
+.gemini/commands/speckit.analyze.toml
+.gemini/commands/speckit.checklist.toml
+.gemini/commands/speckit.clarify.toml
+.gemini/commands/speckit.constitution.toml
+.gemini/commands/speckit.implement.toml
+.gemini/commands/speckit.plan.toml
+.gemini/commands/speckit.specify.toml
+.gemini/commands/speckit.tasks.toml
+.gemini/commands/speckit.taskstoissues.toml
+.specify/integrations/gemini.manifest.json
