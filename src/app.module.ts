@@ -13,6 +13,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SettingsModule } from './settings/settings.module';
 import { CustomersModule } from './customers/customers.module';
+import { RequestsModule } from './requests/requests.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { CustomersModule } from './customers/customers.module';
     UsersModule,
     SettingsModule,
     CustomersModule,
+    RequestsModule,
   ],
   controllers: [AppController],
   providers: [
