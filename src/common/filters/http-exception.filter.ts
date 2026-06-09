@@ -8,6 +8,11 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
+interface ExceptionResponse {
+  message?: string | string[];
+  error?: string;
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
@@ -28,16 +33,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const res = exception.getResponse();
       if (typeof res === 'object' && res !== null) {
-        message = (res as any).message || exception.message;
-        error = (res as any).error || 'HttpException';
+        const resObj = res as ExceptionResponse;
+        message = resObj.message || exception.message;
+        error = resObj.error || 'HttpException';
       } else {
         message = exception.message;
       }
     } else if (exception instanceof Error) {
       message = exception.message;
-      this.logger.error(`Unhandled exception: ${exception.message}`, exception.stack);
+      this.logger.error(
+        `Unhandled exception: ${exception.message}`,
+        exception.stack,
+      );
     } else {
-      this.logger.error(`Unhandled exception of unknown type: ${JSON.stringify(exception)}`);
+      this.logger.error(
+        `Unhandled exception of unknown type: ${JSON.stringify(exception)}`,
+      );
     }
 
     response.status(status).json({

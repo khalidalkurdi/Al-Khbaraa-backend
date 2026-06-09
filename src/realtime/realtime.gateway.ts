@@ -16,7 +16,9 @@ import { Logger } from '@nestjs/common';
   },
   namespace: 'notifications',
 })
-export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RealtimeGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -30,7 +32,9 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       sockets.push(client.id);
       this.userSockets.set(userId, sockets);
       client.join(`user:${userId}`);
-      this.logger.log(`Client connected: user:${userId} (socketId: ${client.id})`);
+      this.logger.log(
+        `Client connected: user:${userId} (socketId: ${client.id})`,
+      );
     } else {
       this.logger.log(`Anonymous client connected: socketId: ${client.id}`);
     }
@@ -46,7 +50,9 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       } else {
         this.userSockets.delete(userId);
       }
-      this.logger.log(`Client disconnected: user:${userId} (socketId: ${client.id})`);
+      this.logger.log(
+        `Client disconnected: user:${userId} (socketId: ${client.id})`,
+      );
     } else {
       this.logger.log(`Anonymous client disconnected: socketId: ${client.id}`);
     }
@@ -63,7 +69,7 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   @SubscribeMessage('ping')
-  handlePing(@ConnectedSocket() client: Socket, @MessageBody() data: any): string {
+  handlePing(): string {
     return 'pong';
   }
 }
