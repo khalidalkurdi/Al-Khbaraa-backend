@@ -12,6 +12,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SettingsModule } from './settings/settings.module';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { SettingsModule } from './settings/settings.module';
     // User Management
     UsersModule,
     SettingsModule,
+    CustomersModule,
   ],
   controllers: [AppController],
   providers: [
