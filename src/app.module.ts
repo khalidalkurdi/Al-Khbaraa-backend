@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { AppController } from './app.controller';
@@ -41,6 +42,8 @@ import { SettingsModule } from './settings/settings.module';
     // Authentication & Authorization
     AuthModule,
 
+    // User Management
+    UsersModule,
     SettingsModule,
   ],
   controllers: [AppController],
