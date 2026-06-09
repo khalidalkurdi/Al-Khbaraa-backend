@@ -10,6 +10,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -39,6 +40,8 @@ import { AppService } from './app.service';
 
     // Authentication & Authorization
     AuthModule,
+
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [

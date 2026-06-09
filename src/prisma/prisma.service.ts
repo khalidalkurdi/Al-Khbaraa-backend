@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class PrismaService
@@ -12,5 +12,20 @@ export class PrismaService
 
   async onModuleDestroy() {
     await this.$disconnect();
+  }
+
+  async getCenterSettings() {
+    return this.centerSettings.findFirst();
+  }
+
+  async upsertCenterSettings(data: Prisma.CenterSettingsUpsertArgs) {
+    return this.centerSettings.upsert(data);
+  }
+
+  async updateCenterSettings(
+    where: Prisma.CenterSettingsWhereUniqueInput,
+    data: Prisma.CenterSettingsUpdateInput,
+  ) {
+    return this.centerSettings.update({ where, data });
   }
 }
