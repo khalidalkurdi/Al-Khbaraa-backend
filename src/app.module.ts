@@ -18,6 +18,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { TechnicianModule } from './technician/technician.module';
 import { InventoryModule } from './inventory/inventory.module';
 
+import { PaymentsModule } from './payments/payments.module';
+
 @Module({
   imports: [
     // Global configuration
@@ -61,6 +63,12 @@ import { InventoryModule } from './inventory/inventory.module';
 
     // Inventory
     InventoryModule,
+
+    // Invoices
+    InvoicesModule,
+
+    // Payments
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [
