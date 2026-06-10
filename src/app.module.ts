@@ -19,6 +19,8 @@ import { TechnicianModule } from './technician/technician.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { InvoicesModule } from './invoices/invoices.module';
 
+import { PaymentsModule } from './payments/payments.module';
+
 @Module({
   imports: [
     // Global configuration
@@ -65,6 +67,9 @@ import { InvoicesModule } from './invoices/invoices.module';
 
     // Invoices
     InvoicesModule,
+
+    // Payments
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [
