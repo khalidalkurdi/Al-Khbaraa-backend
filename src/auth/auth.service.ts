@@ -47,15 +47,15 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: jwtConfig.accessSecret,
-      expiresIn: jwtConfig.accessExpiration ,
+      expiresIn: jwtConfig.accessExpiration,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: jwtConfig.refreshSecret,
-      expiresIn: jwtConfig.refreshExpiration ,
+      expiresIn: jwtConfig.refreshExpiration,
     });
 
-    const decoded = this.jwtService.decode(refreshToken) as { exp: number };
+    const decoded = this.jwtService.decode(refreshToken);
     const expiresAt = new Date(decoded.exp * 1000);
 
     await this.prisma.refreshToken.create({
@@ -111,20 +111,19 @@ export class AuthService {
 
     const accessSecret = this.configService.get<string>('jwt.accessSecret')!;
     const refreshSecret = this.configService.get<string>('jwt.refreshSecret')!;
-const jwtConfig = this.configService.get('jwt');
+    const jwtConfig = this.configService.get('jwt');
 
     const accessToken = this.jwtService.sign(payload, {
       secret: jwtConfig.accessSecret,
-      expiresIn: jwtConfig.accessExpiration ,
+      expiresIn: jwtConfig.accessExpiration,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: jwtConfig.refreshSecret,
-      expiresIn: jwtConfig.refreshExpiration ,
+      expiresIn: jwtConfig.refreshExpiration,
     });
 
-
-    const decoded = this.jwtService.decode(refreshToken) as { exp: number };
+    const decoded = this.jwtService.decode(refreshToken);
     const expiresAt = new Date(decoded.exp * 1000);
 
     await this.prisma.refreshToken.create({

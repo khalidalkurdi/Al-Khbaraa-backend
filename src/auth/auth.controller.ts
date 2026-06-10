@@ -30,10 +30,7 @@ export class AuthController {
     description: 'Successful login returning access and refresh tokens',
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(
-    @Request() req: { user: any },
-    @Body() loginDto: LoginDto,
-  ) {
+  async login(@Request() req: { user: any }, @Body() loginDto: LoginDto) {
     return this.authService.login(req.user, loginDto.tokenDevice);
   }
 

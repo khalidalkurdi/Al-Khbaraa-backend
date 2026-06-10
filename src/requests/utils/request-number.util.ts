@@ -17,7 +17,10 @@ export class RequestNumberUtil {
     return `${prefix}${String(sequence).padStart(4, '0')}`;
   }
 
-  private async getNextSequence(prefix: string, maxRetries = 10): Promise<number> {
+  private async getNextSequence(
+    prefix: string,
+    maxRetries = 10,
+  ): Promise<number> {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
@@ -50,6 +53,8 @@ export class RequestNumberUtil {
       }
     }
 
-    throw new Error('Failed to generate unique request number after maximum retries');
+    throw new Error(
+      'Failed to generate unique request number after maximum retries',
+    );
   }
 }

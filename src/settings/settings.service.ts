@@ -39,7 +39,7 @@ export class SettingsService {
       return this.prisma.upsertCenterSettings({
         where: { id: existing?.id ?? undefined },
         create: payload as any,
-        update: payload as any,
+        update: payload,
       });
     } catch {
       throw new InternalServerErrorException('Failed to update settings');
@@ -74,7 +74,10 @@ export class SettingsService {
     }
 
     try {
-      return this.prisma.updateCenterSettings({ id: settings.id }, { logoPath });
+      return this.prisma.updateCenterSettings(
+        { id: settings.id },
+        { logoPath },
+      );
     } catch {
       throw new InternalServerErrorException('Failed to save logo');
     }

@@ -1,4 +1,14 @@
-import { IsString, IsNotEmpty, MaxLength, IsOptional, IsUUID, IsArray, ValidateNested, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  MaxLength,
+  IsOptional,
+  IsUUID,
+  IsArray,
+  ValidateNested,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateRequestDeviceDto } from './create-request-device.dto';
 
