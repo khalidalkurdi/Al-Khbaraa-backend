@@ -20,6 +20,7 @@ import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { RequestQueryDto } from './dto/request-query.dto';
+import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -100,5 +101,47 @@ export class RequestsController {
     @Body() updateRequestDto: UpdateRequestDto,
   ) {
     return this.requestsService.update(id, updateRequestDto);
+  }
+
+  @Post(':id/assign')
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager', 'Employee')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Assign a technician to a repair request' })
+  @ApiResponse({ status: 200, description: 'Technician assigned successfully' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - invalid or inactive technician',
+  })
+  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient role privileges',
+  })
+  async assignTechnician(
+    @Param('id') id: string,
+    @Body() assignTechnicianDto: AssignTechnicianDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.requestsService.assignTechnician(
+      id,
+      assignTechnicianDto.technicianId,
+      req.user.id,
+    );
+  }
+
+  @Get(':id/status-history')
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager', 'Employee')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get status history timeline for a repair request' })
+  @ApiResponse({ status: 200, description: 'Status history returned' })
+  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient role privileges',
+  })
+  async getStatusHistory(@Param('id') id: string) {
+    return this.requestsService.getStatusHistory(id);
   }
 }

@@ -3,24 +3,26 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { RequestQueryDto } from './dto/request-query.dto';
 import { RequestNumberUtil } from './utils/request-number.util';
-import {
-  Prisma,
-  RequestStatus,
-  RequestType,
-  Priority,
-} from '@prisma/client';
+import { Prisma, RequestStatus, RequestType, Priority } from '@prisma/client';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class RequestsService {
+  private readonly logger = new Logger(RequestsService.name);
+
   constructor(
     private prisma: PrismaService,
     private requestNumberUtil: RequestNumberUtil,
+    private readonly realtimeGateway: RealtimeGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(createRequestDto: CreateRequestDto, userId: string) {
@@ -138,6 +140,128 @@ export class RequestsService {
     return result.request;
   }
 
+  async assignTechnician(id: string, technicianId: string, userId: string) {
+    const request = await this.prisma.request.findUnique({
+      where: { id },
+      include: { customer: true, creator: true, devices: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException(`Request with ID ${id} not found`);
+    }
+
+    const technician = await this.prisma.user.findUnique({
+      where: { id: technicianId },
+    });
+
+    if (!technician) {
+      throw new BadRequestException('Technician not found');
+    }
+
+    if (!technician.isActive) {
+      throw new BadRequestException('Cannot assign an inactive technician');
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.technicianAssignment.updateMany({
+        where: { requestId: id, isActive: true },
+        data: { isActive: false },
+      });
+
+      const assignment = await tx.technicianAssignment.create({
+        data: {
+          requestId: id,
+          technicianId,
+          assignedBy: userId,
+        },
+        include: {
+          technician: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      await tx.requestStatusHistory.create({
+        data: {
+          requestId: id,
+          status: 'accepted',
+          changedBy: userId,
+        },
+      });
+
+      return assignment;
+    });
+
+    this.realtimeGateway.sendToUser(technicianId, 'request.assigned', {
+      type: 'request.assigned',
+      data: {
+        requestId: request.id,
+        requestNumber: request.requestNumber,
+        technicianId,
+        assignedBy: {
+          id: userId,
+          fullName: (request.creator as any)?.fullName ?? 'Unknown',
+        },
+        assignedAt: result.assignedAt,
+      },
+    });
+
+    this.realtimeGateway.sendToAll('request.status_changed', {
+      type: 'request.status_changed',
+      data: {
+        requestId: request.id,
+        requestNumber: request.requestNumber,
+        status: 'accepted',
+        changedBy: {
+          id: userId,
+          fullName: (request.creator as any)?.fullName ?? 'Unknown',
+        },
+        changedAt: new Date(),
+      },
+    });
+
+    void this.notificationsService
+      .sendPushNotification(
+        technicianId,
+        'New repair request assigned',
+        `Request #${request.requestNumber} has been assigned to you.`,
+      )
+      .catch((error: any) => {
+        this.logger.warn(`FCM push notification failed: ${error?.message}`);
+      });
+
+    return { assignment: result };
+  }
+
+  async getStatusHistory(id: string) {
+    const request = await this.prisma.request.findUnique({
+      where: { id },
+    });
+
+    if (!request) {
+      throw new NotFoundException(`Request with ID ${id} not found`);
+    }
+
+    const history = await this.prisma.requestStatusHistory.findMany({
+      where: { requestId: id },
+      orderBy: { changedAt: 'desc' },
+      include: {
+        changer: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    return history;
+  }
+
   async findAll(query: RequestQueryDto) {
     const {
       status,
@@ -150,9 +274,9 @@ export class RequestsService {
     } = query;
 
     const where: Prisma.RequestWhereInput = {
-      ...(status && { status: status as RequestStatus }),
-      ...(priority && { priority: priority as Priority }),
-      ...(type && { type: type as RequestType }),
+      ...(status && { status: status }),
+      ...(priority && { priority: priority }),
+      ...(type && { type: type }),
       ...(customerId && { customerId }),
       ...(scheduledDate && { scheduledDate: new Date(scheduledDate) }),
     };
@@ -235,9 +359,7 @@ export class RequestsService {
 
       if (Object.keys(updateData).length > 0) {
         if (updateData.scheduledDate) {
-          (data as any).scheduledDate = new Date(
-            updateData.scheduledDate as string,
-          );
+          (data as any).scheduledDate = new Date(updateData.scheduledDate);
         }
         if (updateData.scheduledTime) {
           (data as any).scheduledTime = new Date(
