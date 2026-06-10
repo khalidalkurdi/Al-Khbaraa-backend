@@ -16,6 +16,7 @@ import { CustomersModule } from './customers/customers.module';
 import { RequestsModule } from './requests/requests.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TechnicianModule } from './technician/technician.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -57,6 +58,9 @@ import { TechnicianModule } from './technician/technician.module';
 
     // Technician Workflow
     TechnicianModule,
+
+    // Inventory
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [
