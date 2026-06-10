@@ -17,6 +17,7 @@ import { RequestsModule } from './requests/requests.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TechnicianModule } from './technician/technician.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { InvoicesModule } from './invoices/invoices.module';
 
 import { PaymentsModule } from './payments/payments.module';
 
