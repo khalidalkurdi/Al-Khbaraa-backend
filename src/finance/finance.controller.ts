@@ -9,6 +9,7 @@ import {
   Query,
   Req,
   UseGuards,
+  Res,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +18,9 @@ import {
   ApiResponse,
   ApiQuery,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
+import { PdfModule } from '../pdf/pdf.module';
+import { PdfService } from '../pdf/pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -38,7 +42,7 @@ interface AuthenticatedRequest {
 @Controller('api/finance')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService) {}
+  constructor(private readonly financeService: FinanceService, private readonly pdfService: PdfService) {}
 
   @Post('expenses')
   @Roles('Admin')
@@ -114,5 +118,33 @@ export class FinanceController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   async getSummary(@Query() query: FinanceSummaryQueryDto) {
     return this.financeService.getSummary(query.startDate, query.endDate);
+  }
+
+  @Get('reports/pdf')
+  @Roles('Admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate financial report PDF for a date range' })
+  @ApiQuery({ name: 'startDate', required: true, description: 'Start date (ISO 8601)' })
+  @ApiQuery({ name: 'endDate', required: true, description: 'End date (ISO 8601)' })
+  @ApiResponse({
+    status: 200,
+    description: 'PDF document returned',
+    content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid dates' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async generateReportPdf(@Query() query: FinanceSummaryQueryDto, @Res({ passthrough: true }) response: Response) {
+    const report = await this.financeService.getFinancialReportPdfData(query.startDate, query.endDate);
+    const result = await this.pdfService.generateFinancialReportPdf(report, {
+      documentType: 'financial_report',
+      filename: `financial-report-${query.startDate}-to-${query.endDate}`,
+    });
+
+    response.setHeader('Content-Type', result.contentType);
+    response.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    response.setHeader('Cache-Control', 'private, no-cache');
+    response.setHeader('Content-Length', result.buffer.length);
+    response.send(result.buffer);
   }
 }

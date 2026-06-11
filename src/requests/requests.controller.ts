@@ -8,6 +8,7 @@ import {
   Body,
   Req,
   UseGuards,
+  Res,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,6 +17,9 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+import type { Response } from 'express';
+import { PdfModule } from '../pdf/pdf.module';
+import { PdfService } from '../pdf/pdf.service';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -37,7 +41,7 @@ interface AuthenticatedRequest {
 @Controller('api/requests')
 @UseGuards(JwtAuthGuard)
 export class RequestsController {
-  constructor(private readonly requestsService: RequestsService) {}
+  constructor(private readonly requestsService: RequestsService, private readonly pdfService: PdfService) {}
 
   @Post()
   @UseGuards(RolesGuard)
@@ -86,6 +90,33 @@ export class RequestsController {
   @ApiResponse({ status: 404, description: 'Request not found' })
   async findOne(@Param('id') id: string) {
     return this.requestsService.findOne(id);
+  }
+
+  @Get(':id/pdf')
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager', 'Employee')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate request receipt PDF' })
+  @ApiResponse({
+    status: 200,
+    description: 'PDF document returned',
+    content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Request not found' })
+  async generatePdf(@Param('id') id: string, @Res({ passthrough: true }) response: Response) {
+    const request = await this.requestsService.getRequestReceiptPdfData(id);
+    const result = await this.pdfService.generateRequestReceiptPdf(request, {
+      documentType: 'request_receipt',
+      filename: `request-${request.requestNumber}`,
+    });
+
+    response.setHeader('Content-Type', result.contentType);
+    response.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    response.setHeader('Cache-Control', 'private, no-cache');
+    response.setHeader('Content-Length', result.buffer.length);
+    response.send(result.buffer);
   }
 
   @Patch(':id')

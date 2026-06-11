@@ -13,6 +13,7 @@ import { RequestNumberUtil } from './utils/request-number.util';
 import { Prisma, RequestStatus, RequestType, Priority } from '@prisma/client';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import type { RequestReceiptPdfData } from '../pdf/pdf.types';
 
 @Injectable()
 export class RequestsService {
@@ -344,6 +345,62 @@ export class RequestsService {
     }
 
     return request;
+  }
+
+  async getRequestReceiptPdfData(id: string): Promise<RequestReceiptPdfData> {
+    const request = await this.prisma.request.findUnique({
+      where: { id },
+      include: {
+        devices: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            firstPhone: true,
+            secondPhone: true,
+            address: true,
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException(`Request with ID ${id} not found`);
+    }
+
+    return {
+      id: request.id,
+      requestNumber: request.requestNumber,
+      createdAt: request.createdAt,
+      scheduledDate: request.scheduledDate,
+      scheduledTime: request.scheduledTime,
+      priority: request.priority,
+      status: request.status,
+      customer: {
+        id: request.customer.id,
+        name: request.customer.name,
+        firstPhone: request.customer.firstPhone,
+        secondPhone: request.customer.secondPhone ?? undefined,
+        address: request.customer.address ?? undefined,
+      },
+      creator: request.creator,
+      devices: request.devices.map((device) => ({
+        id: device.id,
+        deviceType: device.deviceType,
+        deviceName: device.deviceName,
+        brand: device.brand ?? undefined,
+        model: device.model ?? undefined,
+      })),
+      faultDescription: request.faultDescription,
+      notes: request.notes ?? undefined,
+    };
   }
 
   async update(id: string, updateRequestDto: UpdateRequestDto) {

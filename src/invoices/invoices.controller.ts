@@ -1,5 +1,8 @@
-import { Controller, Get, Post, Body, Param, Query, Req, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Req, UseGuards, Logger, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import type { Response } from 'express';
+import { PdfModule } from '../pdf/pdf.module';
+import { PdfService } from '../pdf/pdf.service';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { InvoiceResponse } from './dto/invoice-response.dto';
@@ -23,7 +26,7 @@ interface AuthenticatedRequest {
 export class InvoicesController {
   private readonly logger = new Logger(InvoicesController.name);
 
-  constructor(private readonly invoicesService: InvoicesService) {}
+  constructor(private readonly invoicesService: InvoicesService, private readonly pdfService: PdfService) {}
 
   @Post()
   @Roles('Admin', 'Manager', 'Employee')
@@ -78,5 +81,33 @@ export class InvoicesController {
     const user = req.user;
     const isTechnician = user.roles.includes('Technician');
     return this.invoicesService.findOne(id, user.id, isTechnician);
+  }
+
+  @Get(':id/pdf')
+  @Roles('Admin', 'Manager', 'Employee', 'Technician')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generate invoice PDF' })
+  @ApiResponse({
+    status: 200,
+    description: 'PDF document returned',
+    content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  async generatePdf(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Res({ passthrough: true }) response: Response) {
+    const user = req.user;
+    const isTechnician = user.roles.includes('Technician');
+    const invoice = await this.invoicesService.getInvoicePdfData(id, user.id, isTechnician);
+    const result = await this.pdfService.generateInvoicePdf(invoice, {
+      documentType: 'invoice',
+      filename: `invoice-${invoice.invoiceNumber}`,
+    });
+
+    response.setHeader('Content-Type', result.contentType);
+    response.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    response.setHeader('Cache-Control', 'private, no-cache');
+    response.setHeader('Content-Length', result.buffer.length);
+    response.send(result.buffer);
   }
 }
