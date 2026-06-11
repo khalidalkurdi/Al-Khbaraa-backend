@@ -20,6 +20,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { InvoicesModule } from './invoices/invoices.module';
 
 import { PaymentsModule } from './payments/payments.module';
+import { FinanceModule } from './finance/finance.module';
 
 @Module({
   imports: [
@@ -70,6 +71,9 @@ import { PaymentsModule } from './payments/payments.module';
 
     // Payments
     PaymentsModule,
+
+    // Finance
+    FinanceModule,
   ],
   controllers: [AppController],
   providers: [
