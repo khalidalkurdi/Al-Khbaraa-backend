@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { FinanceController } from './finance.controller';
 import { FinanceService } from './finance.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { PdfModule } from '../pdf/pdf.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, PdfModule],
   controllers: [FinanceController],
   providers: [FinanceService],
   exports: [FinanceService],
