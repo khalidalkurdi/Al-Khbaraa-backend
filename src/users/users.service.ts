@@ -6,6 +6,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserNumberUtil } from './utils/user-number.util';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -21,11 +24,7 @@ export class UsersService {
     return this.prisma.user.findUnique({
       where: { email },
       include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
+        role: true,
       },
     });
   }
@@ -45,15 +44,7 @@ export class UsersService {
     return userWithoutPassword;
   }
 
-  async createUser(data: {
-    email: string;
-    password: string;
-    fullName: string;
-    jobTitle?: string;
-    phone?: string;
-    salary?: number;
-    roles: string[];
-  }) {
+  async createUser(data: CreateUserDto) {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: data.email },
     });
@@ -63,15 +54,12 @@ export class UsersService {
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
-
-    const roleRecords = await this.prisma.role.findMany({
-      where: { name: { in: data.roles } },
+    const roleRecord = await this.prisma.role.findUnique({
+      where: { name: data.role },
     });
 
-    if (roleRecords.length !== data.roles.length) {
-      const foundRoles = roleRecords.map((r) => r.name);
-      const notFound = data.roles.filter((r) => !foundRoles.includes(r));
-      throw new BadRequestException(`Roles not found: ${notFound.join(', ')}`);
+    if (!roleRecord) {
+      throw new BadRequestException(`Role not found: ${data.role}`);
     }
 
     const user = await this.prisma.user.create({
@@ -80,29 +68,19 @@ export class UsersService {
         passwordHash,
         fullName: data.fullName,
         userNumber: await this.userNumberUtil.generateUniqueUserNumber(),
-        jobTitle: data.jobTitle ?? '',
-        phone: data.phone ?? '',
-        salary: data.salary ?? 0,
+        jobTitle: data.jobTitle,
+        roleId: roleRecord.id,
+        phone: data.phone,
+        salary: data.salary,
         tokenDevice: '',
         lastLoginAt: null,
-        roles: {
-          create: roleRecords.map((role) => ({
-            role: { connect: { id: role.id } },
-          })),
-        },
       },
       include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
+        role: true,
       },
     });
 
-    this.logger.log(
-      `User created: ${user.email} with roles: ${data.roles.join(', ')}`,
-    );
+    this.logger.log(`User created: ${user.email} with role: ${data.role}`);
 
     return this.stripPassword(user);
   }
@@ -115,23 +93,15 @@ export class UsersService {
     }
 
     if (filters?.role) {
-      where.roles = {
-        some: {
-          role: {
-            name: filters.role,
-          },
-        },
+      where.role = {
+        name: filters.role,
       };
     }
 
     const users = await this.prisma.user.findMany({
       where,
       include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
+        role: true,
       },
     });
 
@@ -142,11 +112,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
+        role: true,
       },
     });
 
@@ -161,11 +127,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
+        role: true,
       },
     });
 
@@ -176,24 +138,11 @@ export class UsersService {
     return this.stripPassword(user);
   }
 
-  async update(
-    id: string,
-    data: {
-      fullName?: string;
-      jobTitle?: string;
-      phone?: string;
-      salary?: number;
-      isActive?: boolean;
-    },
-  ) {
+  async update(id: string, data: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
+        role: true,
       },
     });
 
@@ -201,51 +150,68 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    if (data.email !== undefined) {
+      const existingUser = await this.prisma.user.findFirst({
+        where: { email: data.email, id: { not: id } },
+      });
+
+      if (existingUser) {
+        throw new BadRequestException('User with this email already exists');
+      }
+    }
+
     if (data.isActive === false) {
       const adminRole = await this.prisma.role.findUnique({
         where: { name: 'Admin' },
       });
 
-      if (adminRole) {
-        const userRoles = user.roles.map((ur) => ur.role.name);
-        if (userRoles.includes('Admin')) {
-          const adminCount = await this.prisma.user.count({
-            where: {
-              isActive: true,
-              roles: {
-                some: {
-                  role: {
-                    name: 'Admin',
-                  },
-                },
-              },
+      if (adminRole && user.role.name === 'Admin') {
+        const adminCount = await this.prisma.user.count({
+          where: {
+            isActive: true,
+            role: {
+              name: 'Admin',
             },
-          });
+          },
+        });
 
-          if (adminCount <= 1) {
-            throw new BadRequestException(
-              'Cannot deactivate the last admin user',
-            );
-          }
+        if (adminCount <= 1) {
+          throw new BadRequestException(
+            'Cannot deactivate the last admin user',
+          );
         }
       }
     }
 
+    const updateData: Prisma.UserUpdateInput = {};
+
+    if (data.email !== undefined) updateData.email = data.email;
+    if (data.fullName !== undefined) updateData.fullName = data.fullName;
+    if (data.jobTitle !== undefined) updateData.jobTitle = data.jobTitle;
+    if (data.phone !== undefined) updateData.phone = data.phone ?? '';
+    if (data.salary !== undefined) updateData.salary = data.salary;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+    if (data.role !== undefined) {
+      const roleRecord = await this.prisma.role.findUnique({
+        where: { name: data.role },
+      });
+
+      if (!roleRecord) {
+        throw new BadRequestException(`Role not found: ${data.role}`);
+      }
+
+      updateData.role = { connect: { id: roleRecord.id } };
+    }
+
     const updatedUser = await this.prisma.user.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
+        role: true,
       },
     });
 
-    this.logger.log(
-      `User updated: ${updatedUser.id}, isActive: ${data.isActive}`,
-    );
+    this.logger.log(`User updated: ${updatedUser.id}, isActive: ${updatedUser.isActive}`);
 
     return this.stripPassword(updatedUser);
   }

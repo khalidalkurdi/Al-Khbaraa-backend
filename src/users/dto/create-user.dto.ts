@@ -2,11 +2,11 @@ import {
   IsEmail,
   IsNotEmpty,
   IsString,
-  MinLength,
-  IsOptional,
   IsNumber,
   Min,
-  IsArray,
+  MaxLength,
+  Max,
+  MinLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -17,6 +17,7 @@ export class CreateUserDto {
   })
   @IsEmail({}, { message: 'Invalid email format' })
   @IsNotEmpty({ message: 'Email is required' })
+  @MaxLength(255, { message: 'Email must not exceed 255 characters' })
   email: string;
 
   @ApiProperty({
@@ -24,49 +25,48 @@ export class CreateUserDto {
     description: 'Password (minimum 6 characters)',
   })
   @IsString()
-  @MinLength(6, { message: 'Password must be at least 6 characters' })
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @MaxLength(255, { message: 'Password must not exceed 255 characters' })
   @IsNotEmpty({ message: 'Password is required' })
   password: string;
 
   @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
   @IsString()
   @IsNotEmpty({ message: 'Full name is required' })
+  @MaxLength(255, { message: 'Full name must not exceed 255 characters' })
   fullName: string;
 
   @ApiProperty({
     example: 'Field Technician',
-    required: false,
     description: 'Job title',
   })
   @IsString()
-  @IsOptional()
-  jobTitle?: string;
+  @MaxLength(255, { message: 'Job title must not exceed 255 characters' })
+  jobTitle: string;
 
   @ApiProperty({
-    example: '+963912345678',
-    required: false,
+    example: '0912345678',
     description: 'Phone number',
   })
   @IsString()
-  @IsOptional()
-  phone?: string;
+  @MaxLength(50, { message: 'Phone must not exceed 50 characters' })
+  phone: string;
 
   @ApiProperty({
     example: 500000,
     description: 'Monthly salary in SYP',
-    required: false,
   })
   @IsNumber()
   @Min(0)
-  @IsOptional()
-  salary?: number;
+  @Max(9999999999.99, { message: 'Salary must not exceed 9999999999.99' })
+  salary: number;
 
   @ApiProperty({
-    example: ['Technician'],
-    description: 'Array of role names to assign',
+    example: 'Technician',
+    description: 'Role name to assign',
   })
-  @IsArray()
-  @IsString({ each: true })
-  @IsNotEmpty({ message: 'At least one role is required' })
-  roles: string[];
+  @IsString()
+  @IsNotEmpty({ message: 'Role is required' })
+  @MinLength(1, { message: 'Role is required' })
+  role: string;
 }
