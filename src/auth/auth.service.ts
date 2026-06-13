@@ -3,7 +3,6 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { StringValue } from 'ms';
 import * as bcrypt from 'bcrypt';
 
 interface JwtPayload {
@@ -30,6 +29,7 @@ export class AuthService {
     if (user && user.isActive) {
       const isMatch = await bcrypt.compare(pass, user.passwordHash);
       if (isMatch) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { passwordHash, ...result } = user;
         return result;
       }
@@ -113,12 +113,12 @@ export class AuthService {
     const refreshSecret = this.configService.get<string>('jwt.refreshSecret')!;
     const jwtConfig = this.configService.get('jwt');
 
-    const accessToken = this.jwtService.sign(payload, {
+    const accessToken = this.jwtService.sign(newPayload, {
       secret: jwtConfig.accessSecret,
       expiresIn: jwtConfig.accessExpiration,
     });
 
-    const refreshToken = this.jwtService.sign(payload, {
+    const refreshToken = this.jwtService.sign(newPayload, {
       secret: jwtConfig.refreshSecret,
       expiresIn: jwtConfig.refreshExpiration,
     });
