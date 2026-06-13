@@ -10,12 +10,7 @@ import { CustomersModule } from '../customers/customers.module';
 @Module({
   controllers: [RequestsController],
   providers: [RequestsService, RequestNumberUtil],
-  imports: [
-    RealtimeModule,
-    NotificationsModule,
-    PdfModule,
-    CustomersModule,
-  ],
+  imports: [RealtimeModule, NotificationsModule, PdfModule, CustomersModule],
   exports: [RequestsService],
 })
 export class RequestsModule {}

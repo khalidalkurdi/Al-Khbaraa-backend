@@ -25,8 +25,7 @@ export class PaymentsService {
   ) {}
 
   async create(createPaymentDto: CreatePaymentDto, user: AuthenticatedUser) {
-    const { invoiceId, amount, currency, paymentMethod } =
-      createPaymentDto;
+    const { invoiceId, amount, currency, paymentMethod } = createPaymentDto;
 
     if (amount <= 0) {
       throw new BadRequestException('Payment amount must be positive');

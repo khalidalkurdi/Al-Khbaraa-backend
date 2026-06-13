@@ -1,9 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsUUID,
-  IsEnum,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreatePaymentDto {

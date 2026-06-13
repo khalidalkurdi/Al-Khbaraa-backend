@@ -30,6 +30,8 @@ export class UserNumberUtil {
       }
     }
 
-    throw new Error('Failed to generate unique user number after maximum retries');
+    throw new Error(
+      'Failed to generate unique user number after maximum retries',
+    );
   }
 }
