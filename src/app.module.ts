@@ -22,6 +22,7 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { PaymentsModule } from './payments/payments.module';
 import { FinanceModule } from './finance/finance.module';
 import { PdfModule } from './pdf/pdf.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -73,12 +74,15 @@ import { PdfModule } from './pdf/pdf.module';
     // Payments
     PaymentsModule,
 
-    // Finance
-    FinanceModule,
+// Finance
+     FinanceModule,
 
-    // PDF generation
-    PdfModule,
-  ],
+     // PDF generation
+     PdfModule,
+
+     // Dashboard
+     DashboardModule,
+   ],
   controllers: [AppController],
   providers: [
     AppService,
