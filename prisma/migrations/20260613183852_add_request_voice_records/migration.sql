@@ -6,7 +6,6 @@ CREATE TABLE `request_voice_records` (
     `file_size` INTEGER NULL,
     `mime_type` VARCHAR(100) NULL,
     `duration` INTEGER NULL,
-    `uploaded_by` CHAR(36) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `idx_request_id`(`request_id`),
