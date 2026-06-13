@@ -15,15 +15,15 @@ async function main()
     });
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin1234';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'defaultPassword';
 
   const existingAdmin = await prisma.user.findUnique({
     where: { email: adminEmail },
   });
 
   if (!existingAdmin) {
-    const passwordHash = await bcrypt.hash(adminPassword, 10);
+    const passwordHash = await bcrypt.hash(adminPassword, 10) as string;
 
     const adminUser = await prisma.user.create({
       data: {
@@ -31,8 +31,11 @@ async function main()
         passwordHash,
         fullName: 'المسؤول',
         jobTitle: 'مدير النظام',
+        userNumber: 'ADMIN-001',
+        phone: '',
         salary: 0,
         tokenDevice: '',
+        lastLoginAt: new Date(),
       },
     });
 

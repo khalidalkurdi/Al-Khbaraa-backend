@@ -39,23 +39,31 @@ enum RequestStatus {
   repeated
 }
 
+enum MovementType {
+  supply
+  issue
+  adjust
+  return
+}
+
 // ======================================================
 // MODELS
 // ======================================================
 
 model User {
-  id           String    @id @default(uuid()) @db.Char(36)
-  email        String    @unique @db.VarChar(255)
-  passwordHash String    @map("password_hash") @db.VarChar(255)
-  fullName     String    @map("full_name") @db.VarChar(255)
-  jobTitle     String?   @map("job_title") @db.VarChar(255)
-  phone        String?   @db.VarChar(50)
-  salary       Decimal   @default(0.00) @db.Decimal(12, 2)
-  isActive     Boolean   @default(true) @map("is_active")
-  tokenDevice  String    @map("token_device") @db.Text
-  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamp(0)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  id           String   @id @default(uuid()) @db.Char(36)
+  userNumber   String   @unique @map("user_number") @db.VarChar(50)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  fullName     String   @map("full_name") @db.VarChar(255)
+  jobTitle     String   @map("job_title") @db.VarChar(255)
+  phone        String   @db.VarChar(50)
+  salary       Decimal  @default(0.00) @db.Decimal(12, 2)
+  isActive     Boolean  @default(true) @map("is_active")
+  tokenDevice  String   @map("token_device") @db.Text
+  lastLoginAt  DateTime @map("last_login_at") @db.Timestamp(0)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   // Relationships
   roles                 RolesUsers[]
@@ -66,11 +74,13 @@ model User {
   assignedByAssignments TechnicianAssignment[]     @relation("AssignedByAssignments")
   statusChanges         RequestStatusHistory[]     @relation("ChangedByHistory")
   invoices              Invoice[]
+  movements             InventoryMovement[]
   notifications         Notification[]
 
-  @@map("users")
+  @@index([userNumber], map: "idx_user_number")
   @@index([email], map: "idx_email")
   @@index([isActive], map: "idx_is_active")
+  @@map("users")
 }
 
 model Role {
@@ -91,9 +101,9 @@ model RolesUsers {
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
-  @@map("roles_users")
   @@index([userId], map: "idx_user_id")
   @@index([roleId], map: "idx_role_id")
+  @@map("roles_users")
 }
 
 model RefreshToken {
@@ -106,10 +116,10 @@ model RefreshToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("refresh_tokens")
   @@index([userId], map: "idx_user_id")
   @@index([expiresAt], map: "idx_expires_at")
   @@index([isBlocked], map: "idx_revoked_at")
+  @@map("refresh_tokens")
 }
 
 model TechnicianDailyInventory {
@@ -117,15 +127,15 @@ model TechnicianDailyInventory {
   technicianId  String   @map("technician_id") @db.Char(36)
   inventoryDate DateTime @map("inventory_date") @db.Date
   notes         String?  @db.Text
-  toolsGiven    String?  @map("tools_given") @db.Text
+  toolsGiven    String   @map("tools_given") @db.Text
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
   technician User @relation(fields: [technicianId], references: [id], onDelete: Cascade)
 
   @@unique([technicianId, inventoryDate], map: "unique_technician_date")
-  @@map("technician_daily_inventory")
   @@index([technicianId], map: "idx_technician_id")
   @@index([inventoryDate], map: "idx_inventory_date")
+  @@map("technician_daily_inventory")
 }
 
 model CenterSettings {
@@ -145,30 +155,31 @@ model CenterSettings {
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  @@map("center_settings")
   @@index([centerName], map: "idx_center_name")
   @@index([phone1], map: "idx_phone1")
   @@index([email], map: "idx_email")
+  @@map("center_settings")
 }
 
 model Customer {
-  id           String    @id @default(uuid()) @db.Char(36)
-  name         String    @db.VarChar(255)
-  firstPhone   String    @unique @map("firstphone") @db.VarChar(50)
-  secondPhone  String?   @unique @map("secondphone") @db.VarChar(50)
-  address      String?   @db.Text
-  locationLink String?   @map("location_link") @db.Text
-  notes        String?   @db.Text
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
-  requests     Request[]
+  id             String    @id @default(uuid()) @db.Char(36)
+  customerNumber String    @unique @map("customer_number") @db.VarChar(50)
+  name           String    @db.VarChar(255)
+  firstPhone     String    @unique @map("firstphone") @db.VarChar(50)
+  secondPhone    String?   @unique @map("secondphone") @db.VarChar(50)
+  address        String?   @db.Text
+  locationLink   String?   @map("location_link") @db.Text
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  requests       Request[]
 
-  @@map("customers")
+  @@index([customerNumber], map: "idx_customer_number")
   @@index([firstPhone], map: "idx_firstphone")
   @@index([secondPhone], map: "idx_secondphone")
   @@index([name], map: "idx_name")
   @@index([isActive], map: "idx_is_active")
+  @@map("customers")
 }
 
 model Request {
@@ -192,9 +203,8 @@ model Request {
   assignments   TechnicianAssignment[]
   devices       RequestDevice[]
   statusHistory RequestStatusHistory[]
-  invoices      Invoice[]
+  invoice       Invoice?
 
-  @@map("requests")
   @@index([requestNumber], map: "idx_request_number")
   @@index([customerId], map: "idx_customer_id")
   @@index([status], map: "idx_status")
@@ -203,6 +213,7 @@ model Request {
   @@index([priority], map: "idx_priority")
   @@index([scheduledDate], map: "idx_scheduled_date")
   @@index([createdAt], map: "idx_created_at")
+  @@map("requests")
 }
 
 model RequestStatusHistory {
@@ -215,10 +226,10 @@ model RequestStatusHistory {
   changer User?   @relation("ChangedByHistory", fields: [changedBy], references: [id], onDelete: Restrict)
   request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
-  @@map("request_status_history")
   @@index([requestId], map: "idx_request_id")
   @@index([status], map: "idx_status")
   @@index([changedAt], map: "idx_changed_at")
+  @@map("request_status_history")
 }
 
 model RequestDevice {
@@ -232,8 +243,8 @@ model RequestDevice {
 
   request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
-  @@map("request_devices")
   @@index([requestId], map: "idx_request_id")
+  @@map("request_devices")
 }
 
 model TechnicianAssignment {
@@ -249,57 +260,62 @@ model TechnicianAssignment {
   assigner   User    @relation("AssignedByAssignments", fields: [assignedBy], references: [id], onDelete: Restrict)
 
   @@unique([requestId, technicianId], map: "unique_request_technician")
-  @@map("technician_assignments")
   @@index([requestId], map: "idx_request_id")
   @@index([technicianId], map: "idx_technician_id")
+  @@map("technician_assignments")
 }
 
 model SparePart {
-  id           String        @id @default(uuid()) @db.Char(36)
-  name         String        @db.VarChar(255)
-  sku          String?       @unique @db.VarChar(100)
-  quantity     Int           @default(0)
-  costSyp      Decimal       @default(0.00) @map("cost_syp") @db.Decimal(12, 2)
-  costUsd      Decimal       @default(0.00) @map("cost_usd") @db.Decimal(10, 2)
-  isActive     Boolean       @default(true) @map("is_active")
-  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt    DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
-  invoiceItems InvoiceItem[]
+  id              String              @id @default(uuid()) @db.Char(36)
+  sparePartNumber String              @unique @map("spare_part_number") @db.VarChar(50)
+  name            String              @db.VarChar(255)
+  shelf_location  String?             @unique @db.VarChar(100)
+  sku             String?             @unique @db.VarChar(100)
+  quantity        Int                 @default(0)
+  costSyp         Decimal             @default(0.00) @map("cost_syp") @db.Decimal(12, 2)
+  costUsd         Decimal             @default(0.00) @map("cost_usd") @db.Decimal(10, 2)
+  isActive        Boolean             @default(true) @map("is_active")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  invoiceItems    InvoiceItem[]
+  movements       InventoryMovement[]
 
-  @@map("spare_parts")
+  @@index([sparePartNumber], map: "idx_spare_part_number")
   @@index([sku], map: "idx_sku")
   @@index([name], map: "idx_name")
   @@index([isActive], map: "idx_is_active")
+  @@map("spare_parts")
 }
 
 model Invoice {
-  id                    String   @id @default(uuid()) @db.Char(36)
-  invoiceNumber         String   @unique @map("invoice_number") @db.VarChar(50)
-  requestId             String   @map("request_id") @db.Char(36)
-  technicianId          String   @map("technician_id") @db.Char(36)
-  type                  String   @db.VarChar(20) // 'external', 'internal'
-  status                String   @default("paid_partial") @db.VarChar(20) // 'paid_full', 'paid_partial', 'refunded'
-  totalAmount           Decimal  @default(0.00) @map("total_amount") @db.Decimal(12, 2)
-  totalCurrency         String   @map("total_currency") @db.VarChar(3) // 'SYP', 'USD'
-  paidAmount            Decimal  @default(0.00) @map("paid_amount") @db.Decimal(12, 2)
-  remainingAmount       Decimal  @default(0.00) @map("remaining_amount") @db.Decimal(12, 2)
-  warrantyPeriod        String?  @map("warranty_period") @db.VarChar(50)
+  id                     String   @id @default(uuid()) @db.Char(36)
+  invoiceNumber          String   @unique @map("invoice_number") @db.VarChar(50)
+  requestId              String   @map("request_id") @db.Char(36)
+  technicianId           String   @map("technician_id") @db.Char(36)
+  type                   String   @db.VarChar(20) // 'external', 'internal'
+  status                 String   @default("paid_partial") @db.VarChar(20) // 'paid_full', 'paid_partial', 'refunded'
+  totalAmount            Decimal  @default(0.00) @map("total_amount") @db.Decimal(12, 2)
+  totalCurrency          String   @map("total_currency") @db.VarChar(3) // 'SYP', 'USD'
+  paidAmount             Decimal  @default(0.00) @map("paid_amount") @db.Decimal(12, 2)
+  remainingAmount        Decimal  @default(0.00) @map("remaining_amount") @db.Decimal(12, 2)
+  warrantyPeriod         String?  @map("warranty_period") @db.VarChar(50)
   needsCenterMaintenance String?  @map("needs_center_maintenance") @db.Text
-  notes                 String?  @db.Text
-  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt             DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  notes                  String?  @db.Text
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt              DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   request    Request       @relation(fields: [requestId], references: [id], onDelete: Restrict)
   technician User          @relation(fields: [technicianId], references: [id], onDelete: Restrict)
   items      InvoiceItem[]
   payments   Payment[]
 
-  @@map("invoices")
+  @@unique([requestId], map: "unique_request_id")
   @@index([invoiceNumber], map: "idx_invoice_number")
   @@index([requestId], map: "idx_request_id")
   @@index([technicianId], map: "idx_technician_id")
   @@index([status], map: "idx_status")
   @@index([type], map: "idx_type")
+  @@map("invoices")
 }
 
 model InvoiceItem {
@@ -309,15 +325,15 @@ model InvoiceItem {
   quantity    Int     @default(1)
   unitPrice   Decimal @map("unit_price") @db.Decimal(12, 2)
   currency    String  @db.VarChar(3) // 'SYP', 'USD'
-  totalPrice  Decimal @map("total_price") @db.Decimal(12, 2) @default(dbgenerated())
+  totalPrice  Decimal @default(dbgenerated()) @map("total_price") @db.Decimal(12, 2)
   notes       String? @db.Text
 
   invoice   Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   sparePart SparePart @relation(fields: [sparePartId], references: [id], onDelete: Restrict)
 
-  @@map("invoice_items")
   @@index([invoiceId], map: "idx_invoice_id")
   @@index([sparePartId], map: "idx_spare_part_id")
+  @@map("invoice_items")
 }
 
 model Payment {
@@ -328,16 +344,38 @@ model Payment {
   paymentMethod      String   @map("payment_method") @db.VarChar(20) // 'cash', 'sham_cash'
   dollarExchangeRate Decimal  @map("dollar_exchange_rate") @db.Decimal(12, 4)
   convertedAmount    Decimal  @map("converted_amount") @db.Decimal(12, 2)
-  notes              String?  @db.Text
   paidAt             DateTime @default(now()) @map("paid_at") @db.Timestamp(0)
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
 
-  @@map("payments")
   @@index([invoiceId], map: "idx_invoice_id")
   @@index([paidAt], map: "idx_paid_at")
   @@index([currency], map: "idx_currency")
   @@index([paymentMethod], map: "idx_payment_method")
+  @@map("payments")
+}
+
+model InventoryMovement {
+  id           String       @id @default(uuid()) @db.Char(36)
+  movementNo   String       @unique @map("movement_no") @db.VarChar(50)
+  partId       String       @map("part_id") @db.Char(36)
+  movementType MovementType @map("movement_type")
+
+  responsibleBy String   @map("responsible_by")
+  responsibleId String?  @map("responsible_id") @db.Char(36)
+  reference     String?  @db.VarChar(100)
+  movementDate  DateTime @default(now()) @map("movement_date") @db.Timestamp(0)
+  quantity      Int      @default(1)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  part        SparePart @relation(fields: [partId], references: [id])
+  responsible User?     @relation(fields: [responsibleId], references: [id])
+
+  @@index([movementNo], map: "idx_movement_no")
+  @@index([partId], map: "idx_part")
+  @@index([movementDate], map: "idx_movement_date")
+  @@index([movementType], map: "idx_movement_type")
+  @@map("inventory_movements")
 }
 
 model Expense {
@@ -349,10 +387,10 @@ model Expense {
   year      Int?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
-  @@map("expenses")
   @@index([type], map: "idx_type")
   @@index([month, year], map: "idx_month_year")
   @@index([createdAt], map: "idx_created_at")
+  @@map("expenses")
 }
 
 model Notification {
@@ -366,8 +404,8 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("notifications")
   @@index([userId], map: "idx_user_id")
   @@index([isRead], map: "idx_is_read")
   @@index([createdAt], map: "idx_created_at")
+  @@map("notifications")
 }
