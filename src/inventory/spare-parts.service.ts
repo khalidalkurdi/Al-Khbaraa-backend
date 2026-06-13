@@ -11,6 +11,7 @@ import { UpdateSparePartDto } from './dto/update-spare-part.dto';
 import { QuerySparePartsDto } from './dto/query-spare-parts.dto';
 import { SparePartResponseDto } from './dto/spare-part-response.dto';
 import { plainToClass } from 'class-transformer';
+import { SparePartNumberUtil } from './utils/spare-part-number.util';
 
 export const LOW_STOCK_THRESHOLD = 5;
 
@@ -18,7 +19,10 @@ export const LOW_STOCK_THRESHOLD = 5;
 export class SparePartsService {
   private readonly logger = new Logger(SparePartsService.name);
 
-  constructor(private readonly repository: SparePartsRepository) {}
+  constructor(
+    private readonly repository: SparePartsRepository,
+    private readonly sparePartNumberUtil: SparePartNumberUtil,
+  ) {}
 
   async findAll(query: QuerySparePartsDto): Promise<SparePartResponseDto[]> {
     const page = query.page ?? 1;
@@ -58,7 +62,11 @@ export class SparePartsService {
       }
     }
 
+    const sparePartNumber =
+      await this.sparePartNumberUtil.generateUniqueSparePartNumber();
+
     const part = await this.repository.create({
+      sparePartNumber,
       name: dto.name,
       sku: dto.sku,
       quantity: dto.quantity,

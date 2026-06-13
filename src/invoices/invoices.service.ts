@@ -31,7 +31,14 @@ export class InvoicesService {
   ) {}
 
   async create(createInvoiceDto: CreateInvoiceDto, user: AuthenticatedUser) {
-    const { requestId, type, items, warrantyPeriod, notes, needsCenterMaintenance } = createInvoiceDto;
+    const {
+      requestId,
+      type,
+      items,
+      warrantyPeriod,
+      notes,
+      needsCenterMaintenance,
+    } = createInvoiceDto;
 
     const request = await this.prisma.request.findUnique({
       where: { id: requestId },
@@ -65,7 +72,9 @@ export class InvoicesService {
     for (const item of items) {
       const part = stockMap.get(item.sparePartId);
       if (!part) {
-        throw new BadRequestException(`Spare part ${item.sparePartId} not found or inactive`);
+        throw new BadRequestException(
+          `Spare part ${item.sparePartId} not found or inactive`,
+        );
       }
       const qty = item.quantity ?? 1;
       if (part.quantity < qty) {
@@ -120,7 +129,10 @@ export class InvoicesService {
         });
       }
 
-      const newStatus = type === 'external' ? RequestStatus.completed : RequestStatus.pulltocenter;
+      const newStatus =
+        type === 'external'
+          ? RequestStatus.completed
+          : RequestStatus.pulltocenter;
       await tx.request.update({
         where: { id: requestId },
         data: { status: newStatus },
@@ -139,12 +151,19 @@ export class InvoicesService {
       createdAt: invoice.createdAt,
     });
 
-    this.logger.log(`Invoice ${invoice.invoiceNumber} created for request ${requestId}`);
+    this.logger.log(
+      `Invoice ${invoice.invoiceNumber} created for request ${requestId}`,
+    );
 
     return invoice;
   }
 
-  async findAll(page: number, limit: number, userId: string, isTechnician: boolean) {
+  async findAll(
+    page: number,
+    limit: number,
+    userId: string,
+    isTechnician: boolean,
+  ) {
     return this.invoicesRepository.findMany({
       page,
       limit,
@@ -165,7 +184,11 @@ export class InvoicesService {
     return invoice;
   }
 
-  async getInvoicePdfData(id: string, userId: string, isTechnician: boolean): Promise<InvoicePdfData> {
+  async getInvoicePdfData(
+    id: string,
+    userId: string,
+    isTechnician: boolean,
+  ): Promise<InvoicePdfData> {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: {
@@ -221,7 +244,8 @@ export class InvoicesService {
     }
 
     const paidAmount = invoice.payments.reduce(
-      (sum, payment) => sum + Number(payment.convertedAmount || payment.amount || 0),
+      (sum, payment) =>
+        sum + Number(payment.convertedAmount || payment.amount || 0),
       0,
     );
 
@@ -257,7 +281,6 @@ export class InvoicesService {
         dollarExchangeRate: Number(payment.dollarExchangeRate),
         convertedAmount: Number(payment.convertedAmount),
         paidAt: payment.paidAt,
-        notes: payment.notes ?? undefined,
       })),
       totalAmount: Number(invoice.totalAmount),
       totalCurrency: invoice.totalCurrency,
