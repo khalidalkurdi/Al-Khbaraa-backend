@@ -113,12 +113,8 @@ export class DashboardService {
 
     const technicianWhere: any = {
       isActive: true,
-      roles: {
-        some: {
-          role: {
-            name: 'technician',
-          },
-        },
+      role: {
+        name: 'Technician',
       },
     };
 

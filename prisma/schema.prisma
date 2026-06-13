@@ -51,22 +51,23 @@ enum MovementType {
 // ======================================================
 
 model User {
-  id           String   @id @default(uuid()) @db.Char(36)
-  userNumber   String   @unique @map("user_number") @db.VarChar(50)
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @map("password_hash") @db.VarChar(255)
-  fullName     String   @map("full_name") @db.VarChar(255)
-  jobTitle     String   @map("job_title") @db.VarChar(255)
-  phone        String   @db.VarChar(50)
-  salary       Decimal  @default(0.00) @db.Decimal(12, 2)
-  isActive     Boolean  @default(true) @map("is_active")
-  tokenDevice  String   @map("token_device") @db.Text
+  id           String    @id @default(uuid()) @db.Char(36)
+  userNumber   String    @unique @map("user_number") @db.VarChar(50)
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  fullName     String    @map("full_name") @db.VarChar(255)
+  jobTitle     String    @map("job_title") @db.VarChar(255)
+  roleId       String    @map("role_id") @db.Char(36)
+  phone        String    @db.VarChar(50)
+  salary       Decimal   @default(0.00) @db.Decimal(12, 2)
+  isActive     Boolean   @default(true) @map("is_active")
+  tokenDevice  String    @map("token_device") @db.Text
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamp(0)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   // Relationships
-  roles                 RolesUsers[]
+  role                  Role                       @relation(fields: [roleId], references: [id], onDelete: Restrict)
   refreshTokens         RefreshToken[]
   inventories           TechnicianDailyInventory[]
   createdRequests       Request[]                  @relation("CreatedByRequests")
@@ -79,31 +80,18 @@ model User {
 
   @@index([userNumber], map: "idx_user_number")
   @@index([email], map: "idx_email")
+  @@index([roleId], map: "idx_role_id")
   @@index([isActive], map: "idx_is_active")
   @@map("users")
 }
 
 model Role {
-  id        String       @id @default(uuid()) @db.Char(36)
-  name      String       @unique @db.VarChar(50)
-  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
-  users     RolesUsers[]
+  id        String   @id @default(uuid()) @db.Char(36)
+  name      String   @unique @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  users     User[]
 
   @@map("roles")
-}
-
-model RolesUsers {
-  userId     String   @map("user_id") @db.Char(36)
-  roleId     String   @map("role_id") @db.Char(36)
-  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamp(0)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@id([userId, roleId])
-  @@index([userId], map: "idx_user_id")
-  @@index([roleId], map: "idx_role_id")
-  @@map("roles_users")
 }
 
 model RefreshToken {
@@ -335,15 +323,15 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id          String  @id @default(uuid()) @db.Char(36)
-  invoiceId   String  @map("invoice_id") @db.Char(36)
-  sparePartId String  @map("spare_part_id") @db.Char(36)
-  quantity    Int     @default(1)
-  unitPrice   Decimal @map("unit_price") @db.Decimal(12, 2)
-  currency    String  @db.VarChar(3) // 'SYP', 'USD'
-  totalPrice  Decimal @default(dbgenerated()) @map("total_price") @db.Decimal(12, 2)
-  invoice   Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  sparePart SparePart @relation(fields: [sparePartId], references: [id], onDelete: Restrict)
+  id          String    @id @default(uuid()) @db.Char(36)
+  invoiceId   String    @map("invoice_id") @db.Char(36)
+  sparePartId String    @map("spare_part_id") @db.Char(36)
+  quantity    Int       @default(1)
+  unitPrice   Decimal   @map("unit_price") @db.Decimal(12, 2)
+  currency    String    @db.VarChar(3) // 'SYP', 'USD'
+  totalPrice  Decimal   @default(dbgenerated()) @map("total_price") @db.Decimal(12, 2)
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  sparePart   SparePart @relation(fields: [sparePartId], references: [id], onDelete: Restrict)
 
   @@index([invoiceId], map: "idx_invoice_id")
   @@index([sparePartId], map: "idx_spare_part_id")

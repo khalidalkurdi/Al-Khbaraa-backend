@@ -24,6 +24,9 @@ async function main()
 
   if (!existingAdmin) {
     const passwordHash = await bcrypt.hash(adminPassword, 10) as string;
+    const adminRole = await prisma.role.findUnique({
+      where: { name: 'Admin' },
+    });
 
     const adminUser = await prisma.user.create({
       data: {
@@ -32,21 +35,11 @@ async function main()
         fullName: 'المسؤول',
         jobTitle: 'مدير النظام',
         userNumber: 'ADMIN-001',
+        roleId: adminRole!.id,
         phone: '',
         salary: 0,
         tokenDevice: '',
         lastLoginAt: new Date(),
-      },
-    });
-
-    const adminRole = await prisma.role.findUnique({
-      where: { name: 'Admin' },
-    });
-
-    await prisma.rolesUsers.create({
-      data: {
-        userId: adminUser.id,
-        roleId: adminRole!.id,
       },
     });
   } else {

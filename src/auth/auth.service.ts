@@ -38,7 +38,7 @@ export class AuthService {
   }
 
   async login(user: any, tokenDevice: string) {
-    const rolesList = user.roles.map((ur: any) => ur.role.name);
+    const rolesList = [user.role.name];
     const payload = { email: user.email, sub: user.id, roles: rolesList };
 
     await this.usersService.updateTokenDevice(user.id, tokenDevice);
@@ -106,7 +106,7 @@ export class AuthService {
       throw new UnauthorizedException('User account is disabled or not found');
     }
 
-    const rolesList = user.roles.map((ur: any) => ur.role.name);
+    const rolesList = [user.role.name];
     const newPayload = { email: user.email, sub: user.id, roles: rolesList };
 
     const accessSecret = this.configService.get<string>('jwt.accessSecret')!;
