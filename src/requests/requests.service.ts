@@ -10,7 +10,12 @@ import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { RequestQueryDto } from './dto/request-query.dto';
 import { RequestNumberUtil } from './utils/request-number.util';
-import { Prisma, RequestStatus, RequestType, Priority } from '@prisma/client';
+import {
+  Prisma,
+  RequestStatus,
+  RequestType,
+  Priority,
+} from '@prisma/client';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { RequestReceiptPdfData } from '../pdf/pdf.types';
@@ -226,11 +231,11 @@ export class RequestsService {
     });
 
     void this.notificationsService
-      .sendPushNotification(
-        technicianId,
-        'New repair request assigned',
-        `Request #${request.requestNumber} has been assigned to you.`,
-      )
+      .sendPushNotification({
+        userId: technicianId,
+        title: 'New repair request assigned',
+        body: `Request #${request.requestNumber} has been assigned to you.`,
+      })
       .catch((error: any) => {
         this.logger.warn(`FCM push notification failed: ${error?.message}`);
       });
