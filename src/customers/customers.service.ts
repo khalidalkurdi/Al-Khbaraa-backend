@@ -6,10 +6,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { CustomerNumberUtil } from './utils/customer-number.util';
 
 @Injectable()
 export class CustomersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private customerNumberUtil: CustomerNumberUtil,
+  ) {}
 
   async create(createCustomerDto: CreateCustomerDto) {
     const { firstPhone, secondPhone } = createCustomerDto;
@@ -36,8 +40,14 @@ export class CustomersService {
       }
     }
 
+    const customerNumber =
+      await this.customerNumberUtil.generateUniqueCustomerNumber();
+
     return this.prisma.customer.create({
-      data: createCustomerDto,
+      data: {
+        ...createCustomerDto,
+        customerNumber,
+      },
       include: {
         requests: true,
       },

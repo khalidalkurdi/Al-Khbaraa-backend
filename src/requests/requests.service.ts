@@ -9,16 +9,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { RequestQueryDto } from './dto/request-query.dto';
-import { RequestNumberUtil } from './utils/request-number.util';
-import {
-  Prisma,
-  RequestStatus,
-  RequestType,
-  Priority,
-} from '@prisma/client';
+import { Prisma, RequestStatus, RequestType, Priority } from '@prisma/client';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { RequestReceiptPdfData } from '../pdf/pdf.types';
+import { RequestNumberUtil } from './utils/request-number.util';
+import { CustomerNumberUtil } from '../customers/utils/customer-number.util';
 
 @Injectable()
 export class RequestsService {
@@ -27,6 +23,7 @@ export class RequestsService {
   constructor(
     private prisma: PrismaService,
     private requestNumberUtil: RequestNumberUtil,
+    private customerNumberUtil: CustomerNumberUtil,
     private readonly realtimeGateway: RealtimeGateway,
     private readonly notificationsService: NotificationsService,
   ) {}
@@ -55,11 +52,18 @@ export class RequestsService {
     }
 
     let resolvedCustomerId = customerId;
+    let generatedCustomerNumber: string | null = null;
+
+    // Generate customer number before transaction if we need to create a customer
+    if (!customerId && customer) {
+      generatedCustomerNumber =
+        await this.customerNumberUtil.generateUniqueCustomerNumber();
+    }
 
     const result = await this.prisma.$transaction(async (tx) => {
       let createdCustomer: { id: string } | null = null;
 
-      if (!customerId && customer) {
+      if (!customerId && customer && generatedCustomerNumber) {
         const existingFirst = await tx.customer.findUnique({
           where: { firstPhone: customer.firstPhone },
         });
@@ -82,12 +86,12 @@ export class RequestsService {
 
         createdCustomer = await tx.customer.create({
           data: {
+            customerNumber: generatedCustomerNumber,
             name: customer.name,
             firstPhone: customer.firstPhone,
             secondPhone: customer.secondPhone,
             address: customer.address,
             locationLink: customer.locationLink,
-            notes: customer.notes,
           },
         });
 

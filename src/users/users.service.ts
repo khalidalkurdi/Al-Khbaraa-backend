@@ -5,13 +5,17 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UserNumberUtil } from './utils/user-number.util';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly userNumberUtil: UserNumberUtil,
+  ) {}
 
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
@@ -75,10 +79,12 @@ export class UsersService {
         email: data.email,
         passwordHash,
         fullName: data.fullName,
-        jobTitle: data.jobTitle,
-        phone: data.phone,
+        userNumber: await this.userNumberUtil.generateUniqueUserNumber(),
+        jobTitle: data.jobTitle ?? '',
+        phone: data.phone ?? '',
         salary: data.salary ?? 0,
         tokenDevice: '',
+        lastLoginAt: null,
         roles: {
           create: roleRecords.map((role) => ({
             role: { connect: { id: role.id } },
