@@ -13,6 +13,9 @@ export default () => ({
       'super-secret-refresh-token-key-change-in-prod',
     refreshExpiration: process.env.JWT_REFRESH_EXPIRATION || '7d',
   },
+  fcm: {
+    credentialsJson: process.env.FCM_CREDENTIALS_JSON,
+  },
   throttler: {
     ttl: parseInt(process.env.THROTTLER_TTL || '60', 10),
     limit: parseInt(process.env.THROTTLER_LIMIT || '100', 10),
