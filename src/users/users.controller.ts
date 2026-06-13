@@ -32,7 +32,7 @@ interface AuthenticatedRequest {
 }
 
 @ApiTags('users')
-@Controller('api/users')
+@Controller('/users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

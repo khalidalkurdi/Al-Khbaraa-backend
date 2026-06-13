@@ -38,7 +38,7 @@ interface AuthenticatedRequest {
 }
 
 @ApiTags('requests')
-@Controller('api/requests')
+@Controller('requests')
 @UseGuards(JwtAuthGuard)
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService, private readonly pdfService: PdfService) {}

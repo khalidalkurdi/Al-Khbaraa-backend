@@ -19,7 +19,7 @@ import {
 
 @ApiTags('inventory')
 @ApiBearerAuth()
-@Controller('api/inventory/daily')
+@Controller('inventory/daily')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 

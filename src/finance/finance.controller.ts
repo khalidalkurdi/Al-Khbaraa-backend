@@ -39,7 +39,7 @@ interface AuthenticatedRequest {
 
 @ApiTags('Finance')
 @ApiBearerAuth()
-@Controller('api/finance')
+@Controller('finance')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class FinanceController {
   constructor(private readonly financeService: FinanceService, private readonly pdfService: PdfService) {}

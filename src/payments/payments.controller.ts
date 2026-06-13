@@ -33,7 +33,7 @@ interface AuthenticatedRequest {
 
 @ApiTags('Payments')
 @ApiBearerAuth()
-@Controller('api/payments')
+@Controller('payments')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);

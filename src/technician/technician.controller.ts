@@ -31,7 +31,7 @@ interface AuthenticatedRequest {
 }
 
 @ApiTags('technician')
-@Controller('api/technician')
+@Controller('technician')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('Technician')
 export class TechnicianController {

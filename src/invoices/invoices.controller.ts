@@ -21,7 +21,7 @@ interface AuthenticatedRequest {
 
 @ApiTags('Invoices')
 @ApiBearerAuth()
-@Controller('api/invoices')
+@Controller('invoices')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class InvoicesController {
   private readonly logger = new Logger(InvoicesController.name);

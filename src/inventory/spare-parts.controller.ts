@@ -24,7 +24,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('inventory')
 @ApiBearerAuth()
-@Controller('api/inventory/parts')
+@Controller('inventory/parts')
 export class SparePartsController {
   constructor(private readonly sparePartsService: SparePartsService) {}
 

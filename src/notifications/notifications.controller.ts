@@ -31,7 +31,7 @@ interface AuthenticatedRequest {
 }
 
 @ApiTags('notifications')
-@Controller('api/notifications')
+@Controller('notifications')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class NotificationsController {
