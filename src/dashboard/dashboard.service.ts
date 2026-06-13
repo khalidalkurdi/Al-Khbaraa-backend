@@ -2,8 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardStatsResponseDto } from './dto/dashboard-stats-response.dto';
 import { TechnicianPerformanceQueryDto } from './dto/technician-performance-query.dto';
-import { TechnicianPerformanceResponseDto, TechniciansPerformanceResponseDto } from './dto/technician-performance-response.dto';
-import { FinancialReportQueryDto, FinancialReportResponseDto } from './dto/financial-report-query.dto';
+import {
+  TechnicianPerformanceResponseDto,
+  TechniciansPerformanceResponseDto,
+} from './dto/technician-performance-response.dto';
+import {
+  FinancialReportQueryDto,
+  FinancialReportResponseDto,
+} from './dto/financial-report-query.dto';
 import { FinanceService } from '../finance/finance.service';
 import { RequestStatus } from '@prisma/client';
 
@@ -20,7 +26,11 @@ export class DashboardService {
     this.logger.log('Fetching dashboard stats');
 
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const todayEnd = new Date(todayStart);
     todayEnd.setDate(todayEnd.getDate() + 1);
 
@@ -28,21 +38,40 @@ export class DashboardService {
     const monthEnd = new Date(monthStart);
     monthEnd.setMonth(monthEnd.getMonth() + 1);
 
-    const [totalRequests, activeRepairs, completedJobs, incompleteUnpaid, dailyRevenue, monthlyRevenue] = await Promise.all([
+    const [
+      totalRequests,
+      activeRepairs,
+      completedJobs,
+      incompleteUnpaid,
+      dailyRevenue,
+      monthlyRevenue,
+    ] = await Promise.all([
       this.prisma.request.count(),
       this.prisma.request.count({
         where: {
-          status: { in: [RequestStatus.accepted, RequestStatus.ontheway, RequestStatus.arrived, RequestStatus.underrepair, RequestStatus.pulltocenter] },
+          status: {
+            in: [
+              RequestStatus.accepted,
+              RequestStatus.ontheway,
+              RequestStatus.arrived,
+              RequestStatus.underrepair,
+              RequestStatus.pulltocenter,
+            ],
+          },
         },
       }),
       this.prisma.request.count({ where: { status: RequestStatus.completed } }),
       this.prisma.request.count({
         where: {
-          status: { in: [RequestStatus.completed, RequestStatus.incompleted, RequestStatus.notrepairable] },
-          invoices: {
-            some: {
-              remainingAmount: { gt: 0 },
-            },
+          status: {
+            in: [
+              RequestStatus.completed,
+              RequestStatus.incompleted,
+              RequestStatus.notrepairable,
+            ],
+          },
+          invoice: {
+            remainingAmount: { gt: 0 },
           },
         },
       }),
@@ -75,8 +104,12 @@ export class DashboardService {
     };
   }
 
-  async getTechnicianPerformance(query: TechnicianPerformanceQueryDto): Promise<TechniciansPerformanceResponseDto> {
-    this.logger.log(`Fetching technician performance with query: ${JSON.stringify(query)}`);
+  async getTechnicianPerformance(
+    query: TechnicianPerformanceQueryDto,
+  ): Promise<TechniciansPerformanceResponseDto> {
+    this.logger.log(
+      `Fetching technician performance with query: ${JSON.stringify(query)}`,
+    );
 
     const technicianWhere: any = {
       isActive: true,
@@ -134,16 +167,23 @@ export class DashboardService {
 
       let totalRepairHours = 0;
       for (const assignment of assignments) {
-        const acceptedDate = assignment.request?.statusHistory?.find((h) => h.status === RequestStatus.accepted)?.changedAt;
-        const completedDate = assignment.request?.statusHistory?.find((h) => h.status === RequestStatus.completed)?.changedAt;
+        const acceptedDate = assignment.request?.statusHistory?.find(
+          (h) => h.status === RequestStatus.accepted,
+        )?.changedAt;
+        const completedDate = assignment.request?.statusHistory?.find(
+          (h) => h.status === RequestStatus.completed,
+        )?.changedAt;
 
         if (acceptedDate && completedDate) {
-          const hours = (completedDate.getTime() - acceptedDate.getTime()) / (1000 * 60 * 60);
+          const hours =
+            (completedDate.getTime() - acceptedDate.getTime()) /
+            (1000 * 60 * 60);
           totalRepairHours += hours;
         }
       }
 
-      const avgRepairHours = resolvedRequests > 0 ? totalRepairHours / resolvedRequests : 0;
+      const avgRepairHours =
+        resolvedRequests > 0 ? totalRepairHours / resolvedRequests : 0;
 
       const invoices = await this.prisma.invoice.findMany({
         where: {
@@ -167,7 +207,8 @@ export class DashboardService {
       let totalProfit = 0;
       for (const invoice of invoices) {
         const partsCost = invoice.items.reduce(
-          (sum, item) => sum + parseFloat(item.sparePart.costSyp.toString()) * item.quantity,
+          (sum, item) =>
+            sum + parseFloat(item.sparePart.costSyp.toString()) * item.quantity,
           0,
         );
         totalProfit += parseFloat(invoice.totalAmount.toString()) - partsCost;
@@ -185,10 +226,17 @@ export class DashboardService {
     return { technicians: results };
   }
 
-  async getFinancialReport(query: FinancialReportQueryDto): Promise<FinancialReportResponseDto> {
-    this.logger.log(`Fetching financial report from ${query.startDate} to ${query.endDate}`);
+  async getFinancialReport(
+    query: FinancialReportQueryDto,
+  ): Promise<FinancialReportResponseDto> {
+    this.logger.log(
+      `Fetching financial report from ${query.startDate} to ${query.endDate}`,
+    );
 
-    const data = await this.financeService.getFinancialReportPdfData(query.startDate, query.endDate);
+    const data = await this.financeService.getFinancialReportPdfData(
+      query.startDate,
+      query.endDate,
+    );
 
     return {
       periodStart: data.periodStart,

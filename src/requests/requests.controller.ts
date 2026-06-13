@@ -41,7 +41,10 @@ interface AuthenticatedRequest {
 @Controller('requests')
 @UseGuards(JwtAuthGuard)
 export class RequestsController {
-  constructor(private readonly requestsService: RequestsService, private readonly pdfService: PdfService) {}
+  constructor(
+    private readonly requestsService: RequestsService,
+    private readonly pdfService: PdfService,
+  ) {}
 
   @Post()
   @UseGuards(RolesGuard)
@@ -100,12 +103,17 @@ export class RequestsController {
   @ApiResponse({
     status: 200,
     description: 'PDF document returned',
-    content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } },
+    content: {
+      'application/pdf': { schema: { type: 'string', format: 'binary' } },
+    },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Request not found' })
-  async generatePdf(@Param('id') id: string, @Res({ passthrough: true }) response: Response) {
+  async generatePdf(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const request = await this.requestsService.getRequestReceiptPdfData(id);
     const result = await this.pdfService.generateRequestReceiptPdf(request, {
       documentType: 'request_receipt',
@@ -113,7 +121,10 @@ export class RequestsController {
     });
 
     response.setHeader('Content-Type', result.contentType);
-    response.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename}"`,
+    );
     response.setHeader('Cache-Control', 'private, no-cache');
     response.setHeader('Content-Length', result.buffer.length);
     response.send(result.buffer);

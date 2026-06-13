@@ -42,7 +42,10 @@ interface AuthenticatedRequest {
 @Controller('finance')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService, private readonly pdfService: PdfService) {}
+  constructor(
+    private readonly financeService: FinanceService,
+    private readonly pdfService: PdfService,
+  ) {}
 
   @Post('expenses')
   @Roles('Admin')
@@ -50,8 +53,14 @@ export class FinanceController {
   @ApiResponse({ status: 201, description: 'Expense created successfully' })
   @ApiResponse({ status: 400, description: 'Bad request - validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
-  async createExpense(@Body() dto: CreateExpenseDto, @Req() req: AuthenticatedRequest) {
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
+  async createExpense(
+    @Body() dto: CreateExpenseDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     const user = req.user;
     return this.financeService.createExpense(dto, user);
   }
@@ -109,9 +118,19 @@ export class FinanceController {
 
   @Get('summary')
   @Roles('Admin')
-  @ApiOperation({ summary: 'Generate monthly financial summary for a date range' })
-  @ApiQuery({ name: 'startDate', required: true, description: 'Start date (ISO 8601)' })
-  @ApiQuery({ name: 'endDate', required: true, description: 'End date (ISO 8601)' })
+  @ApiOperation({
+    summary: 'Generate monthly financial summary for a date range',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: true,
+    description: 'Start date (ISO 8601)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: true,
+    description: 'End date (ISO 8601)',
+  })
   @ApiResponse({ status: 200, description: 'Financial summary', type: Object })
   @ApiResponse({ status: 400, description: 'Bad request - invalid dates' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -124,25 +143,44 @@ export class FinanceController {
   @Roles('Admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate financial report PDF for a date range' })
-  @ApiQuery({ name: 'startDate', required: true, description: 'Start date (ISO 8601)' })
-  @ApiQuery({ name: 'endDate', required: true, description: 'End date (ISO 8601)' })
+  @ApiQuery({
+    name: 'startDate',
+    required: true,
+    description: 'Start date (ISO 8601)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: true,
+    description: 'End date (ISO 8601)',
+  })
   @ApiResponse({
     status: 200,
     description: 'PDF document returned',
-    content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } },
+    content: {
+      'application/pdf': { schema: { type: 'string', format: 'binary' } },
+    },
   })
   @ApiResponse({ status: 400, description: 'Bad request - invalid dates' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
-  async generateReportPdf(@Query() query: FinanceSummaryQueryDto, @Res({ passthrough: true }) response: Response) {
-    const report = await this.financeService.getFinancialReportPdfData(query.startDate, query.endDate);
+  async generateReportPdf(
+    @Query() query: FinanceSummaryQueryDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const report = await this.financeService.getFinancialReportPdfData(
+      query.startDate,
+      query.endDate,
+    );
     const result = await this.pdfService.generateFinancialReportPdf(report, {
       documentType: 'financial_report',
       filename: `financial-report-${query.startDate}-to-${query.endDate}`,
     });
 
     response.setHeader('Content-Type', result.contentType);
-    response.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename}"`,
+    );
     response.setHeader('Cache-Control', 'private, no-cache');
     response.setHeader('Content-Length', result.buffer.length);
     response.send(result.buffer);

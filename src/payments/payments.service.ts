@@ -25,7 +25,7 @@ export class PaymentsService {
   ) {}
 
   async create(createPaymentDto: CreatePaymentDto, user: AuthenticatedUser) {
-    const { invoiceId, amount, currency, paymentMethod, notes } =
+    const { invoiceId, amount, currency, paymentMethod } =
       createPaymentDto;
 
     if (amount <= 0) {
@@ -96,7 +96,6 @@ export class PaymentsService {
           paymentMethod,
           dollarExchangeRate,
           convertedAmount,
-          notes: notes ?? null,
         },
       });
 

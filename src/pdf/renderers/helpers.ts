@@ -36,7 +36,11 @@ export function drawText(
   return document.y + (options.height ?? 6);
 }
 
-export function drawSectionTitle(document: PdfDocument, title: string, y: number): number {
+export function drawSectionTitle(
+  document: PdfDocument,
+  title: string,
+  y: number,
+): number {
   document.moveDown();
   return drawText(document, title, document.page.margins.left, document.y, {
     fontSize: 13,
@@ -59,7 +63,10 @@ export function drawTable<T>(
 
   const drawHeader = () => {
     let x = left;
-    document.fillColor('#1f2937').rect(left, y, totalWidth, headerHeight).fill();
+    document
+      .fillColor('#1f2937')
+      .rect(left, y, totalWidth, headerHeight)
+      .fill();
     document.fillColor('#ffffff');
 
     for (const column of columns) {
@@ -73,11 +80,17 @@ export function drawTable<T>(
       x += column.width;
     }
 
-    document.strokeColor('#d1d5db').rect(left, y, totalWidth, headerHeight).stroke();
+    document
+      .strokeColor('#d1d5db')
+      .rect(left, y, totalWidth, headerHeight)
+      .stroke();
   };
 
   const drawRow = (row: T, index: number) => {
-    if (document.y + rowHeight > document.page.height - document.page.margins.bottom) {
+    if (
+      document.y + rowHeight >
+      document.page.height - document.page.margins.bottom
+    ) {
       document.addPage();
       y = document.page.margins.top;
       drawHeader();
@@ -87,7 +100,10 @@ export function drawTable<T>(
     let x = left;
     const rowY = document.y;
 
-    document.fillColor(index % 2 === 0 ? '#ffffff' : '#f9fafb').rect(left, rowY, totalWidth, rowHeight).fill();
+    document
+      .fillColor(index % 2 === 0 ? '#ffffff' : '#f9fafb')
+      .rect(left, rowY, totalWidth, rowHeight)
+      .fill();
     document.fillColor('#111827');
 
     for (const column of columns) {
@@ -101,7 +117,10 @@ export function drawTable<T>(
       x += column.width;
     }
 
-    document.strokeColor('#e5e7eb').rect(left, rowY, totalWidth, rowHeight).stroke();
+    document
+      .strokeColor('#e5e7eb')
+      .rect(left, rowY, totalWidth, rowHeight)
+      .stroke();
     document.y = rowY + rowHeight;
   };
 
@@ -123,24 +142,50 @@ export function drawKeyValue(
   labelWidth = 150,
 ): number {
   document.fontSize(9).fillColor('#4b5563').font('Helvetica-Bold');
-  document.text(shapeArabicText(label), document.page.margins.left, y, { width: labelWidth });
+  document.text(shapeArabicText(label), document.page.margins.left, y, {
+    width: labelWidth,
+  });
 
   document.fontSize(9).fillColor('#111827').font('Helvetica');
-  document.text(shapeArabicText(value), document.page.margins.left + labelWidth, y, {
-    width: document.page.width - document.page.margins.left - document.page.margins.right - labelWidth,
-  });
+  document.text(
+    shapeArabicText(value),
+    document.page.margins.left + labelWidth,
+    y,
+    {
+      width:
+        document.page.width -
+        document.page.margins.left -
+        document.page.margins.right -
+        labelWidth,
+    },
+  );
 
   return document.y + 4;
 }
 
-export function drawFooter(document: PdfDocument, terms: string[], pageNumber: number): void {
+export function drawFooter(
+  document: PdfDocument,
+  terms: string[],
+  pageNumber: number,
+): void {
   const y = document.page.height - 38;
   document.fontSize(7).fillColor('#6b7280').font('Helvetica');
-  document.text(`Page ${pageNumber}`, document.page.margins.left, y, { width: 120 });
+  document.text(`Page ${pageNumber}`, document.page.margins.left, y, {
+    width: 120,
+  });
 
   const termsText = terms.filter(Boolean).join(' • ');
-  document.text(shapeArabicText(termsText || 'No terms configured'), document.page.margins.left + 130, y, {
-    width: document.page.width - document.page.margins.left - document.page.margins.right - 130,
-    align: 'right',
-  });
+  document.text(
+    shapeArabicText(termsText || 'No terms configured'),
+    document.page.margins.left + 130,
+    y,
+    {
+      width:
+        document.page.width -
+        document.page.margins.left -
+        document.page.margins.right -
+        130,
+      align: 'right',
+    },
+  );
 }

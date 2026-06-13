@@ -1,7 +1,8 @@
 import reshapeArabicText from 'arabic-reshaper';
 import bidi from 'bidi-js';
 
-const ARABIC_PATTERN = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+const ARABIC_PATTERN =
+  /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 
 export function containsArabicText(value: string): boolean {
   return ARABIC_PATTERN.test(value);
@@ -16,7 +17,10 @@ export function shapeArabicText(value: string): string {
   return bidi.getReorderedString(reshaped);
 }
 
-export function formatCurrency(value: number | string, currency = 'SYP'): string {
+export function formatCurrency(
+  value: number | string,
+  currency = 'SYP',
+): string {
   const numericValue = typeof value === 'number' ? value : Number(value);
   const safeValue = Number.isFinite(numericValue) ? numericValue : 0;
 

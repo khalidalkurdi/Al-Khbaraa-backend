@@ -15,7 +15,7 @@ export type ExpenseType = 'fixed' | 'variable' | 'other';
 
 export class UpdateExpenseDto {
   @IsOptional()
-  @IsIn([['fixed', 'variable', 'other']])
+  @IsIn(['fixed', 'variable', 'other'])
   type?: ExpenseType;
 
   @IsOptional()
@@ -29,14 +29,14 @@ export class UpdateExpenseDto {
   amount?: number;
 
   @IsOptional()
-  @ValidateIf(o => !o.type || o.type === 'fixed')
+  @ValidateIf((o) => !o.type || o.type === 'fixed')
   @IsInt()
   @Min(1)
   @Max(12)
   month?: number;
 
   @IsOptional()
-  @ValidateIf(o => !o.type || o.type === 'fixed')
+  @ValidateIf((o) => !o.type || o.type === 'fixed')
   @IsInt()
   @Min(2000)
   year?: number;

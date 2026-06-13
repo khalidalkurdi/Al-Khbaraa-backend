@@ -23,8 +23,4 @@ export class CreateCustomerDto {
   @IsString()
   @IsOptional()
   locationLink?: string;
-
-  @IsString()
-  @IsOptional()
-  notes?: string;
 }

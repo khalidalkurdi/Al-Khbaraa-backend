@@ -26,11 +26,12 @@ export class InvoicesRepository {
     userId?: string;
     isTechnician?: boolean;
   }) {
-    const { page, limit, requestId, type, status, userId, isTechnician } = params;
+    const { page, limit, requestId, type, status, userId, isTechnician } =
+      params;
     const where: Prisma.InvoiceWhereInput = {};
 
     if (requestId) where.requestId = requestId;
-    if (type) where.type = type as 'internal' | 'external';
+    if (type) where.type = type;
     if (status) where.status = status;
 
     if (isTechnician && userId) {
@@ -81,7 +82,11 @@ export class InvoicesRepository {
     });
   }
 
-  async findByIdWithAuthorization(id: string, userId: string, isTechnician: boolean) {
+  async findByIdWithAuthorization(
+    id: string,
+    userId: string,
+    isTechnician: boolean,
+  ) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: {

@@ -48,8 +48,8 @@ export class CreateInventoryDto {
   inventoryDate: string;
 
   @IsString()
-  @IsOptional()
-  toolsGiven?: string;
+  @IsNotEmpty()
+  toolsGiven: string;
 
   @IsString()
   @IsOptional()

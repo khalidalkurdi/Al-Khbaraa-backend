@@ -1,37 +1,36 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import type { FinancialReportPdfData } from '../pdf/pdf.types';
 
-function buildExpenseMonthYearWhere(startMonth: number, startYear: number, endMonth: number, endYear: number) {
+function buildExpenseMonthYearWhere(
+  startMonth: number,
+  startYear: number,
+  endMonth: number,
+  endYear: number,
+) {
   if (startYear === endYear) {
     return {
-      AND: [
-        { year: startYear },
-        { month: { gte: startMonth, lte: endMonth } },
-      ],
+      AND: [{ year: startYear }, { month: { gte: startMonth, lte: endMonth } }],
     };
   }
 
   return {
     OR: [
       {
-        AND: [
-          { year: startYear },
-          { month: { gte: startMonth } },
-        ],
+        AND: [{ year: startYear }, { month: { gte: startMonth } }],
       },
       {
-        AND: [
-          { year: { gt: startYear, lt: endYear } } as any,
-        ],
+        AND: [{ year: { gt: startYear, lt: endYear } } as any],
       },
       {
-        AND: [
-          { year: endYear },
-          { month: { lte: endMonth } },
-        ],
+        AND: [{ year: endYear }, { month: { lte: endMonth } }],
       },
     ],
   };
@@ -45,7 +44,15 @@ function toExpenseResponse(expense: {
   month: number | null;
   year: number | null;
   createdAt: Date;
-}): { id: string; type: string; name: string; amount: string; month?: number; year?: number; createdAt: string } {
+}): {
+  id: string;
+  type: string;
+  name: string;
+  amount: string;
+  month?: number;
+  year?: number;
+  createdAt: string;
+} {
   return {
     id: expense.id,
     type: expense.type,
@@ -72,8 +79,13 @@ export class FinanceService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async createExpense(dto: CreateExpenseDto, user: { id: string; email: string; roles: string[] }) {
-    this.logger.log(`User ${user.email} creating expense: ${dto.name} (${dto.type})`);
+  async createExpense(
+    dto: CreateExpenseDto,
+    user: { id: string; email: string; roles: string[] },
+  ) {
+    this.logger.log(
+      `User ${user.email} creating expense: ${dto.name} (${dto.type})`,
+    );
     const expense = await this.prisma.expense.create({
       data: {
         type: dto.type,
@@ -86,16 +98,28 @@ export class FinanceService {
     return toExpenseResponse(expense);
   }
 
-  async findExpenses(filters?: { type?: string; month?: string; year?: string }) {
+  async findExpenses(filters?: {
+    type?: string;
+    month?: string;
+    year?: string;
+  }) {
     const where: any = {};
 
     if (filters?.type) {
       where.type = filters.type;
     }
-    if (filters?.month !== undefined && filters.month !== undefined && filters.month !== '') {
+    if (
+      filters?.month !== undefined &&
+      filters.month !== undefined &&
+      filters.month !== ''
+    ) {
       where.month = parseInt(filters.month, 10);
     }
-    if (filters?.year !== undefined && filters.year !== undefined && filters.year !== '') {
+    if (
+      filters?.year !== undefined &&
+      filters.year !== undefined &&
+      filters.year !== ''
+    ) {
       where.year = parseInt(filters.year, 10);
     }
 
@@ -156,7 +180,10 @@ export class FinanceService {
     });
   }
 
-  async getFinancialReportPdfData(startDate: string, endDate: string): Promise<FinancialReportPdfData> {
+  async getFinancialReportPdfData(
+    startDate: string,
+    endDate: string,
+  ): Promise<FinancialReportPdfData> {
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
 
@@ -165,21 +192,33 @@ export class FinanceService {
     endExclusive.setDate(endExclusive.getDate() + 1);
 
     if (Number.isNaN(start.getTime()) || Number.isNaN(endExclusive.getTime())) {
-      throw new BadRequestException('startDate and endDate must be valid dates');
+      throw new BadRequestException(
+        'startDate and endDate must be valid dates',
+      );
     }
 
     if (start > endExclusive) {
-      throw new BadRequestException('startDate must be before or equal to endDate');
+      throw new BadRequestException(
+        'startDate must be before or equal to endDate',
+      );
     }
 
-    this.logger.log(`Generating financial PDF report from ${startDate} to ${endDate}`);
+    this.logger.log(
+      `Generating financial PDF report from ${startDate} to ${endDate}`,
+    );
 
     const startMonth = start.getMonth() + 1;
     const endMonth = endExclusive.getMonth() + 1;
     const startYear = start.getFullYear();
     const endYear = endExclusive.getFullYear();
 
-    const [paymentsInPeriod, salariesResult, fixedExpensesResult, variableExpensesResult, otherExpensesResult] = await Promise.all([
+    const [
+      paymentsInPeriod,
+      salariesResult,
+      fixedExpensesResult,
+      variableExpensesResult,
+      otherExpensesResult,
+    ] = await Promise.all([
       this.prisma.payment.findMany({
         where: {
           paidAt: {
@@ -209,7 +248,12 @@ export class FinanceService {
           type: 'fixed',
           OR: [
             { month: null, year: null },
-            buildExpenseMonthYearWhere(startMonth, startYear, endMonth, endYear),
+            buildExpenseMonthYearWhere(
+              startMonth,
+              startYear,
+              endMonth,
+              endYear,
+            ),
           ],
         },
       }),
@@ -217,14 +261,24 @@ export class FinanceService {
         _sum: { amount: true },
         where: {
           type: 'variable',
-          ...buildExpenseMonthYearWhere(startMonth, startYear, endMonth, endYear),
+          ...buildExpenseMonthYearWhere(
+            startMonth,
+            startYear,
+            endMonth,
+            endYear,
+          ),
         },
       }),
       this.prisma.expense.aggregate({
         _sum: { amount: true },
         where: {
           type: 'other',
-          ...buildExpenseMonthYearWhere(startMonth, startYear, endMonth, endYear),
+          ...buildExpenseMonthYearWhere(
+            startMonth,
+            startYear,
+            endMonth,
+            endYear,
+          ),
         },
       }),
     ]);
@@ -234,7 +288,9 @@ export class FinanceService {
       0,
     );
 
-    const invoiceIds = Array.from(new Set(paymentsInPeriod.map((payment) => payment.invoiceId)));
+    const invoiceIds = Array.from(
+      new Set(paymentsInPeriod.map((payment) => payment.invoiceId)),
+    );
     const allPaymentsByInvoice = await this.prisma.payment.findMany({
       where: {
         invoiceId: { in: invoiceIds },
@@ -249,7 +305,8 @@ export class FinanceService {
     for (const payment of allPaymentsByInvoice) {
       totalConvertedByInvoice.set(
         payment.invoiceId,
-        (totalConvertedByInvoice.get(payment.invoiceId) ?? 0) + toDecimal(payment.convertedAmount),
+        (totalConvertedByInvoice.get(payment.invoiceId) ?? 0) +
+          toDecimal(payment.convertedAmount),
       );
     }
 
@@ -273,10 +330,15 @@ export class FinanceService {
       }
 
       const invoicePartsCost = partsCostByInvoice.get(payment.invoiceId) ?? 0;
-      return sum + invoicePartsCost * (toDecimal(payment.convertedAmount) / invoiceTotal);
+      return (
+        sum +
+        invoicePartsCost * (toDecimal(payment.convertedAmount) / invoiceTotal)
+      );
     }, 0);
 
-    const fixedCosts = toDecimal(salariesResult._sum.salary) + toDecimal(fixedExpensesResult._sum.amount);
+    const fixedCosts =
+      toDecimal(salariesResult._sum.salary) +
+      toDecimal(fixedExpensesResult._sum.amount);
     const variableCosts = toDecimal(variableExpensesResult._sum.amount);
     const otherCosts = toDecimal(otherExpensesResult._sum.amount);
     const totalCosts = fixedCosts + variableCosts + partsCosts + otherCosts;
@@ -300,23 +362,46 @@ export class FinanceService {
     };
   }
 
-  async getSummary(startDate: string, endDate: string): Promise<{ totalRevenues: string; fixedCosts: string; variableCosts: string; partsCosts: string; otherCosts: string; netProfit: string; periodStart: string; periodEnd: string }> {
+  async getSummary(
+    startDate: string,
+    endDate: string,
+  ): Promise<{
+    totalRevenues: string;
+    fixedCosts: string;
+    variableCosts: string;
+    partsCosts: string;
+    otherCosts: string;
+    netProfit: string;
+    periodStart: string;
+    periodEnd: string;
+  }> {
     const start = new Date(startDate);
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
     if (start > end) {
-      throw new BadRequestException('startDate must be before or equal to endDate');
+      throw new BadRequestException(
+        'startDate must be before or equal to endDate',
+      );
     }
 
-    this.logger.log(`Generating financial summary from ${startDate} to ${endDate}`);
+    this.logger.log(
+      `Generating financial summary from ${startDate} to ${endDate}`,
+    );
 
     const startMonth = start.getMonth() + 1;
     const endMonth = end.getMonth() + 1;
     const startYear = start.getFullYear();
     const endYear = end.getFullYear();
 
-    const [revenuesResult, salariesResult, fixedExpensesResult, variableExpensesResult, otherExpensesResult, partsCostsResult] = await Promise.all([
+    const [
+      revenuesResult,
+      salariesResult,
+      fixedExpensesResult,
+      variableExpensesResult,
+      otherExpensesResult,
+      partsCostsResult,
+    ] = await Promise.all([
       this.prisma.payment.aggregate({
         _sum: { convertedAmount: true },
         where: {
@@ -335,14 +420,24 @@ export class FinanceService {
         _sum: { amount: true },
         where: {
           type: 'variable',
-          ...buildExpenseMonthYearWhere(startMonth, startYear, endMonth, endYear),
+          ...buildExpenseMonthYearWhere(
+            startMonth,
+            startYear,
+            endMonth,
+            endYear,
+          ),
         },
       }),
       this.prisma.expense.aggregate({
         _sum: { amount: true },
         where: {
           type: 'other',
-          ...buildExpenseMonthYearWhere(startMonth, startYear, endMonth, endYear),
+          ...buildExpenseMonthYearWhere(
+            startMonth,
+            startYear,
+            endMonth,
+            endYear,
+          ),
         },
       }),
       this.prisma.$queryRaw<{ partsCost: number }[]>`

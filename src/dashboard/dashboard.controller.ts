@@ -1,14 +1,11 @@
-import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Res } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { DashboardStatsResponseDto } from './dto/dashboard-stats-response.dto';
 import { TechnicianPerformanceQueryDto } from './dto/technician-performance-query.dto';
-import { FinancialReportQueryDto, FinancialReportResponseDto } from './dto/financial-report-query.dto';
+import {
+  FinancialReportQueryDto,
+  FinancialReportResponseDto,
+} from './dto/financial-report-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { Response } from 'express';
@@ -30,7 +27,9 @@ export class DashboardController {
 
   @Get('technician-performance')
   @Roles('admin')
-  async getTechnicianPerformance(@Query() query: TechnicianPerformanceQueryDto) {
+  async getTechnicianPerformance(
+    @Query() query: TechnicianPerformanceQueryDto,
+  ) {
     return this.dashboardService.getTechnicianPerformance(query);
   }
 
@@ -50,7 +49,10 @@ export class DashboardController {
       });
 
       response.setHeader('Content-Type', pdf.contentType);
-      response.setHeader('Content-Disposition', `attachment; filename="${pdf.filename}"`);
+      response.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${pdf.filename}"`,
+      );
       response.setHeader('Cache-Control', 'private, no-cache');
       response.setHeader('Content-Length', pdf.buffer.length);
       response.send(pdf.buffer);

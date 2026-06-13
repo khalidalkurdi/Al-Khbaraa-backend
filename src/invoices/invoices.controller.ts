@@ -1,5 +1,22 @@
-import { Controller, Get, Post, Body, Param, Query, Req, UseGuards, Logger, Res } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  Logger,
+  Res,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { PdfModule } from '../pdf/pdf.module';
 import { PdfService } from '../pdf/pdf.service';
@@ -26,17 +43,33 @@ interface AuthenticatedRequest {
 export class InvoicesController {
   private readonly logger = new Logger(InvoicesController.name);
 
-  constructor(private readonly invoicesService: InvoicesService, private readonly pdfService: PdfService) {}
+  constructor(
+    private readonly invoicesService: InvoicesService,
+    private readonly pdfService: PdfService,
+  ) {}
 
   @Post()
   @Roles('Admin', 'Manager', 'Employee')
   @ApiOperation({ summary: 'Create a new invoice' })
-  @ApiResponse({ status: 201, description: 'Invoice created successfully', type: InvoiceResponse })
-  @ApiResponse({ status: 400, description: 'Bad request - validation error or insufficient stock' })
+  @ApiResponse({
+    status: 201,
+    description: 'Invoice created successfully',
+    type: InvoiceResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - validation error or insufficient stock',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
   @ApiResponse({ status: 404, description: 'Request not found' })
-  async create(@Body() createInvoiceDto: CreateInvoiceDto, @Req() req: AuthenticatedRequest) {
+  async create(
+    @Body() createInvoiceDto: CreateInvoiceDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     const user = req.user;
     return this.invoicesService.create(createInvoiceDto, user);
   }
@@ -47,8 +80,18 @@ export class InvoicesController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
   @ApiQuery({ name: 'requestId', required: false, type: String })
-  @ApiQuery({ name: 'type', required: false, type: String, enum: ['internal', 'external'] })
-  @ApiQuery({ name: 'status', required: false, type: String, enum: ['paid_full', 'paid_partial', 'refunded'] })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    type: String,
+    enum: ['internal', 'external'],
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: String,
+    enum: ['paid_full', 'paid_partial', 'refunded'],
+  })
   @ApiResponse({ status: 200, description: 'Paginated list of invoices' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -73,7 +116,11 @@ export class InvoicesController {
   @Get(':id')
   @Roles('Admin', 'Manager', 'Employee', 'Technician')
   @ApiOperation({ summary: 'Get invoice details by ID' })
-  @ApiResponse({ status: 200, description: 'Invoice details', type: InvoiceDetailResponse })
+  @ApiResponse({
+    status: 200,
+    description: 'Invoice details',
+    type: InvoiceDetailResponse,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
@@ -90,22 +137,35 @@ export class InvoicesController {
   @ApiResponse({
     status: 200,
     description: 'PDF document returned',
-    content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } },
+    content: {
+      'application/pdf': { schema: { type: 'string', format: 'binary' } },
+    },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Invoice not found' })
-  async generatePdf(@Req() req: AuthenticatedRequest, @Param('id') id: string, @Res({ passthrough: true }) response: Response) {
+  async generatePdf(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
     const user = req.user;
     const isTechnician = user.roles.includes('Technician');
-    const invoice = await this.invoicesService.getInvoicePdfData(id, user.id, isTechnician);
+    const invoice = await this.invoicesService.getInvoicePdfData(
+      id,
+      user.id,
+      isTechnician,
+    );
     const result = await this.pdfService.generateInvoicePdf(invoice, {
       documentType: 'invoice',
       filename: `invoice-${invoice.invoiceNumber}`,
     });
 
     response.setHeader('Content-Type', result.contentType);
-    response.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${result.filename}"`,
+    );
     response.setHeader('Cache-Control', 'private, no-cache');
     response.setHeader('Content-Length', result.buffer.length);
     response.send(result.buffer);

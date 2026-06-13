@@ -1,11 +1,8 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsUUID,
   IsEnum,
-  IsString,
-  IsOptional,
   IsNotEmpty,
-  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -37,13 +34,4 @@ export class CreatePaymentDto {
   })
   @IsEnum(['cash', 'sham_cash'])
   paymentMethod: 'cash' | 'sham_cash';
-
-  @ApiPropertyOptional({
-    description: 'Optional notes for payment',
-    maxLength: 2000,
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(2000)
-  notes?: string;
 }

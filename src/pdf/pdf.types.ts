@@ -2,7 +2,10 @@ import PDFDocument from 'pdfkit';
 
 export type PdfDocument = InstanceType<typeof PDFDocument>;
 
-export type PdfDocumentType = 'invoice' | 'request_receipt' | 'financial_report';
+export type PdfDocumentType =
+  | 'invoice'
+  | 'request_receipt'
+  | 'financial_report';
 
 export interface PdfBranding {
   centerName: string;
@@ -119,4 +122,7 @@ export interface PdfRenderResult {
   contentType: 'application/pdf';
 }
 
-export type PdfRenderer<T> = (document: PdfDocument, data: T) => void | Promise<void>;
+export type PdfRenderer<T> = (
+  document: PdfDocument,
+  data: T,
+) => void | Promise<void>;

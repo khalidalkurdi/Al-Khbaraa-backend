@@ -37,11 +37,6 @@ export class InlineCustomerDto {
   @IsOptional()
   @MaxLength(500)
   locationLink?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(1000)
-  notes?: string;
 }
 
 export class CreateRequestDto {

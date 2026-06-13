@@ -74,15 +74,15 @@ import { DashboardModule } from './dashboard/dashboard.module';
     // Payments
     PaymentsModule,
 
-// Finance
-     FinanceModule,
+    // Finance
+    FinanceModule,
 
-     // PDF generation
-     PdfModule,
+    // PDF generation
+    PdfModule,
 
-     // Dashboard
-     DashboardModule,
-   ],
+    // Dashboard
+    DashboardModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,

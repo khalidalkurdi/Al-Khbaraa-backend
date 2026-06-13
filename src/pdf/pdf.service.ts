@@ -38,34 +38,55 @@ export class PdfService {
 
   constructor(private readonly settingsService: SettingsService) {}
 
-  async generateInvoicePdf(data: InvoicePdfData, options: PdfRenderOptions): Promise<PdfRenderResult> {
+  async generateInvoicePdf(
+    data: InvoicePdfData,
+    options: PdfRenderOptions,
+  ): Promise<PdfRenderResult> {
     const branding = await this.resolveBranding();
-    const buffer = await this.render((document) => renderInvoicePdf(document, data, branding));
+    const buffer = await this.render((document) =>
+      renderInvoicePdf(document, data, branding),
+    );
 
     return {
-      filename: pdfFilename(options.filename || `invoice-${data.invoiceNumber}`),
+      filename: pdfFilename(
+        options.filename || `invoice-${data.invoiceNumber}`,
+      ),
       buffer,
       contentType: 'application/pdf',
     };
   }
 
-  async generateRequestReceiptPdf(data: RequestReceiptPdfData, options: PdfRenderOptions): Promise<PdfRenderResult> {
+  async generateRequestReceiptPdf(
+    data: RequestReceiptPdfData,
+    options: PdfRenderOptions,
+  ): Promise<PdfRenderResult> {
     const branding = await this.resolveBranding();
-    const buffer = await this.render((document) => renderRequestReceiptPdf(document, data, branding));
+    const buffer = await this.render((document) =>
+      renderRequestReceiptPdf(document, data, branding),
+    );
 
     return {
-      filename: pdfFilename(options.filename || `request-${data.requestNumber}`),
+      filename: pdfFilename(
+        options.filename || `request-${data.requestNumber}`,
+      ),
       buffer,
       contentType: 'application/pdf',
     };
   }
 
-  async generateFinancialReportPdf(data: FinancialReportPdfData, options: PdfRenderOptions): Promise<PdfRenderResult> {
+  async generateFinancialReportPdf(
+    data: FinancialReportPdfData,
+    options: PdfRenderOptions,
+  ): Promise<PdfRenderResult> {
     const branding = await this.resolveBranding();
-    const buffer = await this.render((document) => renderFinancialReportPdf(document, data, branding));
+    const buffer = await this.render((document) =>
+      renderFinancialReportPdf(document, data, branding),
+    );
 
     return {
-      filename: pdfFilename(options.filename || `financial-report-${data.periodStart}`),
+      filename: pdfFilename(
+        options.filename || `financial-report-${data.periodStart}`,
+      ),
       buffer,
       contentType: 'application/pdf',
     };
@@ -75,13 +96,23 @@ export class PdfService {
     let settings: CenterSettingsLike | null = null;
 
     try {
-      settings = (await this.settingsService.getSettings()) as CenterSettingsLike;
+      settings =
+        (await this.settingsService.getSettings()) as CenterSettingsLike;
     } catch (error) {
-      this.logger.warn(`Center settings not found; using PDF branding fallback: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.warn(
+        `Center settings not found; using PDF branding fallback: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
 
-    const logoPath = settings?.logoPath ? this.resolveLogoPath(settings.logoPath) : undefined;
-    const terms = [settings?.term1, settings?.term2, settings?.term3, settings?.term4].filter((term): term is string => Boolean(term));
+    const logoPath = settings?.logoPath
+      ? this.resolveLogoPath(settings.logoPath)
+      : undefined;
+    const terms = [
+      settings?.term1,
+      settings?.term2,
+      settings?.term3,
+      settings?.term4,
+    ].filter((term): term is string => Boolean(term));
 
     return {
       centerName: settings?.centerName || 'Al-Khbaraa Center',
@@ -92,22 +123,32 @@ export class PdfService {
       email: settings?.email || 'Email not configured',
       logoPath,
       terms,
-      dollarExchangeRate: settings?.dollarExchangeRate ? String(settings.dollarExchangeRate) : undefined,
+      dollarExchangeRate: settings?.dollarExchangeRate
+        ? String(settings.dollarExchangeRate)
+        : undefined,
     };
   }
 
   private resolveLogoPath(logoPath: string): string | undefined {
-    if (!logoPath || logoPath.startsWith('http://') || logoPath.startsWith('https://')) {
+    if (
+      !logoPath ||
+      logoPath.startsWith('http://') ||
+      logoPath.startsWith('https://')
+    ) {
       return undefined;
     }
 
     const normalized = logoPath.replace(/^[\\/]+/, '');
-    const absolutePath = path.isAbsolute(normalized) ? normalized : path.join(process.cwd(), normalized);
+    const absolutePath = path.isAbsolute(normalized)
+      ? normalized
+      : path.join(process.cwd(), normalized);
 
     return fs.existsSync(absolutePath) ? absolutePath : undefined;
   }
 
-  private async render(render: (document: PdfDocument) => void): Promise<Buffer> {
+  private async render(
+    render: (document: PdfDocument) => void,
+  ): Promise<Buffer> {
     const document = new PDFDocument({
       size: 'A4',
       margin: 50,
