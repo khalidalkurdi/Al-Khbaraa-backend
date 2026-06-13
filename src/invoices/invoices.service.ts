@@ -114,7 +114,6 @@ export class InvoicesService {
               unitPrice: item.unitPrice ?? 0,
               currency: item.currency,
               totalPrice: (item.quantity ?? 1) * (item.unitPrice ?? 0),
-              notes: item.notes ?? null,
             })),
           },
         },
@@ -271,7 +270,6 @@ export class InvoicesService {
         unitPrice: Number(item.unitPrice),
         currency: item.currency,
         totalPrice: Number(item.totalPrice),
-        notes: item.notes ?? undefined,
       })),
       payments: invoice.payments.map((payment) => ({
         id: payment.id,

@@ -30,11 +30,4 @@ export class CreateInvoiceItemDto {
 
   @ApiProperty({ description: 'Currency for this item', enum: ['SYP', 'USD'] })
   currency: string;
-
-  @ApiPropertyOptional({
-    description: 'Optional notes for this line item',
-    maxLength: 1000,
-  })
-  @IsOptional()
-  notes?: string;
 }

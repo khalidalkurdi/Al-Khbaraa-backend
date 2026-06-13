@@ -41,7 +41,6 @@ export interface InvoicePdfLineItem {
   unitPrice: number;
   currency: string;
   totalPrice: number;
-  notes?: string;
 }
 
 export interface InvoicePdfPayment {
@@ -52,7 +51,6 @@ export interface InvoicePdfPayment {
   dollarExchangeRate?: number;
   convertedAmount?: number;
   paidAt: Date;
-  notes?: string;
 }
 
 export interface InvoicePdfData {

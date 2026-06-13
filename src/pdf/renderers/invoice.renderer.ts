@@ -185,7 +185,6 @@ export function renderInvoicePdf(
         align: 'right',
         render: (row) => toFixed2(row.convertedAmount),
       },
-      { header: 'Notes', width: 110, render: (row) => row.notes ?? '' },
     ],
     data.payments,
     y,

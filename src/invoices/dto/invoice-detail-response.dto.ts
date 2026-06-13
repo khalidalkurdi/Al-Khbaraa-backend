@@ -28,9 +28,6 @@ export class InvoiceItemResponse {
 
   @ApiProperty({ description: 'Total price', type: Number })
   totalPrice: number;
-
-  @ApiPropertyOptional({ description: 'Item notes', nullable: true })
-  notes?: string;
 }
 
 export class PaymentResponse {
@@ -59,9 +56,6 @@ export class PaymentResponse {
     type: Number,
   })
   convertedAmount?: number;
-
-  @ApiPropertyOptional({ description: 'Payment notes', nullable: true })
-  notes?: string;
 
   @ApiProperty({ description: 'Payment timestamp', format: 'date-time' })
   paidAt: Date;
