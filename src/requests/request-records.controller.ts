@@ -1,0 +1,83 @@
+import {
+  Body,
+  Controller,
+  Post,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { RequestsService } from './requests.service';
+import { UploadRequestRecordsDto } from './dto/upload-request-records.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+
+@ApiTags('requests')
+@Controller('request')
+export class RequestRecordsController {
+  constructor(private readonly requestsService: RequestsService) {}
+
+  @Post('records')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'Manager', 'Employee')
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['requestNumber', 'records'],
+      properties: {
+        requestNumber: {
+          type: 'string',
+          example: 'REQ-20260614-0001',
+        },
+        records: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
+      },
+    },
+  })
+  @ApiOperation({ summary: 'Upload voice records for a repair request' })
+  @ApiResponse({
+    status: 201,
+    description: 'Voice records uploaded and saved successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - invalid file or request',
+  })
+  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient role privileges',
+  })
+  @UseInterceptors(
+    FilesInterceptor('records', 10, {
+      limits: {
+        fileSize: 25 * 1024 * 1024,
+      },
+    }),
+  )
+  async uploadRecords(
+    @Body() uploadRequestRecordsDto: UploadRequestRecordsDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.requestsService.uploadRequestVoiceRecords(
+      uploadRequestRecordsDto.requestId,
+      files,
+    );
+  }
+}

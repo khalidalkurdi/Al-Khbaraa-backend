@@ -4,7 +4,13 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  InternalServerErrorException,
+  OnModuleInit,
+  OnModuleDestroy,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -17,8 +23,11 @@ import { RequestNumberUtil } from './utils/request-number.util';
 import { CustomerNumberUtil } from '../customers/utils/customer-number.util';
 
 @Injectable()
-export class RequestsService {
+export class RequestsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RequestsService.name);
+  private readonly recordsDir = path.join(process.cwd(), 'uploads', 'Records');
+  private readonly allowedRecordMimeTypes = ['audio/mp3', 'audio/mp4'];
+  private cleanupTimer: NodeJS.Timeout | undefined;
 
   constructor(
     private prisma: PrismaService,
@@ -27,6 +36,165 @@ export class RequestsService {
     private readonly realtimeGateway: RealtimeGateway,
     private readonly notificationsService: NotificationsService,
   ) {}
+
+  onModuleInit() {
+    this.scheduleNextRequestVoiceRecordCleanup();
+  }
+
+  onModuleDestroy() {
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = undefined;
+    }
+  }
+
+  private scheduleNextRequestVoiceRecordCleanup() {
+    const delay = this.getMillisecondsUntilNextRequestVoiceRecordCleanup(
+      new Date(),
+    );
+
+    this.cleanupTimer = setTimeout(() => {
+      void this.cleanupOldRequestVoiceRecords().finally(() => {
+        this.scheduleNextRequestVoiceRecordCleanup();
+      });
+    }, delay);
+  }
+
+  private getMillisecondsUntilNextRequestVoiceRecordCleanup(now: Date) {
+    const nextRun = new Date(now);
+    nextRun.setHours(5, 0, 0, 0);
+
+    if (nextRun <= now) {
+      nextRun.setDate(nextRun.getDate() + 1);
+    }
+
+    return nextRun.getTime() - now.getTime();
+  }
+
+  async cleanupOldRequestVoiceRecords() {
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - 1);
+
+    const records = await this.prisma.requestVoiceRecord.findMany({
+      where: {
+        createdAt: {
+          lt: cutoffDate,
+        },
+      },
+      select: {
+        id: true,
+        fullFilePath: true,
+      },
+    });
+
+    if (records.length === 0) {
+      this.logger.log('No expired request voice records found');
+      return {
+        deletedRecords: 0,
+        deletedFiles: 0,
+      };
+    }
+
+    const removableRecordIds: string[] = [];
+    let deletedFiles = 0;
+
+    for (const record of records) {
+      const filePath = this.resolveRequestVoiceRecordPath(record.fullFilePath);
+
+      if (!filePath) {
+        removableRecordIds.push(record.id);
+        continue;
+      }
+
+      try {
+        fs.rmSync(filePath, { force: true, recursive: true });
+        deletedFiles++;
+        removableRecordIds.push(record.id);
+        this.removeEmptyRequestVoiceRecordDirectories(filePath);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to delete expired request voice record file: ${record.fullFilePath}`,
+        );
+      }
+    }
+
+    if (removableRecordIds.length === 0) {
+      return {
+        deletedRecords: 0,
+        deletedFiles,
+      };
+    }
+
+    try {
+      const result = await this.prisma.requestVoiceRecord.deleteMany({
+        where: {
+          id: {
+            in: removableRecordIds,
+          },
+        },
+      });
+
+      this.logger.log(`Deleted ${result.count} expired request voice records`);
+
+      return {
+        deletedRecords: result.count,
+        deletedFiles,
+      };
+    } catch (error) {
+      this.logger.error(
+        'Failed to delete expired request voice records from database',
+        error,
+      );
+      throw error;
+    }
+  }
+
+  private resolveRequestVoiceRecordPath(fullFilePath: string) {
+    if (!fullFilePath || !fullFilePath.startsWith('/uploads/Records/')) {
+      return null;
+    }
+
+    const uploadRoot = path.resolve(process.cwd(), 'uploads');
+    const relativePath = fullFilePath.replace(/^\/+/, '');
+    const absolutePath = path.resolve(uploadRoot, relativePath);
+
+    if (
+      absolutePath !== uploadRoot &&
+      !absolutePath.startsWith(`${uploadRoot}${path.sep}`)
+    ) {
+      return null;
+    }
+
+    return absolutePath;
+  }
+
+  private removeEmptyRequestVoiceRecordDirectories(filePath: string) {
+    const recordDirectory = path.dirname(filePath);
+
+    try {
+      if (fs.readdirSync(recordDirectory).length !== 0) {
+        return;
+      }
+
+      fs.rmdirSync(recordDirectory);
+
+      if (recordDirectory === this.recordsDir) {
+        return;
+      }
+
+      const parentDirectory = path.dirname(recordDirectory);
+
+      if (
+        parentDirectory !== this.recordsDir &&
+        fs.existsSync(parentDirectory) &&
+        fs.readdirSync(parentDirectory).length === 0
+      ) {
+        fs.rmdirSync(parentDirectory);
+      }
+    } catch {
+      return;
+    }
+  }
 
   async create(createRequestDto: CreateRequestDto, userId: string) {
     const {
@@ -245,6 +413,81 @@ export class RequestsService {
       });
 
     return { assignment: result };
+  }
+
+  async uploadRequestVoiceRecords(
+    requestNumber: string,
+    files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No voice records uploaded');
+    }
+
+    const request = await this.prisma.request.findUnique({
+      where: { requestNumber },
+      select: { id: true, requestNumber: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException(`Request ${requestNumber} not found`);
+    }
+
+    const recordFiles = files.map((file) => {
+      if (!this.allowedRecordMimeTypes.includes(file.mimetype)) {
+        throw new BadRequestException(
+          'Invalid file type. Only audio files are allowed.',
+        );
+      }
+
+      const extension = this.getSafeFileExtension(file.originalname);
+      const filename = `${Date.now()}-${randomUUID()}${extension}`;
+
+      return {
+        file,
+        filename,
+      };
+    });
+
+    const requestRecordsDir = path.join(this.recordsDir, request.requestNumber);
+    fs.mkdirSync(requestRecordsDir, { recursive: true });
+
+    const records = recordFiles.map(({ file, filename }) => {
+      const filePath = path.join(requestRecordsDir, filename);
+      fs.writeFileSync(filePath, file.buffer);
+
+      return {
+        requestId: request.id,
+        fullFilePath: `/uploads/Records/${request.requestNumber}/${filename}`,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+      };
+    });
+
+    try {
+      await this.prisma.requestVoiceRecord.createMany({ data: records });
+    } catch {
+      throw new InternalServerErrorException('Failed to save voice records');
+    }
+
+    return this.prisma.requestVoiceRecord.findMany({
+      where: {
+        requestId: request.id,
+        fullFilePath: {
+          in: records.map((record) => record.fullFilePath),
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  private getSafeFileExtension(originalname: string) {
+    const extension = path.extname(originalname).toLowerCase();
+
+    if (/^\.[a-z0-9]{1,8}$/.test(extension)) {
+      return extension;
+    }
+
+    return '.m4a';
   }
 
   async getStatusHistory(id: string) {
