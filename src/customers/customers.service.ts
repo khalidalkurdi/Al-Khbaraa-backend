@@ -23,9 +23,7 @@ export class CustomersService {
       where: { firstPhone },
     });
     if (existingFirstPhone) {
-      throw new ConflictException(
-        'Customer with this first phone number already exists',
-      );
+      throw new ConflictException('يوجد عميل بهذا الرقم الأول للهاتف بالفعل');
     }
 
     // Check for duplicate secondPhone if provided
@@ -35,7 +33,7 @@ export class CustomersService {
       });
       if (existingSecondPhone) {
         throw new ConflictException(
-          'Customer with this second phone number already exists',
+          'يوجد عميل بهذا الرقم الثاني للهاتف بالفعل',
         );
       }
     }
@@ -112,7 +110,7 @@ export class CustomersService {
     });
 
     if (!customer) {
-      throw new NotFoundException(`Customer with ID ${id} not found`);
+      throw new NotFoundException(`عميل بالمعرف ${id} غير موجود`);
     }
 
     return customer;
@@ -129,9 +127,7 @@ export class CustomersService {
         where: { firstPhone, id: { not: id } },
       });
       if (existingFirstPhone) {
-        throw new ConflictException(
-          'Customer with this first phone number already exists',
-        );
+        throw new ConflictException('يوجد عميل بهذا الرقم الأول للهاتف بالفعل');
       }
     }
 
@@ -142,7 +138,7 @@ export class CustomersService {
       });
       if (existingSecondPhone) {
         throw new ConflictException(
-          'Customer with this second phone number already exists',
+          'يوجد عميل بهذا الرقم الثاني للهاتف بالفعل',
         );
       }
     }
@@ -160,12 +156,12 @@ export class CustomersService {
     });
 
     if (!customer) {
-      throw new NotFoundException(`Customer with ID ${id} not found`);
+      throw new NotFoundException(`عميل بالمعرف ${id} غير موجود`);
     }
 
     if (customer._count.requests > 0) {
       throw new ConflictException(
-        'Cannot delete customer with associated repair requests. Consider deactivating instead.',
+        'لا يمكن حذف العميل المرتبط بطلبات صيانة. يمكن تعطيله بدلاً من ذلك.',
       );
     }
 

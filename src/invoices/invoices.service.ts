@@ -46,7 +46,7 @@ export class InvoicesService {
     });
 
     if (!request) {
-      throw new NotFoundException('Request not found');
+      throw new NotFoundException('الطلب غير موجود');
     }
 
     const isTechnician = user.roles.includes('Technician');
@@ -55,7 +55,7 @@ export class InvoicesService {
         where: { requestId, technicianId: user.id, isActive: true },
       });
       if (!assignment) {
-        throw new ForbiddenException('You are not assigned to this request');
+        throw new ForbiddenException('لست مسنداً إلى هذا الطلب');
       }
     }
 
@@ -73,13 +73,13 @@ export class InvoicesService {
       const part = stockMap.get(item.sparePartId);
       if (!part) {
         throw new BadRequestException(
-          `Spare part ${item.sparePartId} not found or inactive`,
+          `قطعة الغيار ${item.sparePartId} غير موجودة أو غير نشطة`,
         );
       }
       const qty = item.quantity ?? 1;
       if (part.quantity < qty) {
         throw new BadRequestException(
-          `Insufficient stock for ${part.name}: available ${part.quantity}, requested ${qty}`,
+          `المخزون غير كافٍ لـ ${part.name}: المتاح ${part.quantity}، والمطلوب ${qty}`,
         );
       }
     }
@@ -178,7 +178,7 @@ export class InvoicesService {
       isTechnician,
     );
     if (!invoice) {
-      throw new NotFoundException('Invoice not found');
+      throw new NotFoundException('الفاتورة غير موجودة');
     }
     return invoice;
   }
@@ -225,7 +225,7 @@ export class InvoicesService {
     });
 
     if (!invoice) {
-      throw new NotFoundException('Invoice not found');
+      throw new NotFoundException('الفاتورة غير موجودة');
     }
 
     if (isTechnician) {
@@ -238,7 +238,7 @@ export class InvoicesService {
       });
 
       if (!assignment) {
-        throw new ForbiddenException('You are not assigned to this request');
+        throw new ForbiddenException('لست مسنداً إلى هذا الطلب');
       }
     }
 
@@ -298,6 +298,6 @@ export class InvoicesService {
       });
       if (!existing) return candidate;
     }
-    throw new BadRequestException('Failed to generate unique invoice number');
+    throw new BadRequestException('فشل إنشاء رقم فاتورة فريد');
   }
 }

@@ -27,9 +27,9 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
-    description: 'Successful login returning access and refresh tokens',
+    description: 'تم تسجيل الدخول بنجاح وإرجاع رمزي الوصول والتحديث',
   })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 401, description: 'بيانات الاعتماد غير صالحة' })
   async login(@Request() req: { user: any }, @Body() loginDto: LoginDto) {
     return this.authService.login(req.user, loginDto.tokenDevice);
   }
@@ -38,8 +38,8 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotate JWT access and refresh tokens' })
-  @ApiResponse({ status: 200, description: 'Tokens successfully refreshed' })
-  @ApiResponse({ status: 401, description: 'Invalid or revoked refresh token' })
+  @ApiResponse({ status: 200, description: 'تم تحديث الرموز بنجاح' })
+  @ApiResponse({ status: 401, description: 'رمز التحديث غير صالح أو ملغى' })
   async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refresh(refreshTokenDto.refreshToken);
   }
@@ -50,10 +50,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Logout and revoke refresh token' })
   @ApiResponse({
     status: 200,
-    description: 'Refresh token successfully revoked',
+    description: 'تم إلغاء رمز التحديث بنجاح',
   })
   async logout(@Body() refreshTokenDto: RefreshTokenDto) {
     await this.authService.logout(refreshTokenDto.refreshToken);
-    return { message: 'Logged out successfully' };
+    return { message: 'تم تسجيل الخروج بنجاح' };
   }
 }

@@ -104,9 +104,7 @@ export class TechnicianService {
     });
 
     if (!assignment) {
-      throw new NotFoundException(
-        'Request not found or not assigned to this technician',
-      );
+      throw new NotFoundException('الطلب غير موجود أو غير مسند إلى هذا الفني');
     }
 
     const request = await this.prisma.request.findUnique({
@@ -114,7 +112,7 @@ export class TechnicianService {
     });
 
     if (!request) {
-      throw new NotFoundException(`Request with ID ${requestId} not found`);
+      throw new NotFoundException(`طلب بالمعرف ${requestId} غير موجود`);
     }
 
     const result = await this.prisma.$transaction(async (tx) => {

@@ -136,7 +136,7 @@ export class FinanceService {
     });
 
     if (!expense) {
-      throw new NotFoundException(`Expense with ID ${id} not found`);
+      throw new NotFoundException(`مصروف بالمعرف ${id} غير موجود`);
     }
 
     return toExpenseResponse(expense);
@@ -148,7 +148,7 @@ export class FinanceService {
     });
 
     if (!existing) {
-      throw new NotFoundException(`Expense with ID ${id} not found`);
+      throw new NotFoundException(`مصروف بالمعرف ${id} غير موجود`);
     }
 
     const data: any = {};
@@ -172,7 +172,7 @@ export class FinanceService {
     });
 
     if (!existing) {
-      throw new NotFoundException(`Expense with ID ${id} not found`);
+      throw new NotFoundException(`مصروف بالمعرف ${id} غير موجود`);
     }
 
     await this.prisma.expense.delete({
@@ -193,13 +193,13 @@ export class FinanceService {
 
     if (Number.isNaN(start.getTime()) || Number.isNaN(endExclusive.getTime())) {
       throw new BadRequestException(
-        'startDate and endDate must be valid dates',
+        'يجب أن يكون startDate و endDate تاريخين صالحين',
       );
     }
 
     if (start > endExclusive) {
       throw new BadRequestException(
-        'startDate must be before or equal to endDate',
+        'يجب أن يكون startDate قبل أو يساوي endDate',
       );
     }
 
@@ -381,7 +381,7 @@ export class FinanceService {
 
     if (start > end) {
       throw new BadRequestException(
-        'startDate must be before or equal to endDate',
+        'يجب أن يكون startDate قبل أو يساوي endDate',
       );
     }
 

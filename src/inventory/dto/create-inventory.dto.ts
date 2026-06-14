@@ -21,7 +21,7 @@ export class IsNotFutureDateValidator implements ValidatorConstraintInterface {
   }
 
   defaultMessage(): string {
-    return 'inventoryDate cannot be a future date';
+    return 'تاريخ الجرد لا يجب أن يكون في المستقبل';
   }
 }
 
@@ -44,7 +44,7 @@ export class CreateInventoryDto {
 
   @IsDateString()
   @IsNotEmpty()
-  @IsNotFutureDate({ message: 'inventoryDate cannot be a future date' })
+  @IsNotFutureDate({ message: 'تاريخ الجرد لا يجب أن يكون في المستقبل' })
   inventoryDate: string;
 
   @IsString()

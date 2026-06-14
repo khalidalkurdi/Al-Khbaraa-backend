@@ -43,10 +43,10 @@ export class NotificationsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({
     status: 200,
-    description: 'Notification history returned',
+    description: 'تم إرجاع سجل الإشعارات',
     type: NotificationPageResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Missing or invalid JWT' })
+  @ApiResponse({ status: 401, description: 'رمز JWT مفقود أو غير صالح' })
   async findAll(
     @Req() req: AuthenticatedRequest,
     @Query() query: NotificationListQueryDto,
@@ -58,10 +58,10 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Return unread notification count' })
   @ApiResponse({
     status: 200,
-    description: 'Unread notification count returned',
+    description: 'تم إرجاع عدد الإشعارات غير المقروءة',
     type: NotificationAlertResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'Missing or invalid JWT' })
+  @ApiResponse({ status: 401, description: 'رمز JWT مفقود أو غير صالح' })
   async alert(@Req() req: AuthenticatedRequest) {
     return this.notificationsService.countUnread(req.user.id);
   }
@@ -70,12 +70,12 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Mark a notification as read' })
   @ApiResponse({
     status: 200,
-    description: 'Notification marked as read',
+    description: 'تم تعليم الإشعار كمقروء',
     type: NotificationResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Invalid notification ID' })
-  @ApiResponse({ status: 401, description: 'Missing or invalid JWT' })
-  @ApiResponse({ status: 404, description: 'Notification not found' })
+  @ApiResponse({ status: 400, description: 'معرف الإشعار غير صالح' })
+  @ApiResponse({ status: 401, description: 'رمز JWT مفقود أو غير صالح' })
+  @ApiResponse({ status: 404, description: 'الإشعار غير موجود' })
   async markAsRead(
     @Param('id', ParseUUIDPipe) id: string,
     @Req() req: AuthenticatedRequest,

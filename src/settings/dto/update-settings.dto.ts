@@ -10,56 +10,56 @@ import {
 export class UpdateSettingsDto {
   @IsOptional()
   @IsString()
-  @MaxLength(255, { message: 'centerName must not exceed 255 characters' })
+  @MaxLength(255, { message: 'اسم المركز لا يجب أن يتجاوز 255 حرفاً' })
   centerName?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(255, { message: 'secondaryName must not exceed 255 characters' })
+  @MaxLength(255, { message: 'الاسم الثانوي لا يجب أن يتجاوز 255 حرفاً' })
   secondaryName?: string;
 
   @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'address should not be empty' })
+  @IsNotEmpty({ message: 'العنوان لا يجب أن يكون فارغاً' })
   address?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(50, { message: 'phone1 must not exceed 50 characters' })
+  @MaxLength(50, { message: 'الهاتف 1 لا يجب أن يتجاوز 50 حرفاً' })
   phone1?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(50, { message: 'phone2 must not exceed 50 characters' })
+  @MaxLength(50, { message: 'الهاتف 2 لا يجب أن يتجاوز 50 حرفاً' })
   phone2?: string;
 
   @IsOptional()
-  @IsEmail(undefined, { message: 'email must be a valid email address' })
-  @MaxLength(255, { message: 'email must not exceed 255 characters' })
+  @IsEmail(undefined, { message: 'يجب أن يكون البريد الإلكتروني صالحاً' })
+  @MaxLength(255, { message: 'البريد الإلكتروني لا يجب أن يتجاوز 255 حرفاً' })
   email?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000, { message: 'term1 must not exceed 1000 characters' })
+  @MaxLength(1000, { message: 'البند 1 لا يجب أن يتجاوز 1000 حرف' })
   term1?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000, { message: 'term2 must not exceed 1000 characters' })
+  @MaxLength(1000, { message: 'البند 2 لا يجب أن يتجاوز 1000 حرف' })
   term2?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000, { message: 'term3 must not exceed 1000 characters' })
+  @MaxLength(1000, { message: 'البند 3 لا يجب أن يتجاوز 1000 حرف' })
   term3?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000, { message: 'term4 must not exceed 1000 characters' })
+  @MaxLength(1000, { message: 'البند 4 لا يجب أن يتجاوز 1000 حرف' })
   term4?: string;
 
   @IsOptional()
   @IsString()
-  @Min(0.0001, { message: 'dollarExchangeRate must be greater than 0' })
+  @Min(0.0001, { message: 'معدل صرف الدولار يجب أن يكون أكبر من 0' })
   dollarExchangeRate?: number;
 }

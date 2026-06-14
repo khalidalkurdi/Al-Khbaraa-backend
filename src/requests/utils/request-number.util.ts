@@ -53,8 +53,6 @@ export class RequestNumberUtil {
       }
     }
 
-    throw new Error(
-      'Failed to generate unique request number after maximum retries',
-    );
+    throw new Error('فشل إنشاء رقم طلب فريد بعد الحد الأقصى للمحاولات');
   }
 }

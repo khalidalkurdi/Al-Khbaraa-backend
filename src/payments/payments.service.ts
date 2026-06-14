@@ -28,7 +28,7 @@ export class PaymentsService {
     const { invoiceId, amount, currency, paymentMethod } = createPaymentDto;
 
     if (amount <= 0) {
-      throw new BadRequestException('Payment amount must be positive');
+      throw new BadRequestException('يجب أن تكون قيمة الدفعة موجبة');
     }
 
     const invoice = await this.prisma.invoice.findUnique({
@@ -45,7 +45,7 @@ export class PaymentsService {
     });
 
     if (!invoice) {
-      throw new NotFoundException('Invoice not found');
+      throw new NotFoundException('الفاتورة غير موجودة');
     }
 
     const isTechnician = user.roles.includes('Technician');
@@ -58,7 +58,7 @@ export class PaymentsService {
         },
       });
       if (!assignment) {
-        throw new ForbiddenException('You are not assigned to this request');
+        throw new ForbiddenException('لست مسنداً إلى هذا الطلب');
       }
     }
 
@@ -68,7 +68,7 @@ export class PaymentsService {
     if (currency !== invoice.totalCurrency) {
       const settings = await this.prisma.getCenterSettings();
       if (!settings) {
-        throw new BadRequestException('Exchange rate not configured');
+        throw new BadRequestException('معدل الصرف غير مكوّن');
       }
       dollarExchangeRate = Number(settings.dollarExchangeRate);
 
@@ -153,7 +153,7 @@ export class PaymentsService {
     });
 
     if (!invoice) {
-      throw new NotFoundException('Invoice not found');
+      throw new NotFoundException('الفاتورة غير موجودة');
     }
 
     if (isTechnician) {
@@ -165,7 +165,7 @@ export class PaymentsService {
         },
       });
       if (!assignment) {
-        throw new ForbiddenException('You are not assigned to this request');
+        throw new ForbiddenException('لست مسنداً إلى هذا الطلب');
       }
     }
 

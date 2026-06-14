@@ -30,8 +30,6 @@ export class CustomerNumberUtil {
       }
     }
 
-    throw new Error(
-      'Failed to generate unique customer number after maximum retries',
-    );
+    throw new Error('فشل إنشاء رقم عميل فريد بعد الحد الأقصى للمحاولات');
   }
 }

@@ -36,11 +36,11 @@ export class NotificationsService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User ${input.userId} not found`);
+      throw new NotFoundException(`المستخدم ${input.userId} غير موجود`);
     }
 
     if (!user.isActive) {
-      throw new BadRequestException(`User ${input.userId} is inactive`);
+      throw new BadRequestException(`المستخدم ${input.userId} غير نشط`);
     }
 
     const deviceToken = user.tokenDevice?.trim();
@@ -129,11 +129,11 @@ export class NotificationsService {
     });
 
     if (!existing) {
-      throw new NotFoundException(`Notification ${id} not found`);
+      throw new NotFoundException(`الإشعار ${id} غير موجود`);
     }
 
     if (existing.userId !== userId) {
-      throw new NotFoundException(`Notification ${id} not found`);
+      throw new NotFoundException(`الإشعار ${id} غير موجود`);
     }
 
     if (existing.isRead) {

@@ -18,19 +18,20 @@ export class CreateSparePartDto {
   @IsString()
   @MaxLength(100)
   @Matches(/^[a-zA-Z0-9\-_]+$/, {
-    message: 'SKU must be alphanumeric (dash and underscore allowed)',
+    message:
+      'يجب أن يتكون رمز التخزين من حروف وأرقام فقط (يسمح بالشرطة والشرطة السفلية)',
   })
   sku?: string;
 
   @IsInt()
-  @Min(0, { message: 'quantity must be >= 0' })
+  @Min(0, { message: 'الكمية يجب أن تكون أكبر من أو تساوي 0' })
   quantity: number;
 
   @IsInt()
-  @Min(0, { message: 'costSyp must be >= 0' })
+  @Min(0, { message: 'تكلفة الليرة السورية يجب أن تكون أكبر من أو تساوي 0' })
   costSyp: number;
 
   @IsInt()
-  @Min(0, { message: 'costUsd must be >= 0' })
+  @Min(0, { message: 'تكلفة الدولار يجب أن تكون أكبر من أو تساوي 0' })
   costUsd: number;
 }

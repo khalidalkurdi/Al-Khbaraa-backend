@@ -49,7 +49,7 @@ export class SparePartsService {
   async findById(id: string): Promise<SparePartResponseDto> {
     const part = await this.repository.findById(id);
     if (!part) {
-      throw new NotFoundException('Spare part not found');
+      throw new NotFoundException('قطعة الغيار غير موجودة');
     }
     return this.toResponse(part);
   }
@@ -58,7 +58,7 @@ export class SparePartsService {
     if (dto.sku) {
       const existing = await this.repository.findBySku(dto.sku);
       if (existing) {
-        throw new ConflictException('A part with this SKU already exists');
+        throw new ConflictException('يوجد جزء بهذا الرمز بالفعل');
       }
     }
 
@@ -85,12 +85,12 @@ export class SparePartsService {
     if (dto.sku) {
       const existing = await this.repository.findBySku(dto.sku);
       if (existing && existing.id !== id) {
-        throw new ConflictException('A part with this SKU already exists');
+        throw new ConflictException('يوجد جزء بهذا الرمز بالفعل');
       }
     }
 
     if (dto.quantity < 0) {
-      throw new BadRequestException('quantity must be >= 0');
+      throw new BadRequestException('الكمية يجب أن تكون أكبر من أو تساوي 0');
     }
 
     const updated = await this.repository.update(id, {
@@ -110,16 +110,14 @@ export class SparePartsService {
     await this.findById(id); // throws NotFoundException if missing
     await this.repository.softDelete(id);
     this.logger.log(`Spare part deleted: ${id}`);
-    return { message: 'Spare part deleted successfully' };
+    return { message: 'تم حذف قطعة الغيار بنجاح' };
   }
 
   async restock(id: string, delta: number): Promise<SparePartResponseDto> {
     const part = await this.findById(id);
     const newQuantity = part.quantity + delta;
     if (newQuantity < 0) {
-      throw new BadRequestException(
-        'Restock would result in negative quantity',
-      );
+      throw new BadRequestException('ستؤدي إعادة التعبئة إلى كمية سالبة');
     }
     const updated = await this.repository.update(id, { quantity: newQuantity });
     this.logger.log(`Spare part restocked: ${id} by ${delta}`);
@@ -130,9 +128,7 @@ export class SparePartsService {
     const part = await this.findById(id);
     const newQuantity = part.quantity - delta;
     if (newQuantity < 0) {
-      throw new BadRequestException(
-        'Deduction would result in negative quantity',
-      );
+      throw new BadRequestException('سيؤدي الخصم إلى كمية سالبة');
     }
     const updated = await this.repository.update(id, { quantity: newQuantity });
     this.logger.log(`Spare part deducted: ${id} by ${delta}`);

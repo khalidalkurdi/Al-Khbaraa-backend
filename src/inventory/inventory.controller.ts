@@ -28,11 +28,11 @@ export class InventoryController {
   @ApiOperation({ summary: 'Create daily inventory log for a technician' })
   @ApiResponse({
     status: 201,
-    description: 'Inventory log created successfully',
+    description: 'تم إنشاء سجل الجرد بنجاح',
   })
-  @ApiResponse({ status: 400, description: 'Bad request or duplicate entry' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient role' })
+  @ApiResponse({ status: 400, description: 'طلب غير صالح أو إدخال مكرر' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع - الصلاحية غير كافية' })
   createInventory(@Body() dto: CreateInventoryDto) {
     return this.inventoryService.createInventory(dto);
   }
@@ -40,9 +40,9 @@ export class InventoryController {
   @Get()
   @Roles('Admin', 'Manager')
   @ApiOperation({ summary: 'Get all daily inventory logs' })
-  @ApiResponse({ status: 200, description: 'List of all inventory logs' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient role' })
+  @ApiResponse({ status: 200, description: 'قائمة سجلات الجرد اليومية' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع - الصلاحية غير كافية' })
   getAllInventory() {
     return this.inventoryService.getAllInventory();
   }
@@ -53,11 +53,11 @@ export class InventoryController {
   @ApiOperation({ summary: 'Delete an inventory log entry' })
   @ApiResponse({
     status: 200,
-    description: 'Inventory log deleted successfully',
+    description: 'تم حذف سجل الجرد بنجاح',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden - insufficient role' })
-  @ApiResponse({ status: 404, description: 'Inventory log not found' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع - الصلاحية غير كافية' })
+  @ApiResponse({ status: 404, description: 'سجل الجرد غير موجود' })
   deleteInventory(@Param('id') id: string) {
     return this.inventoryService.deleteInventory(id);
   }

@@ -20,12 +20,12 @@ export class QuerySparePartsDto {
 
   @IsOptional()
   @IsInt()
-  @Min(1, { message: 'page must be >= 1' })
+  @Min(1, { message: 'رقم الصفحة يجب أن يكون أكبر من أو يساوي 1' })
   page?: number;
 
   @IsOptional()
   @IsInt()
-  @Min(1, { message: 'limit must be >= 1' })
-  @Max(100, { message: 'limit must be <= 100' })
+  @Min(1, { message: 'عدد العناصر يجب أن يكون أكبر من أو يساوي 1' })
+  @Max(100, { message: 'عدد العناصر يجب أن يكون أقل من أو يساوي 100' })
   limit?: number;
 }

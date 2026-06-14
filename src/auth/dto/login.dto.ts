@@ -6,17 +6,17 @@ export class LoginDto {
     example: 'admin@center.com',
     description: 'The email of the user',
   })
-  @IsEmail({}, { message: 'Invalid email format' })
-  @IsNotEmpty({ message: 'Email is required' })
+  @IsEmail({}, { message: 'يجب أن يكون البريد الإلكتروني صالحاً' })
+  @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
   email: string;
 
   @ApiProperty({
-    example: 'password123',
-    description: 'User password (minimum 6 characters)',
+    example: 'Password123@',
+    description: 'User password (minimum 8 characters)',
   })
   @IsString()
-  @MinLength(6, { message: 'Password must be at least 6 characters' })
-  @IsNotEmpty({ message: 'Password is required' })
+  @MinLength(8, { message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' })
+  @IsNotEmpty({ message: 'كلمة المرور مطلوبة' })
   password: string;
 
   @ApiProperty({
@@ -24,6 +24,6 @@ export class LoginDto {
     description: 'FCM push token for the device',
   })
   @IsString()
-  @IsNotEmpty({ message: 'Device token is required' })
+  @IsNotEmpty({ message: 'رمز الجهاز مطلوب' })
   tokenDevice: string;
 }

@@ -53,19 +53,20 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Create a new invoice' })
   @ApiResponse({
     status: 201,
-    description: 'Invoice created successfully',
+    description: 'تم إنشاء الفاتورة بنجاح',
     type: InvoiceResponse,
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - validation error or insufficient stock',
+    description:
+      'طلب غير صالح - خطأ في التحقق من صحة البيانات أو مخزون غير كافٍ',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient permissions',
+    description: 'ممنوع - الصلاحيات غير كافية',
   })
-  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   async create(
     @Body() createInvoiceDto: CreateInvoiceDto,
     @Req() req: AuthenticatedRequest,
@@ -92,9 +93,9 @@ export class InvoicesController {
     type: String,
     enum: ['paid_full', 'paid_partial', 'refunded'],
   })
-  @ApiResponse({ status: 200, description: 'Paginated list of invoices' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 200, description: 'قائمة الفواتير مع الترقيم' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
   async findAll(
     @Req() req: AuthenticatedRequest,
     @Query('page') page?: string,
@@ -118,12 +119,12 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Get invoice details by ID' })
   @ApiResponse({
     status: 200,
-    description: 'Invoice details',
+    description: 'تفاصيل الفاتورة',
     type: InvoiceDetailResponse,
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  @ApiResponse({ status: 404, description: 'الفاتورة غير موجودة' })
   async findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const user = req.user;
     const isTechnician = user.roles.includes('Technician');
@@ -136,14 +137,14 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Generate invoice PDF' })
   @ApiResponse({
     status: 200,
-    description: 'PDF document returned',
+    description: 'تم إرجاع مستند PDF',
     content: {
       'application/pdf': { schema: { type: 'string', format: 'binary' } },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  @ApiResponse({ status: 404, description: 'الفاتورة غير موجودة' })
   async generatePdf(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,

@@ -19,7 +19,7 @@ export class SettingsService {
   async getSettings() {
     const settings = await this.prisma.getCenterSettings();
     if (!settings) {
-      throw new NotFoundException('Center settings not found');
+      throw new NotFoundException('إعدادات المركز غير موجودة');
     }
     return settings;
   }
@@ -28,7 +28,7 @@ export class SettingsService {
     try {
       return this.prisma.centerSettings.create({ data });
     } catch {
-      throw new InternalServerErrorException('Failed to create settings');
+      throw new InternalServerErrorException('فشل إنشاء الإعدادات');
     }
   }
 
@@ -42,19 +42,19 @@ export class SettingsService {
         update: payload,
       });
     } catch {
-      throw new InternalServerErrorException('Failed to update settings');
+      throw new InternalServerErrorException('فشل تحديث الإعدادات');
     }
   }
 
   async uploadLogo(file: Express.Multer.File) {
     if (!file) {
-      throw new BadRequestException('No file uploaded');
+      throw new BadRequestException('لم يتم تحميل ملف');
     }
 
     const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg'];
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException(
-        'Invalid file type. Only PNG and JPG are allowed.',
+        'نوع الملف غير صالح. يسمح فقط بصيغ PNG و JPG.',
       );
     }
 
@@ -70,7 +70,7 @@ export class SettingsService {
 
     const settings = await this.prisma.getCenterSettings();
     if (!settings) {
-      throw new NotFoundException('Center settings not found');
+      throw new NotFoundException('إعدادات المركز غير موجودة');
     }
 
     try {
@@ -79,7 +79,7 @@ export class SettingsService {
         { logoPath },
       );
     } catch {
-      throw new InternalServerErrorException('Failed to save logo');
+      throw new InternalServerErrorException('فشل حفظ الشعار');
     }
   }
 }

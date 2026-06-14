@@ -31,7 +31,7 @@ export class SparePartNumberUtil {
     }
 
     throw new Error(
-      'Failed to generate unique spare part number after maximum retries',
+      'فشل إنشاء رقم فريد لقطعة الغيار بعد الحد الأقصى للمحاولات',
     );
   }
 }

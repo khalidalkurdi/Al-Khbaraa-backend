@@ -210,13 +210,11 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     } = createRequestDto;
 
     if (!customerId && !customer) {
-      throw new BadRequestException(
-        'Either customerId or customer details must be provided',
-      );
+      throw new BadRequestException('يجب تقديم customerId أو تفاصيل العميل');
     }
 
     if (!devices || devices.length === 0) {
-      throw new BadRequestException('At least one device is required');
+      throw new BadRequestException('يجب إضافة جهاز واحد على الأقل');
     }
 
     let resolvedCustomerId = customerId;
@@ -237,7 +235,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         });
         if (existingFirst) {
           throw new ConflictException(
-            'Customer with this first phone number already exists',
+            'يوجد عميل بهذا الرقم الأول للهاتف بالفعل',
           );
         }
 
@@ -247,7 +245,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
           });
           if (existingSecond) {
             throw new ConflictException(
-              'Customer with this second phone number already exists',
+              'يوجد عميل بهذا الرقم الثاني للهاتف بالفعل',
             );
           }
         }
@@ -267,7 +265,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (!resolvedCustomerId) {
-        throw new BadRequestException('Customer ID could not be resolved');
+        throw new BadRequestException('تعذر تحديد معرف العميل');
       }
 
       const requestNumber =
@@ -309,7 +307,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       });
 
       if (!request) {
-        throw new ConflictException('Failed to create request');
+        throw new ConflictException('فشل إنشاء الطلب');
       }
 
       return { request, customer: createdCustomer };
@@ -325,7 +323,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!request) {
-      throw new NotFoundException(`Request with ID ${id} not found`);
+      throw new NotFoundException(`طلب بالمعرف ${id} غير موجود`);
     }
 
     const technician = await this.prisma.user.findUnique({
@@ -333,11 +331,11 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!technician) {
-      throw new BadRequestException('Technician not found');
+      throw new BadRequestException('الفني غير موجود');
     }
 
     if (!technician.isActive) {
-      throw new BadRequestException('Cannot assign an inactive technician');
+      throw new BadRequestException('لا يمكن إسناد فني غير نشط');
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -420,7 +418,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     files: Express.Multer.File[],
   ) {
     if (!files || files.length === 0) {
-      throw new BadRequestException('No voice records uploaded');
+      throw new BadRequestException('لم يتم تحميل ملفات صوتية');
     }
 
     const request = await this.prisma.request.findUnique({
@@ -429,13 +427,13 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!request) {
-      throw new NotFoundException(`Request ${requestNumber} not found`);
+      throw new NotFoundException(`طلب ${requestNumber} غير موجود`);
     }
 
     const recordFiles = files.map((file) => {
       if (!this.allowedRecordMimeTypes.includes(file.mimetype)) {
         throw new BadRequestException(
-          'Invalid file type. Only audio files are allowed.',
+          'نوع الملف غير صالح. يسمح فقط بالملفات الصوتية.',
         );
       }
 
@@ -466,7 +464,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.prisma.requestVoiceRecord.createMany({ data: records });
     } catch {
-      throw new InternalServerErrorException('Failed to save voice records');
+      throw new InternalServerErrorException('فشل حفظ الملفات الصوتية');
     }
 
     return this.prisma.requestVoiceRecord.findMany({
@@ -496,7 +494,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!request) {
-      throw new NotFoundException(`Request with ID ${id} not found`);
+      throw new NotFoundException(`طلب بالمعرف ${id} غير موجود`);
     }
 
     const history = await this.prisma.requestStatusHistory.findMany({
@@ -593,7 +591,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!request) {
-      throw new NotFoundException(`Request with ID ${id} not found`);
+      throw new NotFoundException(`طلب بالمعرف ${id} غير موجود`);
     }
 
     return request;
@@ -624,7 +622,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     });
 
     if (!request) {
-      throw new NotFoundException(`Request with ID ${id} not found`);
+      throw new NotFoundException(`طلب بالمعرف ${id} غير موجود`);
     }
 
     return {
@@ -661,7 +659,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     const result = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.request.findUnique({ where: { id } });
       if (!existing) {
-        throw new NotFoundException(`Request with ID ${id} not found`);
+        throw new NotFoundException(`طلب بالمعرف ${id} غير موجود`);
       }
 
       const data: Prisma.RequestUpdateInput = {};

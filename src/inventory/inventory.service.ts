@@ -22,7 +22,7 @@ export class InventoryService {
     });
 
     if (!technician) {
-      throw new NotFoundException('Technician not found');
+      throw new NotFoundException('الفني غير موجود');
     }
 
     try {
@@ -55,7 +55,7 @@ export class InventoryService {
         error.code === 'P2002'
       ) {
         throw new ConflictException(
-          'Inventory log already exists for this technician on this date',
+          'يوجد سجل جرد لهذا الفني في هذا التاريخ بالفعل',
         );
       }
       throw error;
@@ -89,7 +89,7 @@ export class InventoryService {
     });
 
     if (!inventory) {
-      throw new NotFoundException('Inventory log not found');
+      throw new NotFoundException('سجل الجرد غير موجود');
     }
 
     await this.prisma.technicianDailyInventory.delete({
@@ -98,6 +98,6 @@ export class InventoryService {
 
     this.logger.log(`Inventory log ${id} deleted`);
 
-    return { message: 'Inventory log deleted successfully' };
+    return { message: 'تم حذف سجل الجرد بنجاح' };
   }
 }

@@ -85,7 +85,7 @@ export class AuthService {
         secret: this.configService.get<string>('jwt.refreshSecret')!,
       });
     } catch {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw new UnauthorizedException('رمز التحديث غير صالح أو منتهي الصلاحية');
     }
 
     const dbToken = await this.prisma.refreshToken.findFirst({
@@ -93,7 +93,7 @@ export class AuthService {
     });
 
     if (!dbToken) {
-      throw new UnauthorizedException('Refresh token is invalid or revoked');
+      throw new UnauthorizedException('رمز التحديث غير صالح أو ملغى');
     }
 
     await this.prisma.refreshToken.update({
@@ -103,7 +103,7 @@ export class AuthService {
 
     const user = await this.usersService.findByEmail(payload.email);
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('User account is disabled or not found');
+      throw new UnauthorizedException('حساب المستخدم معطل أو غير موجود');
     }
 
     const rolesList = [user.role.name];

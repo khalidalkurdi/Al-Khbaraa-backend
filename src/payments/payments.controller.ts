@@ -45,16 +45,19 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Record a payment for an invoice' })
   @ApiResponse({
     status: 201,
-    description: 'Payment recorded successfully',
+    description: 'تم تسجيل الدفعة بنجاح',
     type: PaymentResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Bad request - validation error' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 400,
+    description: 'طلب غير صالح - خطأ في التحقق من صحة البيانات',
+  })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient permissions',
+    description: 'ممنوع - الصلاحيات غير كافية',
   })
-  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  @ApiResponse({ status: 404, description: 'الفاتورة غير موجودة' })
   async create(
     @Body() createPaymentDto: CreatePaymentDto,
     @Req() req: AuthenticatedRequest,
@@ -74,12 +77,12 @@ export class PaymentsController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Payment history list',
+    description: 'سجل الدفعات',
     type: [PaymentResponseDto],
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  @ApiResponse({ status: 404, description: 'الفاتورة غير موجودة' })
   async findByInvoice(
     @Req() req: AuthenticatedRequest,
     @Param('invoiceId') invoiceId: string,

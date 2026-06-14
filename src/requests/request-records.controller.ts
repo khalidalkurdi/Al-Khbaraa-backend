@@ -53,16 +53,16 @@ export class RequestRecordsController {
   @ApiOperation({ summary: 'Upload voice records for a repair request' })
   @ApiResponse({
     status: 201,
-    description: 'Voice records uploaded and saved successfully',
+    description: 'تم تحميل وتسجيل الملفات الصوتية بنجاح',
   })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - invalid file or request',
+    description: 'طلب غير صالح - ملف أو طلب غير صالح',
   })
-  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient role privileges',
+    description: 'ممنوع - صلاحيات الدور غير كافية',
   })
   @UseInterceptors(
     FilesInterceptor('records', 10, {

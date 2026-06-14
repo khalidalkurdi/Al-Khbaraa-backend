@@ -30,8 +30,6 @@ export class MovementNoUtil {
       }
     }
 
-    throw new Error(
-      'Failed to generate unique movement number after maximum retries',
-    );
+    throw new Error('فشل إنشاء رقم حركة فريد بعد الحد الأقصى للمحاولات');
   }
 }

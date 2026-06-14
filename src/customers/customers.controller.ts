@@ -36,14 +36,15 @@ export class CustomersController {
   @ApiOperation({
     summary: 'Create a new customer (Admin/Manager/Employee only)',
   })
-  @ApiResponse({ status: 201, description: 'Customer created successfully' })
+  @ApiResponse({ status: 201, description: 'تم إنشاء العميل بنجاح' })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - validation error or duplicate phone',
+    description:
+      'طلب غير صالح - خطأ في التحقق من صحة البيانات أو رقم هاتف مكرر',
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient role privileges',
+    description: 'ممنوع - صلاحيات الدور غير كافية',
   })
   async create(@Body() createCustomerDto: CreateCustomerDto) {
     return this.customersService.create(createCustomerDto);
@@ -74,10 +75,10 @@ export class CustomersController {
     required: false,
     description: 'Items per page (default: 20)',
   })
-  @ApiResponse({ status: 200, description: 'Customers list returned' })
+  @ApiResponse({ status: 200, description: 'تم إرجاع قائمة العملاء' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient role privileges',
+    description: 'ممنوع - صلاحيات الدور غير كافية',
   })
   async findAll(
     @Query('phone') phone?: string,
@@ -98,8 +99,8 @@ export class CustomersController {
   @Roles('Admin', 'Manager', 'Employee')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get customer by ID with repair history' })
-  @ApiResponse({ status: 200, description: 'Customer with history returned' })
-  @ApiResponse({ status: 404, description: 'Customer not found' })
+  @ApiResponse({ status: 200, description: 'تم إرجاع العميل مع سجل الإصلاح' })
+  @ApiResponse({ status: 404, description: 'العميل غير موجود' })
   async findOne(@Param('id') id: string) {
     return this.customersService.findOne(id);
   }
@@ -111,12 +112,13 @@ export class CustomersController {
   @ApiOperation({
     summary: 'Update customer details (Admin/Manager/Employee only)',
   })
-  @ApiResponse({ status: 200, description: 'Customer updated successfully' })
+  @ApiResponse({ status: 200, description: 'تم تحديث العميل بنجاح' })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - validation error or duplicate phone',
+    description:
+      'طلب غير صالح - خطأ في التحقق من صحة البيانات أو رقم هاتف مكرر',
   })
-  @ApiResponse({ status: 404, description: 'Customer not found' })
+  @ApiResponse({ status: 404, description: 'العميل غير موجود' })
   async update(
     @Param('id') id: string,
     @Body() updateCustomerDto: UpdateCustomerDto,
@@ -129,12 +131,12 @@ export class CustomersController {
   @Roles('Admin', 'Manager')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Soft delete customer (Admin/Manager only)' })
-  @ApiResponse({ status: 204, description: 'Customer deactivated' })
+  @ApiResponse({ status: 204, description: 'تم تعطيل العميل' })
   @ApiResponse({
     status: 400,
-    description: 'Cannot delete - customer has associated requests',
+    description: 'لا يمكن الحذف - العميل مرتبط بطلبات',
   })
-  @ApiResponse({ status: 404, description: 'Customer not found' })
+  @ApiResponse({ status: 404, description: 'العميل غير موجود' })
   async remove(@Param('id') id: string) {
     await this.customersService.remove(id);
   }

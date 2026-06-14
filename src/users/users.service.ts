@@ -50,7 +50,9 @@ export class UsersService {
     });
 
     if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
+      throw new BadRequestException(
+        'يوجد مستخدم بهذا البريد الإلكتروني بالفعل',
+      );
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
@@ -59,7 +61,7 @@ export class UsersService {
     });
 
     if (!roleRecord) {
-      throw new BadRequestException(`Role not found: ${data.role}`);
+      throw new BadRequestException(`الدور غير موجود: ${data.role}`);
     }
 
     const user = await this.prisma.user.create({
@@ -117,7 +119,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('المستخدم غير موجود');
     }
 
     return this.stripPassword(user);
@@ -132,7 +134,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('المستخدم غير موجود');
     }
 
     return this.stripPassword(user);
@@ -147,7 +149,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('المستخدم غير موجود');
     }
 
     if (data.email !== undefined) {
@@ -156,7 +158,9 @@ export class UsersService {
       });
 
       if (existingUser) {
-        throw new BadRequestException('User with this email already exists');
+        throw new BadRequestException(
+          'يوجد مستخدم بهذا البريد الإلكتروني بالفعل',
+        );
       }
     }
 
@@ -176,9 +180,7 @@ export class UsersService {
         });
 
         if (adminCount <= 1) {
-          throw new BadRequestException(
-            'Cannot deactivate the last admin user',
-          );
+          throw new BadRequestException('لا يمكن تعطيل آخر مستخدم مشرف');
         }
       }
     }
@@ -197,7 +199,7 @@ export class UsersService {
       });
 
       if (!roleRecord) {
-        throw new BadRequestException(`Role not found: ${data.role}`);
+        throw new BadRequestException(`الدور غير موجود: ${data.role}`);
       }
 
       updateData.role = { connect: { id: roleRecord.id } };
@@ -211,7 +213,9 @@ export class UsersService {
       },
     });
 
-    this.logger.log(`User updated: ${updatedUser.id}, isActive: ${updatedUser.isActive}`);
+    this.logger.log(
+      `User updated: ${updatedUser.id}, isActive: ${updatedUser.isActive}`,
+    );
 
     return this.stripPassword(updatedUser);
   }

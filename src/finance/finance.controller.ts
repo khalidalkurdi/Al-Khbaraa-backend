@@ -50,12 +50,15 @@ export class FinanceController {
   @Post('expenses')
   @Roles('Admin')
   @ApiOperation({ summary: 'Create a new expense record' })
-  @ApiResponse({ status: 201, description: 'Expense created successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request - validation error' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 201, description: 'تم إنشاء المصروف بنجاح' })
+  @ApiResponse({
+    status: 400,
+    description: 'طلب غير صالح - خطأ في التحقق من صحة البيانات',
+  })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient permissions',
+    description: 'ممنوع - الصلاحيات غير كافية',
   })
   async createExpense(
     @Body() dto: CreateExpenseDto,
@@ -71,9 +74,9 @@ export class FinanceController {
   @ApiQuery({ name: 'type', required: false })
   @ApiQuery({ name: 'month', required: false, type: Number })
   @ApiQuery({ name: 'year', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Expense list', type: [Object] })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 200, description: 'قائمة المصروفات', type: [Object] })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
   async findExpenses(
     @Query('type') type?: string,
     @Query('month') month?: string,
@@ -85,10 +88,14 @@ export class FinanceController {
   @Get('expenses/:id')
   @Roles('Admin')
   @ApiOperation({ summary: 'Get expense by ID' })
-  @ApiResponse({ status: 200, description: 'Expense found', type: Object })
-  @ApiResponse({ status: 404, description: 'Expense not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({
+    status: 200,
+    description: 'تم العثور على المصروف',
+    type: Object,
+  })
+  @ApiResponse({ status: 404, description: 'المصروف غير موجود' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
   async findExpenseById(@Param('id') id: string) {
     return this.financeService.findExpenseById(id);
   }
@@ -96,11 +103,14 @@ export class FinanceController {
   @Patch('expenses/:id')
   @Roles('Admin')
   @ApiOperation({ summary: 'Update expense by ID' })
-  @ApiResponse({ status: 200, description: 'Expense updated', type: Object })
-  @ApiResponse({ status: 404, description: 'Expense not found' })
-  @ApiResponse({ status: 400, description: 'Bad request - validation error' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 200, description: 'تم تحديث المصروف', type: Object })
+  @ApiResponse({ status: 404, description: 'المصروف غير موجود' })
+  @ApiResponse({
+    status: 400,
+    description: 'طلب غير صالح - خطأ في التحقق من صحة البيانات',
+  })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
   async updateExpense(@Param('id') id: string, @Body() dto: UpdateExpenseDto) {
     return this.financeService.updateExpense(id, dto);
   }
@@ -108,10 +118,10 @@ export class FinanceController {
   @Delete('expenses/:id')
   @Roles('Admin')
   @ApiOperation({ summary: 'Delete expense by ID' })
-  @ApiResponse({ status: 204, description: 'Expense deleted' })
-  @ApiResponse({ status: 404, description: 'Expense not found' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 204, description: 'تم حذف المصروف' })
+  @ApiResponse({ status: 404, description: 'المصروف غير موجود' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
   async deleteExpense(@Param('id') id: string) {
     await this.financeService.deleteExpense(id);
   }
@@ -131,10 +141,10 @@ export class FinanceController {
     required: true,
     description: 'End date (ISO 8601)',
   })
-  @ApiResponse({ status: 200, description: 'Financial summary', type: Object })
-  @ApiResponse({ status: 400, description: 'Bad request - invalid dates' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 200, description: 'الملخص المالي', type: Object })
+  @ApiResponse({ status: 400, description: 'طلب غير صالح - تواريخ غير صالحة' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
   async getSummary(@Query() query: FinanceSummaryQueryDto) {
     return this.financeService.getSummary(query.startDate, query.endDate);
   }
@@ -155,14 +165,14 @@ export class FinanceController {
   })
   @ApiResponse({
     status: 200,
-    description: 'PDF document returned',
+    description: 'تم إرجاع مستند PDF',
     content: {
       'application/pdf': { schema: { type: 'string', format: 'binary' } },
     },
   })
-  @ApiResponse({ status: 400, description: 'Bad request - invalid dates' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 400, description: 'طلب غير صالح - تواريخ غير صالحة' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
   async generateReportPdf(
     @Query() query: FinanceSummaryQueryDto,
     @Res({ passthrough: true }) response: Response,

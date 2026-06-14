@@ -42,14 +42,14 @@ export class UsersController {
   @Roles('Admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new staff member (Admin only)' })
-  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 201, description: 'تم إنشاء المستخدم بنجاح' })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - validation error or duplicate email',
+    description: 'طلب غير صالح - خطأ في التحقق من صحة البيانات أو بريد مكرر',
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - Admin access required',
+    description: 'ممنوع - يتطلب صلاحية المشرف',
   })
   async create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.createUser(createUserDto);
@@ -70,10 +70,10 @@ export class UsersController {
     required: false,
     description: 'Filter by active status',
   })
-  @ApiResponse({ status: 200, description: 'List of users returned' })
+  @ApiResponse({ status: 200, description: 'تم إرجاع قائمة المستخدمين' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - Admin/Manager access required',
+    description: 'ممنوع - يتطلب صلاحية المشرف أو المدير',
   })
   async findAll(
     @Query('role') role?: string,
@@ -87,7 +87,7 @@ export class UsersController {
   @Get('me')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current authenticated user profile' })
-  @ApiResponse({ status: 200, description: 'User profile returned' })
+  @ApiResponse({ status: 200, description: 'تم إرجاع ملف المستخدم' })
   async findMe(@Req() req: AuthenticatedRequest) {
     return this.usersService.getMe(req.user.id);
   }
@@ -97,8 +97,8 @@ export class UsersController {
   @Roles('Admin', 'Manager')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user by ID (Admin/Manager or self)' })
-  @ApiResponse({ status: 200, description: 'User returned' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 200, description: 'تم إرجاع المستخدم' })
+  @ApiResponse({ status: 404, description: 'المستخدم غير موجود' })
   async findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
@@ -108,8 +108,8 @@ export class UsersController {
   @Roles('Admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update user details (Admin only)' })
-  @ApiResponse({ status: 200, description: 'User updated successfully' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 200, description: 'تم تحديث المستخدم بنجاح' })
+  @ApiResponse({ status: 404, description: 'المستخدم غير موجود' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }

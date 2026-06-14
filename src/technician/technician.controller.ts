@@ -49,11 +49,11 @@ export class TechnicianController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({ status: 200, description: 'Requests list returned' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 200, description: 'تم إرجاع قائمة الطلبات' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - Technician role required',
+    description: 'ممنوع - يتطلب دور الفني',
   })
   async myRequests(
     @Req() req: AuthenticatedRequest,
@@ -65,16 +65,16 @@ export class TechnicianController {
   @Put('requests/:id/status')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update status of an assigned request' })
-  @ApiResponse({ status: 200, description: 'Status updated successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request - invalid status' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 200, description: 'تم تحديث الحالة بنجاح' })
+  @ApiResponse({ status: 400, description: 'طلب غير صالح - حالة غير صالحة' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - Technician role required',
+    description: 'ممنوع - يتطلب دور الفني',
   })
   @ApiResponse({
     status: 404,
-    description: 'Request not found or not assigned',
+    description: 'الطلب غير موجود أو غير مسند',
   })
   async updateStatus(
     @Param('id') id: string,

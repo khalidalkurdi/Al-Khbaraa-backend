@@ -51,11 +51,14 @@ export class RequestsController {
   @Roles('Admin', 'Manager', 'Employee')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new repair request' })
-  @ApiResponse({ status: 201, description: 'Request created successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request - validation error' })
+  @ApiResponse({ status: 201, description: 'تم إنشاء الطلب بنجاح' })
+  @ApiResponse({
+    status: 400,
+    description: 'طلب غير صالح - خطأ في التحقق من صحة البيانات',
+  })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient role privileges',
+    description: 'ممنوع - صلاحيات الدور غير كافية',
   })
   async create(
     @Body() createRequestDto: CreateRequestDto,
@@ -75,10 +78,10 @@ export class RequestsController {
   @ApiQuery({ name: 'scheduledDate', required: false })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  @ApiResponse({ status: 200, description: 'Requests list returned' })
+  @ApiResponse({ status: 200, description: 'تم إرجاع قائمة الطلبات' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient role privileges',
+    description: 'ممنوع - صلاحيات الدور غير كافية',
   })
   async findAll(@Query() requestQueryDto: RequestQueryDto) {
     return this.requestsService.findAll(requestQueryDto);
@@ -89,8 +92,8 @@ export class RequestsController {
   @Roles('Admin', 'Manager', 'Employee')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get repair request by ID' })
-  @ApiResponse({ status: 200, description: 'Request returned' })
-  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({ status: 200, description: 'تم إرجاع الطلب' })
+  @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   async findOne(@Param('id') id: string) {
     return this.requestsService.findOne(id);
   }
@@ -102,14 +105,14 @@ export class RequestsController {
   @ApiOperation({ summary: 'Generate request receipt PDF' })
   @ApiResponse({
     status: 200,
-    description: 'PDF document returned',
+    description: 'تم إرجاع مستند PDF',
     content: {
       'application/pdf': { schema: { type: 'string', format: 'binary' } },
     },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'Forbidden' })
-  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   async generatePdf(
     @Param('id') id: string,
     @Res({ passthrough: true }) response: Response,
@@ -135,9 +138,9 @@ export class RequestsController {
   @Roles('Admin', 'Manager', 'Employee')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update repair request' })
-  @ApiResponse({ status: 200, description: 'Request updated' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({ status: 200, description: 'تم تحديث الطلب' })
+  @ApiResponse({ status: 400, description: 'طلب غير صالح' })
+  @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   async update(
     @Param('id') id: string,
     @Body() updateRequestDto: UpdateRequestDto,
@@ -150,15 +153,15 @@ export class RequestsController {
   @Roles('Admin', 'Manager', 'Employee')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Assign a technician to a repair request' })
-  @ApiResponse({ status: 200, description: 'Technician assigned successfully' })
+  @ApiResponse({ status: 200, description: 'تم إسناد الفني بنجاح' })
   @ApiResponse({
     status: 400,
-    description: 'Bad request - invalid or inactive technician',
+    description: 'طلب غير صالح - فني غير صالح أو غير نشط',
   })
-  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient role privileges',
+    description: 'ممنوع - صلاحيات الدور غير كافية',
   })
   async assignTechnician(
     @Param('id') id: string,
@@ -177,11 +180,11 @@ export class RequestsController {
   @Roles('Admin', 'Manager', 'Employee')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get status history timeline for a repair request' })
-  @ApiResponse({ status: 200, description: 'Status history returned' })
-  @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({ status: 200, description: 'تم إرجاع سجل الحالة' })
+  @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - insufficient role privileges',
+    description: 'ممنوع - صلاحيات الدور غير كافية',
   })
   async getStatusHistory(@Param('id') id: string) {
     return this.requestsService.getStatusHistory(id);

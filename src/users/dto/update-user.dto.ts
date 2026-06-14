@@ -17,8 +17,8 @@ export class UpdateUserDto {
     required: false,
     description: 'User email address',
   })
-  @IsEmail({}, { message: 'Invalid email format' })
-  @MaxLength(255, { message: 'Email must not exceed 255 characters' })
+  @IsEmail({}, { message: 'يجب أن يكون البريد الإلكتروني صالحاً' })
+  @MaxLength(255, { message: 'البريد الإلكتروني لا يجب أن يتجاوز 255 حرفاً' })
   @IsOptional()
   email?: string;
 
@@ -29,7 +29,7 @@ export class UpdateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(255, { message: 'Full name must not exceed 255 characters' })
+  @MaxLength(255, { message: 'الاسم الكامل لا يجب أن يتجاوز 255 حرفاً' })
   fullName?: string;
 
   @ApiProperty({
@@ -39,7 +39,7 @@ export class UpdateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(255, { message: 'Job title must not exceed 255 characters' })
+  @MaxLength(255, { message: 'المسمى الوظيفي لا يجب أن يتجاوز 255 حرفاً' })
   jobTitle?: string;
 
   @ApiProperty({
@@ -49,7 +49,7 @@ export class UpdateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(50, { message: 'Phone must not exceed 50 characters' })
+  @MaxLength(50, { message: 'رقم الهاتف لا يجب أن يتجاوز 50 حرفاً' })
   phone?: string;
 
   @ApiProperty({
@@ -59,7 +59,7 @@ export class UpdateUserDto {
   })
   @IsNumber()
   @Min(0)
-  @Max(9999999999.99, { message: 'Salary must not exceed 9999999999.99' })
+  @Max(9999999999.99, { message: 'الراتب لا يجب أن يتجاوز 9999999999.99' })
   @IsOptional()
   salary?: number;
 
@@ -79,6 +79,6 @@ export class UpdateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MinLength(1, { message: 'Role is required' })
+  @MinLength(1, { message: 'الدور مطلوب' })
   role?: string;
 }

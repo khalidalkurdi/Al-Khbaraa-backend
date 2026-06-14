@@ -15,9 +15,9 @@ export class CreateUserDto {
     example: 'tech1@example.com',
     description: 'User email address',
   })
-  @IsEmail({}, { message: 'Invalid email format' })
-  @IsNotEmpty({ message: 'Email is required' })
-  @MaxLength(255, { message: 'Email must not exceed 255 characters' })
+  @IsEmail({}, { message: 'يجب أن يكون البريد الإلكتروني صالحاً' })
+  @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
+  @MaxLength(255, { message: 'البريد الإلكتروني لا يجب أن يتجاوز 255 حرفاً' })
   email: string;
 
   @ApiProperty({
@@ -25,15 +25,15 @@ export class CreateUserDto {
     description: 'Password (minimum 6 characters)',
   })
   @IsString()
-  @MinLength(8, { message: 'Password must be at least 8 characters' })
-  @MaxLength(255, { message: 'Password must not exceed 255 characters' })
-  @IsNotEmpty({ message: 'Password is required' })
+  @MinLength(8, { message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' })
+  @MaxLength(255, { message: 'كلمة المرور لا يجب أن تتجاوز 255 حرفاً' })
+  @IsNotEmpty({ message: 'كلمة المرور مطلوبة' })
   password: string;
 
   @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
   @IsString()
-  @IsNotEmpty({ message: 'Full name is required' })
-  @MaxLength(255, { message: 'Full name must not exceed 255 characters' })
+  @IsNotEmpty({ message: 'الاسم الكامل مطلوب' })
+  @MaxLength(255, { message: 'الاسم الكامل لا يجب أن يتجاوز 255 حرفاً' })
   fullName: string;
 
   @ApiProperty({
@@ -41,7 +41,7 @@ export class CreateUserDto {
     description: 'Job title',
   })
   @IsString()
-  @MaxLength(255, { message: 'Job title must not exceed 255 characters' })
+  @MaxLength(255, { message: 'المسمى الوظيفي لا يجب أن يتجاوز 255 حرفاً' })
   jobTitle: string;
 
   @ApiProperty({
@@ -49,7 +49,7 @@ export class CreateUserDto {
     description: 'Phone number',
   })
   @IsString()
-  @MaxLength(50, { message: 'Phone must not exceed 50 characters' })
+  @MaxLength(50, { message: 'رقم الهاتف لا يجب أن يتجاوز 50 حرفاً' })
   phone: string;
 
   @ApiProperty({
@@ -58,7 +58,7 @@ export class CreateUserDto {
   })
   @IsNumber()
   @Min(0)
-  @Max(9999999999.99, { message: 'Salary must not exceed 9999999999.99' })
+  @Max(9999999999.99, { message: 'الراتب لا يجب أن يتجاوز 9999999999.99' })
   salary: number;
 
   @ApiProperty({
@@ -66,7 +66,7 @@ export class CreateUserDto {
     description: 'Role name to assign',
   })
   @IsString()
-  @IsNotEmpty({ message: 'Role is required' })
-  @MinLength(1, { message: 'Role is required' })
+  @IsNotEmpty({ message: 'الدور مطلوب' })
+  @MinLength(1, { message: 'الدور مطلوب' })
   role: string;
 }

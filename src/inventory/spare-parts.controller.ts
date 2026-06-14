@@ -31,12 +31,12 @@ export class SparePartsController {
   @Post()
   @Roles('Admin')
   @ApiOperation({ summary: 'Create a spare part' })
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'Part created' })
+  @ApiResponse({ status: HttpStatus.CREATED, description: 'تم إنشاء القطعة' })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Validation error',
+    description: 'خطأ في التحقق من صحة البيانات',
   })
-  @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Duplicate SKU' })
+  @ApiResponse({ status: HttpStatus.CONFLICT, description: 'رمز التخزين مكرر' })
   create(@Body() dto: CreateSparePartDto) {
     return this.sparePartsService.create(dto);
   }
@@ -44,7 +44,10 @@ export class SparePartsController {
   @Get('low-stock')
   @Roles('Admin', 'Manager')
   @ApiOperation({ summary: 'List low-stock parts' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Low-stock parts' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'القطع ذات المخزون المنخفض',
+  })
   getLowStock() {
     return this.sparePartsService.findLowStock();
   }
@@ -52,7 +55,7 @@ export class SparePartsController {
   @Get()
   @Roles('Admin', 'Manager', 'Employee')
   @ApiOperation({ summary: 'Search and list spare parts' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Paginated parts list' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'قائمة القطع مع الترقيم' })
   findAll(@Query() query: QuerySparePartsDto) {
     return this.sparePartsService.findAll(query);
   }
@@ -60,8 +63,11 @@ export class SparePartsController {
   @Get(':id')
   @Roles('Admin', 'Manager', 'Employee')
   @ApiOperation({ summary: 'Get a spare part by ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Part details' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Part not found' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'تفاصيل القطعة' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'القطعة غير موجودة',
+  })
   findOne(@Param('id') id: string) {
     return this.sparePartsService.findById(id);
   }
@@ -69,12 +75,15 @@ export class SparePartsController {
   @Put(':id')
   @Roles('Admin')
   @ApiOperation({ summary: 'Update a spare part' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Part updated' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'تم تحديث القطعة' })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
-    description: 'Validation error',
+    description: 'خطأ في التحقق من صحة البيانات',
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Part not found' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'القطعة غير موجودة',
+  })
   update(@Param('id') id: string, @Body() dto: UpdateSparePartDto) {
     return this.sparePartsService.update(id, dto);
   }
@@ -83,8 +92,11 @@ export class SparePartsController {
   @Roles('Admin')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a spare part' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Part deleted' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Part not found' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'تم حذف القطعة' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'القطعة غير موجودة',
+  })
   remove(@Param('id') id: string) {
     return this.sparePartsService.delete(id);
   }
