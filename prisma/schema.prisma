@@ -248,6 +248,7 @@ model RequestVoiceRecord {
   request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   @@index([requestId], map: "idx_request_id")
+  @@index([createdAt], map: "idx_request_voice_record_created_at")
   @@map("request_voice_records")
 }
 
