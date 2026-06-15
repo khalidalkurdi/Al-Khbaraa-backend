@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { CurrencyEnum } from '../../invoices/enums/currency.enum';
 
 export class PaymentResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -10,8 +11,8 @@ export class PaymentResponseDto {
   @ApiProperty({ example: '40000.00' })
   amount: string;
 
-  @ApiProperty({ enum: ['SYP', 'USD'] })
-  currency: 'SYP' | 'USD';
+  @ApiProperty({ enum: CurrencyEnum })
+  currency: CurrencyEnum;
 
   @ApiProperty({ enum: ['cash', 'sham_cash'] })
   paymentMethod: 'cash' | 'sham_cash';

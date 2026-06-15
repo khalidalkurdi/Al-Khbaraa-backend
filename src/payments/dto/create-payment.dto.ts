@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
+import { CurrencyEnum } from '../../invoices/enums/currency.enum';
 
 export class CreatePaymentDto {
   @ApiProperty({
@@ -17,11 +18,11 @@ export class CreatePaymentDto {
 
   @ApiProperty({
     description: 'Currency of payment',
-    enum: ['SYP', 'USD'],
-    default: 'SYP',
+    enum: CurrencyEnum,
+    default: CurrencyEnum.SYP,
   })
-  @IsEnum(['SYP', 'USD'])
-  currency: 'SYP' | 'USD';
+  @IsEnum(CurrencyEnum)
+  currency: CurrencyEnum;
 
   @ApiProperty({
     description: 'Payment method',

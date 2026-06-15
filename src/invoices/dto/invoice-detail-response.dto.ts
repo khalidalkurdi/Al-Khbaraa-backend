@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { CurrencyEnum } from '../enums/currency.enum';
 
 export class InvoiceItemResponse {
   @ApiProperty({ description: 'Item ID', format: 'uuid' })
@@ -19,12 +20,11 @@ export class InvoiceItemResponse {
 
   @ApiProperty({ description: 'Quantity', type: Number })
   quantity: number;
-
   @ApiProperty({ description: 'Unit price', type: Number })
   unitPrice: number;
 
-  @ApiProperty({ description: 'Currency', enum: ['SYP', 'USD'] })
-  currency: string;
+  @ApiProperty({ description: 'Currency', enum: CurrencyEnum })
+  currency: CurrencyEnum;
 
   @ApiProperty({ description: 'Total price', type: Number })
   totalPrice: number;
@@ -36,9 +36,8 @@ export class PaymentResponse {
 
   @ApiProperty({ description: 'Amount paid', type: Number })
   amount: number;
-
-  @ApiProperty({ description: 'Currency', enum: ['SYP', 'USD'] })
-  currency: string;
+  @ApiProperty({ description: 'Currency', enum: CurrencyEnum })
+  currency: CurrencyEnum;
 
   @ApiProperty({ description: 'Payment method', enum: ['cash', 'sham_cash'] })
   paymentMethod: string;
@@ -56,7 +55,6 @@ export class PaymentResponse {
     type: Number,
   })
   convertedAmount?: number;
-
   @ApiProperty({ description: 'Payment timestamp', format: 'date-time' })
   paidAt: Date;
 }
@@ -89,8 +87,8 @@ export class InvoiceDetailResponse {
   @ApiProperty({ description: 'Subtotal amount', type: Number })
   totalAmount: number;
 
-  @ApiProperty({ description: 'Currency code', enum: ['SYP', 'USD'] })
-  totalCurrency: string;
+  @ApiProperty({ description: 'Currency code', enum: CurrencyEnum })
+  totalCurrency: CurrencyEnum;
 
   @ApiProperty({ description: 'Amount paid so far', type: Number })
   paidAmount: number;

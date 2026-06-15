@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { CurrencyEnum } from '../enums/currency.enum';
 
 export class InvoiceResponse {
   @ApiProperty({ description: 'Invoice ID', format: 'uuid' })
@@ -28,12 +29,11 @@ export class InvoiceResponse {
     enum: ['paid_full', 'paid_partial', 'refunded'],
   })
   status: string;
-
   @ApiProperty({ description: 'Subtotal amount', type: Number })
   totalAmount: number;
 
-  @ApiProperty({ description: 'Currency code', enum: ['SYP', 'USD'] })
-  totalCurrency: string;
+  @ApiProperty({ description: 'Currency code', enum: CurrencyEnum })
+  totalCurrency: CurrencyEnum;
 
   @ApiProperty({ description: 'Amount paid so far', type: Number })
   paidAmount: number;

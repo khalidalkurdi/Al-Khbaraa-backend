@@ -8,11 +8,16 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { Decimal } from '@prisma/client/runtime/library';
 
 interface AuthenticatedUser {
   id: string;
   email: string;
   roles: string[];
+}
+
+function toDecimal(value: string | number): Decimal {
+  return new Decimal(value);
 }
 
 @Injectable()
@@ -27,7 +32,8 @@ export class PaymentsService {
   async create(createPaymentDto: CreatePaymentDto, user: AuthenticatedUser) {
     const { invoiceId, amount, currency, paymentMethod } = createPaymentDto;
 
-    if (amount <= 0) {
+    const amountDecimal = toDecimal(amount);
+    if (amountDecimal.lessThanOrEqualTo(0)) {
       throw new BadRequestException('يجب أن تكون قيمة الدفعة موجبة');
     }
 
@@ -62,35 +68,37 @@ export class PaymentsService {
       }
     }
 
-    let dollarExchangeRate: number = 1;
-    let convertedAmount = Number(amount);
+    let dollarExchangeRate: Decimal = new Decimal(1);
+    let convertedAmount = amountDecimal;
 
     if (currency !== invoice.totalCurrency) {
       const settings = await this.prisma.getCenterSettings();
       if (!settings) {
         throw new BadRequestException('معدل الصرف غير مكوّن');
       }
-      dollarExchangeRate = Number(settings.dollarExchangeRate);
+      dollarExchangeRate = new Decimal(settings.dollarExchangeRate);
 
       if (currency === 'USD' && invoice.totalCurrency === 'SYP') {
-        convertedAmount = amount * dollarExchangeRate;
+        convertedAmount = amountDecimal.times(dollarExchangeRate);
       } else if (currency === 'SYP' && invoice.totalCurrency === 'USD') {
-        convertedAmount = amount / dollarExchangeRate;
+        convertedAmount = amountDecimal.dividedBy(dollarExchangeRate);
       }
     }
 
-    const newPaidAmount = Number(invoice.paidAmount) + convertedAmount;
-    const newRemainingAmount =
-      Number(invoice.remainingAmount) - convertedAmount;
+    const newPaidAmount = new Decimal(invoice.paidAmount).plus(convertedAmount);
+    const newRemainingAmount = new Decimal(invoice.remainingAmount).minus(
+      convertedAmount,
+    );
     const statusChanged =
-      invoice.status === 'paid_partial' && newRemainingAmount <= 0;
+      invoice.status === 'paid_partial' &&
+      newRemainingAmount.lessThanOrEqualTo(0);
     const newStatus = statusChanged ? 'paid_full' : invoice.status;
 
     const payment = await this.prisma.$transaction(async (tx) => {
       const createdPayment = await tx.payment.create({
         data: {
           invoiceId,
-          amount,
+          amount: amountDecimal,
           currency,
           paymentMethod,
           dollarExchangeRate,
@@ -117,11 +125,11 @@ export class PaymentsService {
     this.realtimeGateway.sendToAll('payment.recorded', {
       paymentId: payment.payment.id,
       invoiceId,
-      amount,
+      amount: amountDecimal,
       currency,
-      convertedAmount,
-      newPaidAmount,
-      newRemainingAmount,
+      convertedAmount: convertedAmount,
+      newPaidAmount: newPaidAmount,
+      newRemainingAmount: newRemainingAmount,
       statusChanged,
     });
 
@@ -134,7 +142,7 @@ export class PaymentsService {
     }
 
     this.logger.log(
-      `Payment ${payment.payment.id} created for invoice ${invoiceId}, amount: ${amount} ${currency}`,
+      `Payment ${payment.payment.id} created for invoice ${invoiceId}, amount: ${amountDecimal.toString()} ${currency}`,
     );
 
     return payment.payment;
@@ -172,8 +180,10 @@ export class PaymentsService {
     return this.prisma.payment.findMany({
       where: {
         invoiceId,
-        ...(currency && { currency }),
-        ...(paymentMethod && { paymentMethod }),
+        ...(currency && { currency: currency as 'SYP' | 'USD' }),
+        ...(paymentMethod && {
+          paymentMethod: paymentMethod as 'cash' | 'sham_cash',
+        }),
       },
       orderBy: { paidAt: 'desc' },
     });
