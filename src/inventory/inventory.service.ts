@@ -15,7 +15,7 @@ export class InventoryService {
   constructor(private prisma: PrismaService) {}
 
   async createInventory(dto: CreateInventoryDto) {
-    const { technicianId, inventoryDate, toolsGiven, notes } = dto;
+    const { technicianId, toolsGiven, notes } = dto;
 
     const technician = await this.prisma.user.findUnique({
       where: { id: technicianId },
@@ -29,7 +29,6 @@ export class InventoryService {
       const inventory = await this.prisma.technicianDailyInventory.create({
         data: {
           technicianId,
-          inventoryDate: new Date(inventoryDate),
           toolsGiven,
           notes,
         },
@@ -45,7 +44,7 @@ export class InventoryService {
       });
 
       this.logger.log(
-        `Inventory log created for technician ${technicianId} on ${inventoryDate}`,
+        `Inventory log created for technician ${technicianId}`,
       );
 
       return inventory;
@@ -74,7 +73,7 @@ export class InventoryService {
         },
       },
       orderBy: {
-        inventoryDate: 'desc',
+        createdAt: 'desc',
       },
     });
 
