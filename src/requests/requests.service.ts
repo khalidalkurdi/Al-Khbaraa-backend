@@ -629,7 +629,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       id: request.id,
       requestNumber: request.requestNumber,
       createdAt: request.createdAt,
-      scheduledDate: request.scheduledDate,
+      scheduledDate: request.scheduledDate as Date,
       scheduledTime: request.scheduledTime,
       priority: request.priority,
       status: request.status,
