@@ -2,15 +2,18 @@
 CREATE TABLE `users` (
     `id` CHAR(36) NOT NULL,
     `user_number` VARCHAR(50) NOT NULL,
+    `profile_image_path` VARCHAR(500) NULL,
+    `document_image_path` VARCHAR(500) NULL,
     `email` VARCHAR(255) NOT NULL,
     `password_hash` VARCHAR(255) NOT NULL,
     `full_name` VARCHAR(255) NOT NULL,
-    `job_title` VARCHAR(255) NOT NULL,
+    `job_title` VARCHAR(255) NULL,
+    `role_id` CHAR(36) NOT NULL,
     `phone` VARCHAR(50) NOT NULL,
     `salary` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     `is_active` BOOLEAN NOT NULL DEFAULT true,
     `token_device` TEXT NOT NULL,
-    `last_login_at` TIMESTAMP(0) NOT NULL,
+    `last_login_at` TIMESTAMP(0) NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
@@ -18,6 +21,7 @@ CREATE TABLE `users` (
     UNIQUE INDEX `users_email_key`(`email`),
     INDEX `idx_user_number`(`user_number`),
     INDEX `idx_email`(`email`),
+    INDEX `idx_role_id`(`role_id`),
     INDEX `idx_is_active`(`is_active`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -33,17 +37,6 @@ CREATE TABLE `roles` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `roles_users` (
-    `user_id` CHAR(36) NOT NULL,
-    `role_id` CHAR(36) NOT NULL,
-    `assigned_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
-
-    INDEX `idx_user_id`(`user_id`),
-    INDEX `idx_role_id`(`role_id`),
-    PRIMARY KEY (`user_id`, `role_id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
 CREATE TABLE `refresh_tokens` (
     `id` CHAR(36) NOT NULL,
     `user_id` CHAR(36) NOT NULL,
@@ -54,7 +47,7 @@ CREATE TABLE `refresh_tokens` (
 
     INDEX `idx_user_id`(`user_id`),
     INDEX `idx_expires_at`(`expires_at`),
-    INDEX `idx_revoked_at`(`isblocked`),
+    INDEX `idx_isblocked_at`(`isblocked`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -62,14 +55,11 @@ CREATE TABLE `refresh_tokens` (
 CREATE TABLE `technician_daily_inventory` (
     `id` CHAR(36) NOT NULL,
     `technician_id` CHAR(36) NOT NULL,
-    `inventory_date` DATE NOT NULL,
     `notes` TEXT NULL,
     `tools_given` TEXT NOT NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `idx_technician_id`(`technician_id`),
-    INDEX `idx_inventory_date`(`inventory_date`),
-    UNIQUE INDEX `unique_technician_date`(`technician_id`, `inventory_date`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -77,17 +67,17 @@ CREATE TABLE `technician_daily_inventory` (
 CREATE TABLE `center_settings` (
     `id` CHAR(36) NOT NULL,
     `center_name` VARCHAR(255) NOT NULL,
-    `secondary_name` VARCHAR(255) NOT NULL,
+    `secondary_name` VARCHAR(255) NULL,
     `address` TEXT NOT NULL,
     `phone1` VARCHAR(50) NOT NULL,
-    `phone2` VARCHAR(50) NOT NULL,
+    `phone2` VARCHAR(50) NULL,
     `email` VARCHAR(255) NOT NULL,
     `term1` TEXT NULL,
     `term2` TEXT NULL,
     `term3` TEXT NULL,
     `term4` TEXT NULL,
     `logo_path` VARCHAR(500) NULL,
-    `dollar_exchange_rate` DECIMAL(12, 4) NOT NULL DEFAULT 1.0000,
+    `dollar_exchange_rate` DECIMAL(12, 4) NOT NULL DEFAULT 140,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `updated_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
@@ -130,7 +120,7 @@ CREATE TABLE `requests` (
     `priority` ENUM('low', 'medium', 'high', 'emergency') NOT NULL DEFAULT 'medium',
     `fault_description` TEXT NOT NULL,
     `notes` TEXT NULL,
-    `scheduled_date` DATE NOT NULL,
+    `scheduled_date` DATE NULL,
     `scheduled_time` TIME(0) NULL,
     `is_repeated` BOOLEAN NOT NULL DEFAULT false,
     `is_completed` BOOLEAN NOT NULL DEFAULT false,
@@ -157,6 +147,7 @@ CREATE TABLE `request_status_history` (
     `status` ENUM('new', 'accepted', 'ontheway', 'arrived', 'underrepair', 'completed', 'incompleted', 'pulltocenter', 'postponed', 'cancelled', 'notanswer', 'notrepairable', 'repeated') NOT NULL,
     `changed_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `changed_by` CHAR(36) NULL,
+    `notes` TEXT NULL,
 
     INDEX `idx_request_id`(`request_id`),
     INDEX `idx_status`(`status`),
@@ -175,6 +166,21 @@ CREATE TABLE `request_devices` (
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `idx_request_id`(`request_id`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `request_voice_records` (
+    `id` CHAR(36) NOT NULL,
+    `request_id` CHAR(36) NOT NULL,
+    `full_file_path` VARCHAR(500) NOT NULL,
+    `file_size` INTEGER NULL,
+    `mime_type` VARCHAR(100) NULL,
+    `duration` INTEGER NULL,
+    `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+
+    INDEX `idx_request_id`(`request_id`),
+    INDEX `idx_request_voice_record_created_at`(`created_at`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -226,7 +232,7 @@ CREATE TABLE `invoices` (
     `type` VARCHAR(20) NOT NULL,
     `status` VARCHAR(20) NOT NULL DEFAULT 'paid_partial',
     `total_amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-    `total_currency` VARCHAR(3) NOT NULL,
+    `total_currency` ENUM('SYP', 'USD') NOT NULL DEFAULT 'SYP',
     `paid_amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     `remaining_amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     `warranty_period` VARCHAR(50) NULL,
@@ -252,9 +258,8 @@ CREATE TABLE `invoice_items` (
     `spare_part_id` CHAR(36) NOT NULL,
     `quantity` INTEGER NOT NULL DEFAULT 1,
     `unit_price` DECIMAL(12, 2) NOT NULL,
-    `currency` VARCHAR(3) NOT NULL,
+    `currency` ENUM('SYP', 'USD') NOT NULL DEFAULT 'SYP',
     `total_price` DECIMAL(12, 2) NOT NULL,
-    `notes` TEXT NULL,
 
     INDEX `idx_invoice_id`(`invoice_id`),
     INDEX `idx_spare_part_id`(`spare_part_id`),
@@ -266,7 +271,7 @@ CREATE TABLE `payments` (
     `id` CHAR(36) NOT NULL,
     `invoice_id` CHAR(36) NOT NULL,
     `amount` DECIMAL(12, 2) NOT NULL,
-    `currency` VARCHAR(3) NOT NULL,
+    `currency` ENUM('SYP', 'USD') NOT NULL DEFAULT 'SYP',
     `payment_method` VARCHAR(20) NOT NULL,
     `dollar_exchange_rate` DECIMAL(12, 4) NOT NULL,
     `converted_amount` DECIMAL(12, 2) NOT NULL,
@@ -333,10 +338,7 @@ CREATE TABLE `notifications` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `roles_users` ADD CONSTRAINT `roles_users_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `roles_users` ADD CONSTRAINT `roles_users_role_id_fkey` FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `users` ADD CONSTRAINT `users_role_id_fkey` FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `refresh_tokens` ADD CONSTRAINT `refresh_tokens_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -358,6 +360,9 @@ ALTER TABLE `request_status_history` ADD CONSTRAINT `request_status_history_requ
 
 -- AddForeignKey
 ALTER TABLE `request_devices` ADD CONSTRAINT `request_devices_request_id_fkey` FOREIGN KEY (`request_id`) REFERENCES `requests`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `request_voice_records` ADD CONSTRAINT `request_voice_records_request_id_fkey` FOREIGN KEY (`request_id`) REFERENCES `requests`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `technician_assignments` ADD CONSTRAINT `technician_assignments_request_id_fkey` FOREIGN KEY (`request_id`) REFERENCES `requests`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
