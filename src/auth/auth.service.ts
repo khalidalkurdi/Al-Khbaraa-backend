@@ -4,11 +4,19 @@ import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 
-interface JwtPayload {
-  email: string;
-  sub: string;
+export interface JwtConfig {
+  accessSecret: string;
+  refreshSecret: string;
+  accessExpiration: string | number;
+  refreshExpiration: string | number;
 }
+
+type JwtSignOptions = {
+  secret: string;
+  expiresIn: string | number | undefined;
+};
 
 @Injectable()
 export class AuthService {
@@ -37,23 +45,55 @@ export class AuthService {
     return null;
   }
 
-  async login(user: any, tokenDevice: string) {
-    const rolesList = [user.role.name];
-    const payload = { email: user.email, sub: user.id, roles: rolesList };
+  private getJwtConfig(): JwtConfig {
+    return this.configService.get<JwtConfig>('jwt')!;
+  }
+
+  private buildSignOptions(config: JwtConfig): JwtSignOptions {
+    return {
+      secret: config.accessSecret,
+      expiresIn: config.accessExpiration,
+    };
+  }
+
+  private buildRefreshSignOptions(config: JwtConfig): JwtSignOptions {
+    return {
+      secret: config.refreshSecret,
+      expiresIn: config.refreshExpiration,
+    };
+  }
+
+  async login(
+    user: {
+      id: string;
+      email: string;
+      fullName: string;
+      role: { name: string };
+    },
+    tokenDevice: string,
+  ) {
+    const role = [user.role.name];
+    const payload: JwtPayload = {
+      email: user.email,
+      sub: user.id,
+      role: role,
+      Issuer: 'Al-kubaraa',
+    };
 
     await this.usersService.updateTokenDevice(user.id, tokenDevice);
+    await this.usersService.updateLastLogin(user.id);
 
-    const jwtConfig = this.configService.get('jwt');
+    const jwtConfig = this.getJwtConfig();
 
-    const accessToken = this.jwtService.sign(payload, {
-      secret: jwtConfig.accessSecret,
-      expiresIn: jwtConfig.accessExpiration,
-    });
+    const accessToken = this.jwtService.sign(
+      payload as any,
+      this.buildSignOptions(jwtConfig),
+    );
 
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: jwtConfig.refreshSecret,
-      expiresIn: jwtConfig.refreshExpiration,
-    });
+    const refreshToken = this.jwtService.sign(
+      payload as any,
+      this.buildRefreshSignOptions(jwtConfig),
+    );
 
     const decoded = this.jwtService.decode(refreshToken);
     const expiresAt = new Date(decoded.exp * 1000);
@@ -73,7 +113,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
-        roles: rolesList,
+        role: role,
       },
     };
   }
@@ -106,22 +146,25 @@ export class AuthService {
       throw new UnauthorizedException('حساب المستخدم معطل أو غير موجود');
     }
 
-    const rolesList = [user.role.name];
-    const newPayload = { email: user.email, sub: user.id, roles: rolesList };
+    const role = [user.role.name];
+    const newPayload: JwtPayload = {
+      email: user.email,
+      sub: user.id,
+      role: role,
+      Issuer: 'Al-kubaraa',
+    };
 
-    const accessSecret = this.configService.get<string>('jwt.accessSecret')!;
-    const refreshSecret = this.configService.get<string>('jwt.refreshSecret')!;
-    const jwtConfig = this.configService.get('jwt');
+    const jwtConfig = this.getJwtConfig();
 
-    const accessToken = this.jwtService.sign(newPayload, {
-      secret: jwtConfig.accessSecret,
-      expiresIn: jwtConfig.accessExpiration,
-    });
+    const accessToken = this.jwtService.sign(
+      newPayload as any,
+      this.buildSignOptions(jwtConfig),
+    );
 
-    const refreshToken = this.jwtService.sign(newPayload, {
-      secret: jwtConfig.refreshSecret,
-      expiresIn: jwtConfig.refreshExpiration,
-    });
+    const refreshToken = this.jwtService.sign(
+      newPayload as any,
+      this.buildRefreshSignOptions(jwtConfig),
+    );
 
     const decoded = this.jwtService.decode(refreshToken);
     const expiresAt = new Date(decoded.exp * 1000);
@@ -142,7 +185,7 @@ export class AuthService {
 
   async logout(token: string): Promise<void> {
     const dbToken = await this.prisma.refreshToken.findFirst({
-      where: { token },
+      where: { token, isBlocked: false },
     });
 
     if (dbToken) {
