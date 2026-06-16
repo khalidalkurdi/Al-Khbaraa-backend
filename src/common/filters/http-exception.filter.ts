@@ -16,19 +16,16 @@ interface ExceptionResponse {
 interface ValidationErrorLike {
   property?: string;
   constraints?: Record<string, string>;
+  value?: unknown;
+  children?: ValidationErrorLike[];
 }
 
-const errorLabels: Record<string, string> = {
-  'Bad Request': 'طلب غير صالح',
-  Unauthorized: 'غير مصرح',
-  Forbidden: 'ممنوع',
-  'Not Found': 'غير موجود',
-  Conflict: 'تعارض',
-  'Internal Server Error': 'خطأ داخلي في الخادم',
-  HttpException: 'خطأ في الطلب',
-  'Payload Too Large': 'حجم الملف كبير جداً',
-  'Unsupported Media Type': 'نوع الملف غير مدعوم',
-};
+interface ApiError {
+  code: string;
+  field: string | null;
+  message: string;
+  value: unknown;
+}
 
 const knownMessages: Record<string, string> = {
   'Internal server error': 'خطأ داخلي في الخادم',
@@ -93,10 +90,6 @@ const propertyNames: Record<string, string> = {
   dollarExchangeRate: 'معدل صرف الدولار',
 };
 
-function translateErrorLabel(error: string | undefined): string {
-  return error ? (errorLabels[error] ?? error) : 'خطأ في الطلب';
-}
-
 function translateKnownMessage(message: string): string {
   return knownMessages[message] ?? message;
 }
@@ -143,6 +136,125 @@ function normalizeMessage(message: unknown): string {
   return translateKnownMessage(String(message));
 }
 
+function getErrorCode(status: number): string {
+  switch (status) {
+    case 400:
+      return 'VALIDATION_ERROR';
+    case 401:
+      return 'AUTHENTICATION_FAILED';
+    case 403:
+      return 'AUTHORIZATION_FAILED';
+    case 404:
+      return 'RESOURCE_NOT_FOUND';
+    case 409:
+      return 'RESOURCE_CONFLICT';
+    case 413:
+      return 'PAYLOAD_TOO_LARGE';
+    case 415:
+      return 'UNSUPPORTED_MEDIA_TYPE';
+    case 500:
+      return 'INTERNAL_SERVER_ERROR';
+    default:
+      return 'API_ERROR';
+  }
+}
+
+function flattenValidationErrors(message: unknown): ValidationErrorLike[] {
+  if (Array.isArray(message)) {
+    return message.flatMap((item) => flattenValidationErrors(item));
+  }
+
+  if (message && typeof message === 'object') {
+    const value = message as ValidationErrorLike;
+    if (value.property || value.constraints || value.children) {
+      const children = value.children?.flatMap((child) =>
+        flattenValidationErrors(child),
+      );
+      return [{ ...value, children: undefined }, ...(children ?? [])];
+    }
+  }
+
+  return [];
+}
+
+function buildValidationError(validationError: ValidationErrorLike): ApiError {
+  const message = validationError.constraints
+    ? normalizeValidationError(validationError)
+    : 'بيانات غير صالحة';
+
+  return {
+    code: 'VALIDATION_ERROR',
+    field: validationError.property ?? null,
+    message,
+    value: validationError.value ?? null,
+  };
+}
+
+function extractField(message: unknown): string | null {
+  if (Array.isArray(message) && message.length > 0) {
+    return extractField(message[0]);
+  }
+
+  if (message && typeof message === 'object') {
+    const value = message as ValidationErrorLike;
+    if (value.property) {
+      return value.property;
+    }
+  }
+
+  if (typeof message !== 'string') {
+    return null;
+  }
+
+  const backtickField = message.match(/`([^`]+)`/);
+  if (backtickField) {
+    return backtickField[1];
+  }
+
+  const leadingField = message.match(
+    /^([a-zA-Z][a-zA-Z0-9_.-]*)\s+(must|should|is|has)/i,
+  );
+  if (leadingField) {
+    return leadingField[1];
+  }
+
+  return null;
+}
+
+function extractValue(message: unknown): unknown {
+  if (Array.isArray(message) && message.length > 0) {
+    return extractValue(message[0]);
+  }
+
+  if (message && typeof message === 'object') {
+    const value = message as ValidationErrorLike;
+    if (Object.prototype.hasOwnProperty.call(value, 'value')) {
+      return value.value ?? null;
+    }
+  }
+
+  if (typeof message !== 'string') {
+    return null;
+  }
+
+  const quotedValue = message.match(/['"]([^'"]+)['"]/);
+  if (quotedValue) {
+    return quotedValue[1];
+  }
+
+  const arabicIdValue = message.match(/بالمعرف\s+([^\s]+)/);
+  if (arabicIdValue) {
+    return arabicIdValue[1];
+  }
+
+  const byIdValue = message.match(/ID\s+([^\s]+)/i);
+  if (byIdValue) {
+    return byIdValue[1];
+  }
+
+  return null;
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
@@ -150,7 +262,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
 
     const status =
       exception instanceof HttpException
@@ -158,14 +269,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
     let message: unknown = 'Internal server error';
-    let error = 'Internal Server Error';
 
     if (exception instanceof HttpException) {
       const res = exception.getResponse();
       if (typeof res === 'object' && res !== null) {
         const resObj = res as ExceptionResponse;
-        message = resObj.message || exception.message;
-        error = resObj.error || 'HttpException';
+        message = resObj.message ?? exception.message;
       } else {
         message = exception.message;
       }
@@ -181,12 +290,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     }
 
+    const validationErrors = flattenValidationErrors(message);
+    const errors: ApiError[] = validationErrors.length
+      ? validationErrors.map(buildValidationError)
+      : [
+          {
+            code: getErrorCode(status),
+            field: extractField(message),
+            message: normalizeMessage(message),
+            value: extractValue(message),
+          },
+        ];
+
     response.status(status).json({
-      statusCode: status,
-      message: [normalizeMessage(message)],
-      error: translateErrorLabel(error),
-      timestamp: new Date().toISOString(),
-      path: request.url,
+      success: false,
+      message: normalizeMessage(message),
+      data: null,
+      errors,
+      pagination: null,
     });
   }
 }

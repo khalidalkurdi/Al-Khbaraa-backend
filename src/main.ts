@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor';
 import { join } from 'path';
 
 async function bootstrap() {
@@ -41,6 +42,9 @@ async function bootstrap() {
 
   // Global exception filter
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Global API response interceptor
+  app.useGlobalInterceptors(new ApiResponseInterceptor());
 
   // Swagger API documentation
   const swaggerConfig = new DocumentBuilder()
