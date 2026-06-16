@@ -36,6 +36,13 @@ export class UsersService {
     });
   }
 
+  async updateLastLogin(id: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { lastLoginAt: new Date() },
+    });
+  }
+
   private stripPassword<T extends { passwordHash: string }>(
     user: T,
   ): Omit<T, 'passwordHash'> {
@@ -76,6 +83,8 @@ export class UsersService {
         salary: data.salary,
         tokenDevice: '',
         lastLoginAt: null,
+        profileImagePath: data.profileImagePath,
+        documentImagePath: data.documentImagePath,
       },
       include: {
         role: true,
@@ -87,7 +96,7 @@ export class UsersService {
     return this.stripPassword(user);
   }
 
-  async findAll(filters?: { role?: string; isActive?: boolean }) {
+  async findAll(filters?: { role?: string; isActive?: boolean }, page = 1, limit = 10) {
     const where: Record<string, unknown> = {};
 
     if (filters?.isActive !== undefined) {
@@ -100,14 +109,27 @@ export class UsersService {
       };
     }
 
-    const users = await this.prisma.user.findMany({
-      where,
-      include: {
-        role: true,
-      },
-    });
+    const skip = (page - 1) * limit;
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          role: true,
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
 
-    return users.map((user) => this.stripPassword(user));
+    return {
+      data: users.map((user) => this.stripPassword(user)),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: string) {
@@ -193,6 +215,10 @@ export class UsersService {
     if (data.phone !== undefined) updateData.phone = data.phone ?? '';
     if (data.salary !== undefined) updateData.salary = data.salary;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
+    if (data.profileImagePath !== undefined)
+      updateData.profileImagePath = data.profileImagePath;
+    if (data.documentImagePath !== undefined)
+      updateData.documentImagePath = data.documentImagePath;
     if (data.role !== undefined) {
       const roleRecord = await this.prisma.role.findUnique({
         where: { name: data.role },

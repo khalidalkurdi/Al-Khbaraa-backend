@@ -81,4 +81,22 @@ export class UpdateUserDto {
   @IsOptional()
   @MinLength(1, { message: 'الدور مطلوب' })
   role?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Profile image',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  profileImagePath?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Document image path',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  documentImagePath?: string;
 }

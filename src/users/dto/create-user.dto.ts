@@ -7,6 +7,7 @@ import {
   MaxLength,
   Max,
   MinLength,
+  IsOptional,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -22,7 +23,7 @@ export class CreateUserDto {
 
   @ApiProperty({
     example: 'securepassword',
-    description: 'Password (minimum 6 characters)',
+    description: 'Password (minimum 8 characters)',
   })
   @IsString()
   @MinLength(8, { message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' })
@@ -39,16 +40,19 @@ export class CreateUserDto {
   @ApiProperty({
     example: 'Field Technician',
     description: 'Job title',
+    required: false,
   })
   @IsString()
+  @IsOptional()
   @MaxLength(255, { message: 'المسمى الوظيفي لا يجب أن يتجاوز 255 حرفاً' })
-  jobTitle: string;
+  jobTitle?: string;
 
   @ApiProperty({
     example: '0912345678',
     description: 'Phone number',
   })
   @IsString()
+  @IsNotEmpty({ message: 'رقم الهاتف مطلوب' })
   @MaxLength(50, { message: 'رقم الهاتف لا يجب أن يتجاوز 50 حرفاً' })
   phone: string;
 
@@ -69,4 +73,22 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'الدور مطلوب' })
   @MinLength(1, { message: 'الدور مطلوب' })
   role: string;
+
+  @ApiProperty({
+    description: 'Profile image',
+    required: false,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  profileImagePath?: string;
+
+  @ApiProperty({
+    description: 'Document image path',
+    required: false,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  documentImagePath?: string;
 }

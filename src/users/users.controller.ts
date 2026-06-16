@@ -8,6 +8,9 @@ import {
   Body,
   Req,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,18 +19,23 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import * as fs from 'fs';
+import * as path from 'path';
+import { ImageNumberUtil } from './utils/image-number.util';
 
 interface AuthenticatedRequest {
   user: {
     id: string;
     email: string;
-    roles: string[];
+    role: string;
   };
 }
 
@@ -35,7 +43,10 @@ interface AuthenticatedRequest {
 @Controller('/users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly imageNumberUtil: ImageNumberUtil,
+  ) {}
 
   @Post()
   @UseGuards(RolesGuard)
@@ -51,8 +62,66 @@ export class UsersController {
     status: 403,
     description: 'ممنوع - يتطلب صلاحية المشرف',
   })
-  async create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.createUser(createUserDto);
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'profileImage', maxCount: 1 },
+      { name: 'documentImage', maxCount: 1 },
+    ]),
+  )
+  async create(
+    @UploadedFiles()
+    files: {
+      profileImage?: Express.Multer.File;
+      documentImage?: Express.Multer.File;
+    },
+    @Body() createUserDto: CreateUserDto,
+  ) {
+    if (files.profileImage) {
+      const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+      if (!allowed.includes(files.profileImage.mimetype)) {
+        throw new BadRequestException('نوع ملف الصورة الشخصية غير صالح');
+      }
+      const newFilename = this.imageNumberUtil.getNextImageFilename(
+        files.profileImage.originalname,
+      );
+      const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
+      const newPath = path.join(USERS_UPLOAD_DIR, newFilename);
+      if (!fs.existsSync(USERS_UPLOAD_DIR)) {
+        fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
+      }
+      fs.renameSync(files.profileImage.path, newPath);
+      (files.profileImage as any).filename = newFilename;
+    }
+
+    if (files.documentImage) {
+      const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+      if (!allowed.includes(files.documentImage.mimetype)) {
+        throw new BadRequestException('نوع ملف صورة الوثيقة غير صالح');
+      }
+      const newFilename = this.imageNumberUtil.getNextImageFilename(
+        files.documentImage.originalname,
+      );
+      const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
+      const newPath = path.join(USERS_UPLOAD_DIR, newFilename);
+      if (!fs.existsSync(USERS_UPLOAD_DIR)) {
+        fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
+      }
+      fs.renameSync(files.documentImage.path, newPath);
+      (files.documentImage as any).filename = newFilename;
+    }
+
+    const profileImage = files.profileImage;
+    const documentImage = files.documentImage;
+    const dataWithPaths = {
+      ...createUserDto,
+      ...(profileImage
+        ? { profileImagePath: `/uploads/users/${profileImage.filename}` }
+        : {}),
+      ...(documentImage
+        ? { documentImagePath: `/uploads/users/${documentImage.filename}` }
+        : {}),
+    };
+    return this.usersService.createUser(dataWithPaths);
   }
 
   @Get()
@@ -76,12 +145,20 @@ export class UsersController {
     description: 'ممنوع - يتطلب صلاحية المشرف أو المدير',
   })
   async findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
     @Query('role') role?: string,
     @Query('isActive') isActive?: string,
   ) {
+    const pageNum = Math.max(parseInt(page ?? '1', 10) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit ?? '10', 10) || 10, 1), 100);
     const activeFilter =
       isActive !== undefined ? isActive === 'true' : undefined;
-    return this.usersService.findAll({ role, isActive: activeFilter });
+    return this.usersService.findAll(
+      { role, isActive: activeFilter },
+      pageNum,
+      limitNum,
+    );
   }
 
   @Get('me')
@@ -110,7 +187,66 @@ export class UsersController {
   @ApiOperation({ summary: 'Update user details (Admin only)' })
   @ApiResponse({ status: 200, description: 'تم تحديث المستخدم بنجاح' })
   @ApiResponse({ status: 404, description: 'المستخدم غير موجود' })
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'profileImage', maxCount: 1 },
+      { name: 'documentImage', maxCount: 1 },
+    ]),
+  )
+  async update(
+    @Param('id') id: string,
+    @UploadedFiles()
+    files: {
+      profileImage?: Express.Multer.File;
+      documentImage?: Express.Multer.File;
+    },
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    const existingUser = await this.usersService.findOne(id);
+
+    if (files.profileImage) {
+      const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+      if (!allowed.includes(files.profileImage.mimetype)) {
+        throw new BadRequestException('نوع ملف الصورة الشخصية غير صالح');
+      }
+      const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
+      const targetFilename = existingUser.profileImagePath
+        ? path.basename(existingUser.profileImagePath)
+        : this.imageNumberUtil.getNextImageFilename(files.profileImage.originalname);
+      const targetPath = path.join(USERS_UPLOAD_DIR, targetFilename);
+      if (!fs.existsSync(USERS_UPLOAD_DIR)) {
+        fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
+      }
+      fs.renameSync(files.profileImage.path, targetPath);
+      (files.profileImage as any).filename = targetFilename;
+    }
+
+    if (files.documentImage) {
+      const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+      if (!allowed.includes(files.documentImage.mimetype)) {
+        throw new BadRequestException('نوع ملف صورة الوثيقة غير صالح');
+      }
+      const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
+      const targetFilename = existingUser.documentImagePath
+        ? path.basename(existingUser.documentImagePath)
+        : this.imageNumberUtil.getNextImageFilename(files.documentImage.originalname);
+      const targetPath = path.join(USERS_UPLOAD_DIR, targetFilename);
+      if (!fs.existsSync(USERS_UPLOAD_DIR)) {
+        fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
+      }
+      fs.renameSync(files.documentImage.path, targetPath);
+      (files.documentImage as any).filename = targetFilename;
+    }
+
+    const profileImage = files.profileImage;
+    const documentImage = files.documentImage;
+    const data: any = { ...updateUserDto };
+    if (profileImage) {
+      data.profileImagePath = `/uploads/users/${profileImage.filename}`;
+    }
+    if (documentImage) {
+      data.documentImagePath = `/uploads/users/${documentImage.filename}`;
+    }
+    return this.usersService.update(id, data);
   }
 }
