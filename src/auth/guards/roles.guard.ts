@@ -11,7 +11,7 @@ interface AuthenticatedRequest {
   user: {
     id: string;
     email: string;
-    roles: string[];
+    role: string;
   };
 }
 
@@ -29,11 +29,11 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
-    if (!user || !user.roles) {
+    if (!user || !user.role) {
       throw new ForbiddenException('تم رفض الوصول');
     }
 
-    const hasRole = requiredRoles.some((role) => user.roles.includes(role));
+    const hasRole = requiredRoles.some((role) => user.role === role);
     if (!hasRole) {
       throw new ForbiddenException('الصلاحيات غير كافية');
     }
