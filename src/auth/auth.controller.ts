@@ -52,6 +52,10 @@ export class AuthController {
     status: 200,
     description: 'تم إلغاء رمز التحديث بنجاح',
   })
+  @ApiResponse({
+    status: 400,
+    description: 'Refresh token مطلوب أو غير صالح',
+  })
   async logout(@Body() refreshTokenDto: RefreshTokenDto) {
     await this.authService.logout(refreshTokenDto.refreshToken);
     return { message: 'تم تسجيل الخروج بنجاح' };

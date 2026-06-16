@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
@@ -72,11 +77,10 @@ export class AuthService {
     },
     tokenDevice: string,
   ) {
-    const role = [user.role.name];
     const payload: JwtPayload = {
       email: user.email,
       sub: user.id,
-      role: role,
+      role: user.role.name,
       Issuer: 'Al-kubaraa',
     };
 
@@ -113,7 +117,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         fullName: user.fullName,
-        role: role,
+        role: user.role.name,
       },
     };
   }
@@ -146,11 +150,10 @@ export class AuthService {
       throw new UnauthorizedException('حساب المستخدم معطل أو غير موجود');
     }
 
-    const role = [user.role.name];
     const newPayload: JwtPayload = {
       email: user.email,
       sub: user.id,
-      role: role,
+      role: user.role.name,
       Issuer: 'Al-kubaraa',
     };
 
@@ -184,15 +187,30 @@ export class AuthService {
   }
 
   async logout(token: string): Promise<void> {
-    const dbToken = await this.prisma.refreshToken.findFirst({
-      where: { token, isBlocked: false },
-    });
+    try {
+      const dbToken = await this.prisma.refreshToken.findFirst({
+        where: { token, isBlocked: false },
+      });
 
-    if (dbToken) {
+      if (!dbToken) {
+        throw new NotFoundException(
+          'لم يتم العثور على التوكن أو أنه محظور بالفعل',
+        );
+      }
+
       await this.prisma.refreshToken.update({
         where: { id: dbToken.id },
-        data: { isBlocked: true },
+        data: {
+          isBlocked: true,
+        },
       });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'فشل تسجيل الخروج، يرجى المحاولة مرة أخرى',
+      );
     }
   }
 }
