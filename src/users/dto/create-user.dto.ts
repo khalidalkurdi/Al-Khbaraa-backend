@@ -1,3 +1,4 @@
+// users/dto/create-user.dto.ts
 import {
   IsEmail,
   IsNotEmpty,
@@ -5,88 +6,78 @@ import {
   IsNumber,
   Min,
   MaxLength,
+  IsOptional,
   Max,
   MinLength,
-  IsOptional,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  @ApiProperty({
-    example: 'tech1@example.com',
-    description: 'User email address',
-  })
+  @ApiProperty({ example: 'tech1@example.com' })
   @IsEmail({}, { message: 'يجب أن يكون البريد الإلكتروني صالحاً' })
   @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
-  @MaxLength(255, { message: 'البريد الإلكتروني لا يجب أن يتجاوز 255 حرفاً' })
   email: string;
 
-  @ApiProperty({
-    example: 'securepassword',
-    description: 'Password (minimum 8 characters)',
-  })
+  @ApiProperty({ example: 'securepassword' })
   @IsString()
-  @MinLength(8, { message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' })
-  @MaxLength(255, { message: 'كلمة المرور لا يجب أن تتجاوز 255 حرفاً' })
   @IsNotEmpty({ message: 'كلمة المرور مطلوبة' })
+  @MinLength(8, { message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' })
+  @MaxLength(255)
   password: string;
 
-  @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
+  @ApiProperty({ example: 'John Doe' })
   @IsString()
   @IsNotEmpty({ message: 'الاسم الكامل مطلوب' })
-  @MaxLength(255, { message: 'الاسم الكامل لا يجب أن يتجاوز 255 حرفاً' })
   fullName: string;
 
-  @ApiProperty({
-    example: 'Field Technician',
-    description: 'Job title',
-    required: false,
-  })
+  @ApiPropertyOptional({ example: 'Field Technician' })
   @IsString()
   @IsOptional()
-  @MaxLength(255, { message: 'المسمى الوظيفي لا يجب أن يتجاوز 255 حرفاً' })
   jobTitle?: string;
 
-  @ApiProperty({
-    example: '0912345678',
-    description: 'Phone number',
-  })
+  @ApiProperty({ example: '0912345678' })
   @IsString()
   @IsNotEmpty({ message: 'رقم الهاتف مطلوب' })
-  @MaxLength(50, { message: 'رقم الهاتف لا يجب أن يتجاوز 50 حرفاً' })
   phone: string;
 
-  @ApiProperty({
-    example: 500000,
-    description: 'Monthly salary in SYP',
-  })
+  @ApiProperty({ example: 500000 })
   @IsNumber()
   @Min(0)
-  @Max(9999999999.99, { message: 'الراتب لا يجب أن يتجاوز 9999999999.99' })
+  @Max(9999999999.99)
   salary: number;
 
-  @ApiProperty({
-    example: 'Technician',
-    description: 'Role name to assign',
-  })
+  @ApiProperty({ example: 'Technician' })
   @IsString()
   @IsNotEmpty({ message: 'الدور مطلوب' })
-  @MinLength(1, { message: 'الدور مطلوب' })
   role: string;
 
-  @ApiProperty({
-    description: 'Profile image',
-    required: false,
-    type: String,
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'الصورة الشخصية (اختياري) - PNG, JPEG, WebP',
+  })
+  @IsOptional()
+  profileImage?: any;
+
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'صورة الوثيقة (اختياري) - PNG, JPEG, WebP',
+  })
+  @IsOptional()
+  documentImage?: any;
+
+  @ApiPropertyOptional({
+    description: 'مسار الصورة الشخصية (يُملأ تلقائياً)',
+    example: '/uploads/users/image_001.jpg',
   })
   @IsOptional()
   @IsString()
   profileImagePath?: string;
 
-  @ApiProperty({
-    description: 'Document image path',
-    required: false,
-    type: String,
+  @ApiPropertyOptional({
+    description: 'مسار صورة الوثيقة (يُملأ تلقائياً)',
+    example: '/uploads/users/image_002.jpg',
   })
   @IsOptional()
   @IsString()

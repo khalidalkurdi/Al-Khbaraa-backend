@@ -96,7 +96,11 @@ export class UsersService {
     return this.stripPassword(user);
   }
 
-  async findAll(filters?: { role?: string; isActive?: boolean }, page = 1, limit = 10) {
+  async findAll(
+    filters?: { role?: string; isActive?: boolean },
+    page = 1,
+    limit = 10,
+  ) {
     const where: Record<string, unknown> = {};
 
     if (filters?.isActive !== undefined) {

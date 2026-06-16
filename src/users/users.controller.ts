@@ -18,6 +18,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiConsumes,
 } from '@nestjs/swagger';
 
 import { UsersService } from './users.service';
@@ -52,6 +53,7 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @Roles('Admin')
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Create a new staff member (Admin only)' })
   @ApiResponse({ status: 201, description: 'تم إنشاء المستخدم بنجاح' })
   @ApiResponse({
@@ -77,6 +79,9 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
   ) {
     if (files.profileImage) {
+      if (files.profileImage.size > 5) {
+        throw new BadRequestException('حجم الصورة الشخصية يتجاوز 5 ميجابايت');
+      }
       const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
       if (!allowed.includes(files.profileImage.mimetype)) {
         throw new BadRequestException('نوع ملف الصورة الشخصية غير صالح');
@@ -94,6 +99,9 @@ export class UsersController {
     }
 
     if (files.documentImage) {
+      if (files.documentImage.size > 5) {
+        throw new BadRequestException('حجم الصورة للوثيقة يتجاوز 5 ميجابايت');
+      }
       const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
       if (!allowed.includes(files.documentImage.mimetype)) {
         throw new BadRequestException('نوع ملف صورة الوثيقة غير صالح');
@@ -109,18 +117,16 @@ export class UsersController {
       fs.renameSync(files.documentImage.path, newPath);
       (files.documentImage as any).filename = newFilename;
     }
+    const dataWithPaths: any = { ...createUserDto };
 
-    const profileImage = files.profileImage;
-    const documentImage = files.documentImage;
-    const dataWithPaths = {
-      ...createUserDto,
-      ...(profileImage
-        ? { profileImagePath: `/uploads/users/${profileImage.filename}` }
-        : {}),
-      ...(documentImage
-        ? { documentImagePath: `/uploads/users/${documentImage.filename}` }
-        : {}),
-    };
+    if (files.profileImage) {
+      dataWithPaths.profileImagePath = `/uploads/users/${files.profileImage.filename}`;
+    }
+
+    if (files.documentImage) {
+      dataWithPaths.documentImagePath = `/uploads/users/${files.documentImage.filename}`;
+    }
+
     return this.usersService.createUser(dataWithPaths);
   }
 
@@ -151,7 +157,10 @@ export class UsersController {
     @Query('isActive') isActive?: string,
   ) {
     const pageNum = Math.max(parseInt(page ?? '1', 10) || 1, 1);
-    const limitNum = Math.min(Math.max(parseInt(limit ?? '10', 10) || 10, 1), 100);
+    const limitNum = Math.min(
+      Math.max(parseInt(limit ?? '10', 10) || 10, 1),
+      100,
+    );
     const activeFilter =
       isActive !== undefined ? isActive === 'true' : undefined;
     return this.usersService.findAll(
@@ -184,6 +193,7 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @Roles('Admin')
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Update user details (Admin only)' })
   @ApiResponse({ status: 200, description: 'تم تحديث المستخدم بنجاح' })
   @ApiResponse({ status: 404, description: 'المستخدم غير موجود' })
@@ -205,6 +215,9 @@ export class UsersController {
     const existingUser = await this.usersService.findOne(id);
 
     if (files.profileImage) {
+      if (files.profileImage.size > 5) {
+        throw new BadRequestException('حجم الصورة الشخصية يتجاوز 5 ميجابايت');
+      }
       const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
       if (!allowed.includes(files.profileImage.mimetype)) {
         throw new BadRequestException('نوع ملف الصورة الشخصية غير صالح');
@@ -212,7 +225,15 @@ export class UsersController {
       const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
       const targetFilename = existingUser.profileImagePath
         ? path.basename(existingUser.profileImagePath)
-        : this.imageNumberUtil.getNextImageFilename(files.profileImage.originalname);
+        : this.imageNumberUtil.getNextImageFilename(
+            files.profileImage.originalname,
+          );
+      if (existingUser.profileImagePath) {
+        const oldPath = path.join(process.cwd(), existingUser.profileImagePath);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
       const targetPath = path.join(USERS_UPLOAD_DIR, targetFilename);
       if (!fs.existsSync(USERS_UPLOAD_DIR)) {
         fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
@@ -222,6 +243,9 @@ export class UsersController {
     }
 
     if (files.documentImage) {
+      if (files.documentImage.size > 5) {
+        throw new BadRequestException('حجم الصورة للوثيقة يتجاوز 5 ميجابايت');
+      }
       const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
       if (!allowed.includes(files.documentImage.mimetype)) {
         throw new BadRequestException('نوع ملف صورة الوثيقة غير صالح');
@@ -229,7 +253,18 @@ export class UsersController {
       const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
       const targetFilename = existingUser.documentImagePath
         ? path.basename(existingUser.documentImagePath)
-        : this.imageNumberUtil.getNextImageFilename(files.documentImage.originalname);
+        : this.imageNumberUtil.getNextImageFilename(
+            files.documentImage.originalname,
+          );
+      if (existingUser.documentImagePath) {
+        const oldPath = path.join(
+          process.cwd(),
+          existingUser.documentImagePath,
+        );
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      }
       const targetPath = path.join(USERS_UPLOAD_DIR, targetFilename);
       if (!fs.existsSync(USERS_UPLOAD_DIR)) {
         fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
@@ -238,15 +273,16 @@ export class UsersController {
       (files.documentImage as any).filename = targetFilename;
     }
 
-    const profileImage = files.profileImage;
-    const documentImage = files.documentImage;
-    const data: any = { ...updateUserDto };
-    if (profileImage) {
-      data.profileImagePath = `/uploads/users/${profileImage.filename}`;
+    const dataWithPaths: any = { ...updateUserDto };
+
+    if (files.profileImage) {
+      dataWithPaths.profileImagePath = `/uploads/users/${files.profileImage.filename}`;
     }
-    if (documentImage) {
-      data.documentImagePath = `/uploads/users/${documentImage.filename}`;
+
+    if (files.documentImage) {
+      dataWithPaths.documentImagePath = `/uploads/users/${files.documentImage.filename}`;
     }
-    return this.usersService.update(id, data);
+
+    return this.usersService.update(id, dataWithPaths);
   }
 }

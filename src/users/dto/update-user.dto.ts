@@ -1,3 +1,4 @@
+// users/dto/update-user.dto.ts
 import {
   IsOptional,
   IsString,
@@ -9,7 +10,7 @@ import {
   IsEmail,
   MinLength,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateUserDto {
   @ApiProperty({
@@ -82,9 +83,25 @@ export class UpdateUserDto {
   @MinLength(1, { message: 'الدور مطلوب' })
   role?: string;
 
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'Profile image (optional) - PNG, JPEG, WebP',
+  })
+  @IsOptional()
+  profileImage?: any;
+
+  @ApiPropertyOptional({
+    type: 'string',
+    format: 'binary',
+    description: 'Document image (optional) - PNG, JPEG, WebP',
+  })
+  @IsOptional()
+  documentImage?: any;
+
   @ApiProperty({
     required: false,
-    description: 'Profile image',
+    description: 'Profile image path (auto-generated)',
     type: String,
   })
   @IsOptional()
@@ -93,7 +110,7 @@ export class UpdateUserDto {
 
   @ApiProperty({
     required: false,
-    description: 'Document image path',
+    description: 'Document image path (auto-generated)',
     type: String,
   })
   @IsOptional()
