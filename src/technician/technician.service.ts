@@ -45,7 +45,7 @@ export class TechnicianService {
   }
 
   async getMyRequests(technicianId: string, query: MyRequestsQueryDto) {
-    const { status, page = 1, limit = 20 } = query;
+    const { status, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -147,28 +147,6 @@ export class TechnicianService {
       });
 
       return updated;
-    });
-
-    this.realtimeGateway.sendToUser(technicianId, 'request.status_changed', {
-      type: 'request.status_changed',
-      data: {
-        requestId: request.id,
-        requestNumber: request.requestNumber,
-        status: status,
-        changedBy: { id: technicianId },
-        changedAt: getSyriaNow(),
-      },
-    });
-
-    this.realtimeGateway.sendToAll('request.status_changed', {
-      type: 'request.status_changed',
-      data: {
-        requestId: request.id,
-        requestNumber: request.requestNumber,
-        status: status,
-        changedBy: { id: technicianId },
-        changedAt: getSyriaNow(),
-      },
     });
 
     return result;
