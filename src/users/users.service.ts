@@ -10,6 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { getSyriaNow } from '../common/utils/syria-date.util';
 
 @Injectable()
 export class UsersService {
@@ -39,7 +40,7 @@ export class UsersService {
   async updateLastLogin(id: string) {
     return this.prisma.user.update({
       where: { id },
-      data: { lastLoginAt: new Date() },
+      data: { lastLoginAt: getSyriaNow() },
     });
   }
 

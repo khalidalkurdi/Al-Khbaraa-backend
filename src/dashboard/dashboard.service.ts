@@ -12,6 +12,7 @@ import {
 } from './dto/financial-report-query.dto';
 import { FinanceService } from '../finance/finance.service';
 import { RequestStatus } from '@prisma/client';
+import { toSyriaDate } from '../common/utils/syria-date.util';
 
 @Injectable()
 export class DashboardService {
@@ -25,7 +26,7 @@ export class DashboardService {
   async getDashboardStats(): Promise<DashboardStatsResponseDto> {
     this.logger.log('Fetching dashboard stats');
 
-    const now = new Date();
+    const now = toSyriaDate(new Date());
     const todayStart = new Date(
       now.getFullYear(),
       now.getMonth(),

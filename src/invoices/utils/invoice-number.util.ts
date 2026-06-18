@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { toSyriaDate } from '../../common/utils/syria-date.util';
 
 @Injectable()
 export class InvoiceNumberUtil {
   generate(): string {
-    const date = new Date();
+    const date = toSyriaDate(new Date());
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');

@@ -7,6 +7,10 @@ import {
   drawText,
 } from './helpers';
 import type { FinancialReportPdfData, PdfBranding } from '../pdf.types';
+import {
+  formatSyriaDate,
+  getSyriaNow,
+} from '../../common/utils/syria-date.util';
 
 export function renderFinancialReportPdf(
   document: PdfDocument,
@@ -96,10 +100,7 @@ export function renderFinancialReportPdf(
   y = drawKeyValue(
     document,
     'Generated:',
-    new Intl.DateTimeFormat('en-GB', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(new Date()),
+    formatSyriaDate(getSyriaNow(), 'yyyy-MM-dd HH:mm'),
     y,
   );
   y = drawKeyValue(document, 'Currency:', 'SYP', y);

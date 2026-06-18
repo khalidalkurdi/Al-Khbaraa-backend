@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { FirebaseAdminProvider } from './firebase-admin.provider';
 import { NotificationListQueryDto } from './dto/notification-list-query.dto';
+import { getSyriaNow } from '../common/utils/syria-date.util';
 
 export interface SendPushNotificationInput {
   userId: string;
@@ -144,7 +145,7 @@ export class NotificationsService {
       where: { id },
       data: {
         isRead: true,
-        readAt: new Date(),
+        readAt: getSyriaNow(),
       },
     });
   }

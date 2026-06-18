@@ -7,6 +7,7 @@ import {
 import { UpdateTechnicianStatusDto } from './dto/update-status.dto';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { RequestStatus } from '@prisma/client';
+import { getSyriaNow } from '../common/utils/syria-date.util';
 
 @Injectable()
 export class TechnicianService {
@@ -155,7 +156,7 @@ export class TechnicianService {
         requestNumber: request.requestNumber,
         status: status,
         changedBy: { id: technicianId },
-        changedAt: new Date(),
+        changedAt: getSyriaNow(),
       },
     });
 
@@ -166,7 +167,7 @@ export class TechnicianService {
         requestNumber: request.requestNumber,
         status: status,
         changedBy: { id: technicianId },
-        changedAt: new Date(),
+        changedAt: getSyriaNow(),
       },
     });
 
