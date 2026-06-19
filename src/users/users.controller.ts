@@ -40,6 +40,14 @@ interface AuthenticatedRequest {
   };
 }
 
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+]);
+const ALLOWED_IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
+
 @ApiTags('users')
 @Controller('/users')
 @UseGuards(JwtAuthGuard)
@@ -48,6 +56,45 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly imageNumberUtil: ImageNumberUtil,
   ) {}
+
+  private validateImageFile(
+    file: Express.Multer.File,
+    sizeErrorMessage: string,
+    typeErrorMessage: string,
+  ) {
+    if (file.size > MAX_IMAGE_SIZE) {
+      throw new BadRequestException(sizeErrorMessage);
+    }
+
+    const mimetype = file.mimetype.split(';')[0].toLowerCase();
+    const extension = path.extname(file.originalname).toLowerCase();
+    const isAllowed =
+      ALLOWED_IMAGE_MIME_TYPES.has(mimetype) &&
+      ALLOWED_IMAGE_EXTENSIONS.has(extension);
+
+    if (!isAllowed) {
+      throw new BadRequestException(typeErrorMessage);
+    }
+  }
+
+  private moveUploadedFile(file: Express.Multer.File, filename: string) {
+    const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
+    const targetPath = path.join(USERS_UPLOAD_DIR, filename);
+
+    if (!fs.existsSync(USERS_UPLOAD_DIR)) {
+      fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
+    }
+
+    if (file.path) {
+      fs.renameSync(file.path, targetPath);
+    } else if (file.buffer) {
+      fs.writeFileSync(targetPath, file.buffer);
+    } else {
+      throw new BadRequestException('تعذر معالجة الملف المرفوع');
+    }
+
+    file.filename = filename;
+  }
 
   @Post()
   @UseGuards(RolesGuard)
@@ -73,58 +120,46 @@ export class UsersController {
   async create(
     @UploadedFiles()
     files: {
-      profileImage?: Express.Multer.File;
-      documentImage?: Express.Multer.File;
+      profileImage?: Express.Multer.File[];
+      documentImage?: Express.Multer.File[];
     },
     @Body() createUserDto: CreateUserDto,
   ) {
-    if (files.profileImage) {
-      if (files.profileImage.size > 5) {
-        throw new BadRequestException('حجم الصورة الشخصية يتجاوز 5 ميجابايت');
-      }
-      const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-      if (!allowed.includes(files.profileImage.mimetype)) {
-        throw new BadRequestException('نوع ملف الصورة الشخصية غير صالح');
-      }
-      const newFilename = this.imageNumberUtil.getNextImageFilename(
-        files.profileImage.originalname,
+    const uploadedFiles = files ?? {};
+    const profileImage = uploadedFiles.profileImage?.[0];
+    const documentImage = uploadedFiles.documentImage?.[0];
+
+    if (profileImage) {
+      this.validateImageFile(
+        profileImage,
+        'حجم الصورة الشخصية يتجاوز 5 ميجابايت',
+        'نوع ملف الصورة الشخصية غير صالح',
       );
-      const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
-      const newPath = path.join(USERS_UPLOAD_DIR, newFilename);
-      if (!fs.existsSync(USERS_UPLOAD_DIR)) {
-        fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
-      }
-      fs.renameSync(files.profileImage.path, newPath);
-      (files.profileImage as any).filename = newFilename;
-    }
-
-    if (files.documentImage) {
-      if (files.documentImage.size > 5) {
-        throw new BadRequestException('حجم الصورة للوثيقة يتجاوز 5 ميجابايت');
-      }
-      const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-      if (!allowed.includes(files.documentImage.mimetype)) {
-        throw new BadRequestException('نوع ملف صورة الوثيقة غير صالح');
-      }
       const newFilename = this.imageNumberUtil.getNextImageFilename(
-        files.documentImage.originalname,
+        profileImage.originalname,
       );
-      const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
-      const newPath = path.join(USERS_UPLOAD_DIR, newFilename);
-      if (!fs.existsSync(USERS_UPLOAD_DIR)) {
-        fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
-      }
-      fs.renameSync(files.documentImage.path, newPath);
-      (files.documentImage as any).filename = newFilename;
-    }
-    const dataWithPaths: any = { ...createUserDto };
-
-    if (files.profileImage) {
-      dataWithPaths.profileImagePath = `/uploads/users/${files.profileImage.filename}`;
+      this.moveUploadedFile(profileImage, newFilename);
     }
 
-    if (files.documentImage) {
-      dataWithPaths.documentImagePath = `/uploads/users/${files.documentImage.filename}`;
+    if (documentImage) {
+      this.validateImageFile(
+        documentImage,
+        'حجم الصورة للوثيقة يتجاوز 5 ميجابايت',
+        'نوع ملف صورة الوثيقة غير صالح',
+      );
+      const newFilename = this.imageNumberUtil.getNextImageFilename(
+        documentImage.originalname,
+      );
+      this.moveUploadedFile(documentImage, newFilename);
+    }
+    const dataWithPaths: CreateUserDto = { ...createUserDto };
+
+    if (profileImage) {
+      dataWithPaths.profileImagePath = `/uploads/users/${profileImage.filename}`;
+    }
+
+    if (documentImage) {
+      dataWithPaths.documentImagePath = `/uploads/users/${documentImage.filename}`;
     }
 
     return this.usersService.createUser(dataWithPaths);
@@ -207,55 +242,46 @@ export class UsersController {
     @Param('id') id: string,
     @UploadedFiles()
     files: {
-      profileImage?: Express.Multer.File;
-      documentImage?: Express.Multer.File;
+      profileImage?: Express.Multer.File[];
+      documentImage?: Express.Multer.File[];
     },
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    const existingUser = await this.usersService.findOne(id);
+    const uploadedFiles = files ?? {};
+    const profileImage = uploadedFiles.profileImage?.[0];
+    const documentImage = uploadedFiles.documentImage?.[0];
+    const existingUser = (await this.usersService.findOne(id)) as {
+      profileImagePath?: string | null;
+      documentImagePath?: string | null;
+    };
 
-    if (files.profileImage) {
-      if (files.profileImage.size > 5) {
-        throw new BadRequestException('حجم الصورة الشخصية يتجاوز 5 ميجابايت');
-      }
-      const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-      if (!allowed.includes(files.profileImage.mimetype)) {
-        throw new BadRequestException('نوع ملف الصورة الشخصية غير صالح');
-      }
-      const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
+    if (profileImage) {
+      this.validateImageFile(
+        profileImage,
+        'حجم الصورة الشخصية يتجاوز 5 ميجابايت',
+        'نوع ملف الصورة الشخصية غير صالح',
+      );
       const targetFilename = existingUser.profileImagePath
         ? path.basename(existingUser.profileImagePath)
-        : this.imageNumberUtil.getNextImageFilename(
-            files.profileImage.originalname,
-          );
+        : this.imageNumberUtil.getNextImageFilename(profileImage.originalname);
       if (existingUser.profileImagePath) {
         const oldPath = path.join(process.cwd(), existingUser.profileImagePath);
         if (fs.existsSync(oldPath)) {
           fs.unlinkSync(oldPath);
         }
       }
-      const targetPath = path.join(USERS_UPLOAD_DIR, targetFilename);
-      if (!fs.existsSync(USERS_UPLOAD_DIR)) {
-        fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
-      }
-      fs.renameSync(files.profileImage.path, targetPath);
-      (files.profileImage as any).filename = targetFilename;
+      this.moveUploadedFile(profileImage, targetFilename);
     }
 
-    if (files.documentImage) {
-      if (files.documentImage.size > 5) {
-        throw new BadRequestException('حجم الصورة للوثيقة يتجاوز 5 ميجابايت');
-      }
-      const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-      if (!allowed.includes(files.documentImage.mimetype)) {
-        throw new BadRequestException('نوع ملف صورة الوثيقة غير صالح');
-      }
-      const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
+    if (documentImage) {
+      this.validateImageFile(
+        documentImage,
+        'حجم الصورة للوثيقة يتجاوز 5 ميجابايت',
+        'نوع ملف صورة الوثيقة غير صالح',
+      );
       const targetFilename = existingUser.documentImagePath
         ? path.basename(existingUser.documentImagePath)
-        : this.imageNumberUtil.getNextImageFilename(
-            files.documentImage.originalname,
-          );
+        : this.imageNumberUtil.getNextImageFilename(documentImage.originalname);
       if (existingUser.documentImagePath) {
         const oldPath = path.join(
           process.cwd(),
@@ -265,22 +291,17 @@ export class UsersController {
           fs.unlinkSync(oldPath);
         }
       }
-      const targetPath = path.join(USERS_UPLOAD_DIR, targetFilename);
-      if (!fs.existsSync(USERS_UPLOAD_DIR)) {
-        fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
-      }
-      fs.renameSync(files.documentImage.path, targetPath);
-      (files.documentImage as any).filename = targetFilename;
+      this.moveUploadedFile(documentImage, targetFilename);
     }
 
-    const dataWithPaths: any = { ...updateUserDto };
+    const dataWithPaths: UpdateUserDto = { ...updateUserDto };
 
-    if (files.profileImage) {
-      dataWithPaths.profileImagePath = `/uploads/users/${files.profileImage.filename}`;
+    if (profileImage) {
+      dataWithPaths.profileImagePath = `/uploads/users/${profileImage.filename}`;
     }
 
-    if (files.documentImage) {
-      dataWithPaths.documentImagePath = `/uploads/users/${files.documentImage.filename}`;
+    if (documentImage) {
+      dataWithPaths.documentImagePath = `/uploads/users/${documentImage.filename}`;
     }
 
     return this.usersService.update(id, dataWithPaths);

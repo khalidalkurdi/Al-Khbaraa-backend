@@ -67,18 +67,10 @@ export class CreateUserDto {
   @IsOptional()
   documentImage?: any;
 
-  @ApiPropertyOptional({
-    description: 'مسار الصورة الشخصية (يُملأ تلقائياً)',
-    example: '/uploads/users/image_001.jpg',
-  })
   @IsOptional()
   @IsString()
   profileImagePath?: string;
 
-  @ApiPropertyOptional({
-    description: 'مسار صورة الوثيقة (يُملأ تلقائياً)',
-    example: '/uploads/users/image_002.jpg',
-  })
   @IsOptional()
   @IsString()
   documentImagePath?: string;
