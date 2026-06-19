@@ -116,14 +116,14 @@ export class TechnicianService {
       accepted: 1,
       ontheway: 2,
       arrived: 3,
-      underrepair: 4,
       notrepairable: 4,
-      pulltocenter: 5,
-      completed: 5,
-      incompleted: 5,
-      postponed: 999,
-      cancelled: 999,
-      notanswer: 999,
+      postponed: 4,
+      cancelled: 4,
+      notanswer: 4,
+      underrepair: 5,
+      pulltocenter: 6,
+      completed: 6,
+      incompleted: 6,
     };
 
     const currentStatus = request.status;
