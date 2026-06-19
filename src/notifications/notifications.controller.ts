@@ -7,6 +7,8 @@ import {
   Query,
   Req,
   UseGuards,
+  Post,
+  Body,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -16,11 +18,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { NotificationsService } from './notifications.service';
 import { NotificationListQueryDto } from './dto/notification-list-query.dto';
 import { NotificationAlertResponseDto } from './dto/notification-alert-response.dto';
-import { NotificationPageResponseDto } from './dto/notification-page-response.dto';
-import { NotificationResponseDto } from './dto/notification-response.dto';
+import { SendNotificationDto } from './dto/send-notification.dto';
 
 interface AuthenticatedRequest {
   user: {
@@ -44,7 +46,6 @@ export class NotificationsController {
   @ApiResponse({
     status: 200,
     description: 'تم إرجاع سجل الإشعارات',
-    type: NotificationPageResponseDto,
   })
   @ApiResponse({ status: 401, description: 'رمز JWT مفقود أو غير صالح' })
   async findAll(
@@ -71,7 +72,6 @@ export class NotificationsController {
   @ApiResponse({
     status: 200,
     description: 'تم تعليم الإشعار كمقروء',
-    type: NotificationResponseDto,
   })
   @ApiResponse({ status: 400, description: 'معرف الإشعار غير صالح' })
   @ApiResponse({ status: 401, description: 'رمز JWT مفقود أو غير صالح' })
@@ -81,5 +81,20 @@ export class NotificationsController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.notificationsService.markAsRead(id, req.user.id);
+  }
+
+  @Post('send')
+  @Roles('Admin')
+  @ApiOperation({ summary: 'Send notification to specific user (admin only)' })
+  @ApiResponse({
+    status: 201,
+    description: 'تم إرسال الإشعار بنجاح',
+  })
+  @ApiResponse({ status: 400, description: 'بيانات غير صالحة' })
+  @ApiResponse({ status: 401, description: 'رمز JWT مفقود أو غير صالح' })
+  @ApiResponse({ status: 403, description: 'الصلاحيات غير كافية' })
+  @ApiResponse({ status: 404, description: 'المستخدم غير موجود' })
+  async sendToUser(@Body() dto: SendNotificationDto) {
+    return this.notificationsService.sendPushNotification(dto);
   }
 }
