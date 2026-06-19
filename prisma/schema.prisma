@@ -183,7 +183,6 @@ model Request {
   faultDescription String        @map("fault_description") @db.Text
   notes            String?       @db.Text
   scheduledDate    DateTime?      @map("scheduled_date") @db.Date
-  scheduledTime    DateTime?     @map("scheduled_time") @db.Time(0)
   isRepeated       Boolean       @default(false) @map("is_repeated")
   isCompleted      Boolean       @default(false) @map("is_completed")
   status           RequestStatus @default(new)

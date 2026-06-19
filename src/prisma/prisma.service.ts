@@ -13,6 +13,14 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
 
+  constructor() {
+    super({
+      // Set default transaction timeout globally
+      transactionOptions: {
+        timeout: 10000, // 10 seconds timeout
+      },
+    });
+  }
   async onModuleInit() {
     await this.$connect();
     await this.$executeRawUnsafe(`SET time_zone = '+03:00'`);
