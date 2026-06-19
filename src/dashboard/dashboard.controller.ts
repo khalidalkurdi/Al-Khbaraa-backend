@@ -20,13 +20,13 @@ export class DashboardController {
   ) {}
 
   @Get('stats')
-  @Roles('admin', 'manager')
+  @Roles('Admin', 'Manager')
   async getStats(): Promise<DashboardStatsResponseDto> {
     return this.dashboardService.getDashboardStats();
   }
 
   @Get('technician-performance')
-  @Roles('admin')
+  @Roles('Admin')
   async getTechnicianPerformance(
     @Query() query: TechnicianPerformanceQueryDto,
   ) {
@@ -34,7 +34,7 @@ export class DashboardController {
   }
 
   @Get('financial-report')
-  @Roles('admin')
+  @Roles('Admin')
   async getFinancialReport(
     @Query() query: FinancialReportQueryDto,
     @Query('format') format: string,
