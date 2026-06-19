@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   MyRequestsQueryDto,
@@ -114,6 +119,44 @@ export class TechnicianService {
 
     if (!request) {
       throw new NotFoundException(`طلب بالمعرف ${requestId} غير موجود`);
+    }
+
+    const statusOrder = {
+      new: 0,
+      accepted: 1,
+      ontheway: 2,
+      arrived: 3,
+      underrepair: 4,
+      notrepairable: 4,
+      pulltocenter: 5,
+      completed: 5,
+      incompleted: 5,
+      postponed: 999,
+      cancelled: 999,
+      notanswer: 999,
+    };
+
+    const currentStatus = request.status;
+    const currentOrder = statusOrder[currentStatus];
+    const newOrder = statusOrder[status];
+
+    if (newOrder === undefined) {
+      throw new BadRequestException(`حالة غير معروفة: ${status}`);
+    }
+    if (currentOrder === newOrder) {
+      throw new BadRequestException(`الطلب بالفعل في الحالة ${status}`);
+    }
+    if (newOrder < currentOrder) {
+      throw new BadRequestException(
+        `لا يمكن الرجوع إلى حالة أقل (${status}) من الحالة الحالية (${currentStatus})`,
+      );
+    }
+
+    const finalStates = ['completed', 'incompleted', 'pulltocenter'];
+    if (finalStates.includes(currentStatus) && currentStatus !== status) {
+      throw new BadRequestException(
+        `لا يمكن تغيير الحالة بعد الوصول إلى حالة نهائية (${currentStatus})`,
+      );
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
