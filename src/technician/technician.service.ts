@@ -73,13 +73,7 @@ export class TechnicianService {
         take: limit,
         orderBy: [{ priority: 'asc' }, { scheduledDate: 'asc' }],
         include: {
-          customer: {
-            select: {
-              id: true,
-              name: true,
-              firstPhone: true,
-            },
-          },
+          customer: true,
           devices: true,
         },
       }),
