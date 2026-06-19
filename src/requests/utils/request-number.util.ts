@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { getSyriaNow, toSyriaDate } from '../../common/utils/syria-date.util';
 
 @Injectable()
 export class RequestNumberUtil {
   constructor(private prisma: PrismaService) {}
 
   async generateUniqueRequestNumber(): Promise<string> {
-    const today = new Date();
+    const today = toSyriaDate(getSyriaNow());
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
@@ -22,10 +23,11 @@ export class RequestNumberUtil {
     maxRetries = 10,
   ): Promise<number> {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const startOfDay = new Date();
+      const today = toSyriaDate(getSyriaNow());
+      const startOfDay = new Date(today);
       startOfDay.setHours(0, 0, 0, 0);
 
-      const endOfDay = new Date();
+      const endOfDay = new Date(today);
       endOfDay.setHours(23, 59, 59, 999);
 
       const count = await this.prisma.request.count({

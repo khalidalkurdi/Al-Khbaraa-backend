@@ -21,6 +21,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import type { RequestReceiptPdfData } from '../pdf/pdf.types';
 import { RequestNumberUtil } from './utils/request-number.util';
 import { CustomerNumberUtil } from '../customers/utils/customer-number.util';
+import { getSyriaNow } from '../common/utils/syria-date.util';
 
 @Injectable()
 export class RequestsService implements OnModuleInit, OnModuleDestroy {
@@ -49,9 +50,8 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private scheduleNextRequestVoiceRecordCleanup() {
-    const delay = this.getMillisecondsUntilNextRequestVoiceRecordCleanup(
-      new Date(),
-    );
+    const delay =
+      this.getMillisecondsUntilNextRequestVoiceRecordCleanup(getSyriaNow());
 
     this.cleanupTimer = setTimeout(() => {
       void this.cleanupOldRequestVoiceRecords().finally(() => {
@@ -61,24 +61,26 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private getMillisecondsUntilNextRequestVoiceRecordCleanup(now: Date) {
-    const nextRun = new Date(now);
+    const syriaNow = now;
+    const nextRun = new Date(syriaNow);
     nextRun.setHours(5, 0, 0, 0);
 
-    if (nextRun <= now) {
+    if (nextRun <= syriaNow) {
       nextRun.setDate(nextRun.getDate() + 1);
     }
 
-    return nextRun.getTime() - now.getTime();
+    return nextRun.getTime() - syriaNow.getTime();
   }
 
   async cleanupOldRequestVoiceRecords() {
-    const cutoffDate = new Date();
-    cutoffDate.setMonth(cutoffDate.getMonth() - 1);
+    const cutoffDate = getSyriaNow();
+    const cutoffForQuery = new Date(cutoffDate);
+    cutoffForQuery.setMonth(cutoffForQuery.getMonth() - 1);
 
     const records = await this.prisma.requestVoiceRecord.findMany({
       where: {
         createdAt: {
-          lt: cutoffDate,
+          lt: cutoffForQuery,
         },
       },
       select: {
@@ -198,59 +200,56 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
 
   async create(createRequestDto: CreateRequestDto, userId: string) {
     const {
-      customerId,
       customer,
       type,
       priority,
       faultDescription,
       notes,
       scheduledDate,
-      scheduledTime,
       devices,
+      technicianId,
     } = createRequestDto;
 
-    if (!customerId && !customer) {
-      throw new BadRequestException('يجب تقديم customerId أو تفاصيل العميل');
+    if (!customer) {
+      throw new BadRequestException('يجب تقديم تفاصيل العميل');
     }
 
     if (!devices || devices.length === 0) {
       throw new BadRequestException('يجب إضافة جهاز واحد على الأقل');
     }
 
-    let resolvedCustomerId = customerId;
+    let resolvedCustomerId;
     let generatedCustomerNumber: string | null = null;
 
     // Generate customer number before transaction if we need to create a customer
-    if (!customerId && customer) {
+    if (customer) {
       generatedCustomerNumber =
         await this.customerNumberUtil.generateUniqueCustomerNumber();
     }
 
-    const result = await this.prisma.$transaction(async (tx) => {
-      let createdCustomer: { id: string } | null = null;
+    let createdCustomer: { id: string } | null = null;
 
-      if (!customerId && customer && generatedCustomerNumber) {
-        const existingFirst = await tx.customer.findUnique({
-          where: { firstPhone: customer.firstPhone },
-        });
-        if (existingFirst) {
-          throw new ConflictException(
-            'يوجد عميل بهذا الرقم الأول للهاتف بالفعل',
-          );
-        }
+    if (customer && generatedCustomerNumber) {
+      const whereCondition: any = {
+        OR: [
+          { firstPhone: customer.firstPhone },
+          { secondPhone: customer.firstPhone },
+        ],
+      };
 
-        if (customer.secondPhone) {
-          const existingSecond = await tx.customer.findUnique({
-            where: { secondPhone: customer.secondPhone },
-          });
-          if (existingSecond) {
-            throw new ConflictException(
-              'يوجد عميل بهذا الرقم الثاني للهاتف بالفعل',
-            );
-          }
-        }
+      if (customer.secondPhone) {
+        whereCondition.OR.push(
+          { firstPhone: customer.secondPhone },
+          { secondPhone: customer.secondPhone },
+        );
+      }
 
-        createdCustomer = await tx.customer.create({
+      const existingCustomer = await this.prisma.customer.findFirst({
+        where: whereCondition,
+      });
+
+      if (existingCustomer === null) {
+        createdCustomer = await this.prisma.customer.create({
           data: {
             customerNumber: generatedCustomerNumber,
             name: customer.name,
@@ -260,17 +259,21 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
             locationLink: customer.locationLink,
           },
         });
-
-        resolvedCustomerId = createdCustomer.id;
       }
 
-      if (!resolvedCustomerId) {
-        throw new BadRequestException('تعذر تحديد معرف العميل');
-      }
+      resolvedCustomerId = createdCustomer
+        ? createdCustomer.id
+        : existingCustomer?.id;
+    }
 
-      const requestNumber =
-        await this.requestNumberUtil.generateUniqueRequestNumber();
+    if (resolvedCustomerId === null) {
+      throw new BadRequestException('تعذر تحديد معرف العميل');
+    }
 
+    const requestNumber =
+      await this.requestNumberUtil.generateUniqueRequestNumber();
+
+    const result = await this.prisma.$transaction(async (tx) => {
       const request = await tx.request.create({
         data: {
           requestNumber,
@@ -279,10 +282,9 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
           priority: (priority as Priority) ?? 'medium',
           faultDescription,
           notes,
-          scheduledDate: new Date(scheduledDate),
-          scheduledTime: scheduledTime
-            ? new Date(`1970-01-01T${scheduledTime}`)
-            : null,
+          scheduledDate: scheduledDate
+            ? new Date(scheduledDate)
+            : getSyriaNow(),
           createdBy: userId,
           devices: {
             create: devices.map((d) => ({
@@ -312,6 +314,10 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
 
       return { request, customer: createdCustomer };
     });
+
+    if (technicianId != null && technicianId != undefined) {
+      await this.assignTechnician(result.request.id, technicianId, userId);
+    }
 
     return result.request;
   }
@@ -364,7 +370,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       await tx.requestStatusHistory.create({
         data: {
           requestId: id,
-          status: 'accepted',
+          status: 'new',
           changedBy: userId,
         },
       });
@@ -372,33 +378,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       return assignment;
     });
 
-    this.realtimeGateway.sendToUser(technicianId, 'request.assigned', {
-      type: 'request.assigned',
-      data: {
-        requestId: request.id,
-        requestNumber: request.requestNumber,
-        technicianId,
-        assignedBy: {
-          id: userId,
-          fullName: (request.creator as any)?.fullName ?? 'Unknown',
-        },
-        assignedAt: result.assignedAt,
-      },
-    });
-
-    this.realtimeGateway.sendToAll('request.status_changed', {
-      type: 'request.status_changed',
-      data: {
-        requestId: request.id,
-        requestNumber: request.requestNumber,
-        status: 'accepted',
-        changedBy: {
-          id: userId,
-          fullName: (request.creator as any)?.fullName ?? 'Unknown',
-        },
-        changedAt: new Date(),
-      },
-    });
+    //bush notification to the assigned technician
 
     void this.notificationsService
       .sendPushNotification({
@@ -514,23 +494,59 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async findAll(query: RequestQueryDto) {
-    const {
-      status,
-      priority,
-      type,
-      customerId,
-      scheduledDate,
-      page = 1,
-      limit = 20,
-    } = query;
+    const { status, priority, type, startDate, endDate, page, limit, search } =
+      query;
 
-    const where: Prisma.RequestWhereInput = {
-      ...(status && { status: status }),
-      ...(priority && { priority: priority }),
-      ...(type && { type: type }),
-      ...(customerId && { customerId }),
-      ...(scheduledDate && { scheduledDate: new Date(scheduledDate) }),
-    };
+    const where: Prisma.RequestWhereInput = {};
+
+    if (status) where.status = status;
+    if (priority) where.priority = priority;
+    if (type) where.type = type;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
+    }
+    if (search) {
+      const searchConditions: Prisma.RequestWhereInput[] = [];
+      searchConditions.push({
+        requestNumber: {
+          contains: search,
+        },
+      });
+
+      searchConditions.push({
+        customer: {
+          OR: [
+            {
+              firstPhone: {
+                contains: search,
+              },
+            },
+            {
+              secondPhone: {
+                contains: search,
+              },
+            },
+          ],
+        },
+      });
+
+      searchConditions.push({
+        customer: {
+          name: {
+            contains: search,
+          },
+        },
+      });
+      where.OR = searchConditions;
+    }
 
     const skip = (page - 1) * limit;
 
@@ -543,6 +559,22 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         include: {
           devices: true,
           customer: true,
+          assignments: {
+            where: {
+              isActive: true,
+            },
+            include: {
+              technician: {
+                select: {
+                  fullName: true,
+                  userNumber: true,
+                },
+              },
+            },
+            orderBy: {
+              assignedAt: 'desc',
+            },
+          },
           creator: {
             select: {
               id: true,
@@ -630,7 +662,6 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       requestNumber: request.requestNumber,
       createdAt: request.createdAt,
       scheduledDate: request.scheduledDate as Date,
-      scheduledTime: request.scheduledTime,
       priority: request.priority,
       status: request.status,
       customer: {
@@ -653,25 +684,69 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async update(id: string, updateRequestDto: UpdateRequestDto) {
+  async update(id: string, updateRequestDto: UpdateRequestDto, userId: string) {
     const { devices, ...updateData } = updateRequestDto;
 
-    const result = await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.request.findUnique({ where: { id } });
-      if (!existing) {
-        throw new NotFoundException(`طلب بالمعرف ${id} غير موجود`);
-      }
+    const existing = await this.prisma.request.findUnique({
+      where: { id },
+      include: {
+        assignments: {
+          where: {
+            isActive: true,
+          },
+        },
+      },
+    });
+    if (!existing) {
+      throw new NotFoundException(`طلب بالمعرف ${id} غير موجود`);
+    }
+    const unAllowedStatuses: RequestStatus[] = [
+      RequestStatus.ontheway,
+      RequestStatus.underrepair,
+      RequestStatus.arrived,
+    ];
 
+    if (updateData.technicianId != undefined) {
+      if (existing.assignments.length > 0) {
+        if (existing.assignments[0].technicianId != updateData.technicianId) {
+          if (unAllowedStatuses.includes(existing.status)) {
+            throw new BadRequestException(
+              `لا يمكن تغيير الفني للطلب في حالة ${existing.status}`,
+            );
+          }
+          await this.assignTechnician(id, updateData.technicianId, userId);
+        }
+      } else {
+        await this.assignTechnician(id, updateData.technicianId, userId);
+      }
+    }
+    if (
+      existing.status === RequestStatus.completed &&
+      updateData.status !== RequestStatus.completed
+    ) {
+      throw new BadRequestException(
+        `لا يمكن تغيير حالة الطلب من مكتمل إلى حالة أخرى`,
+      );
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
       const data: Prisma.RequestUpdateInput = {};
 
       if (Object.keys(updateData).length > 0) {
         if (updateData.scheduledDate) {
           (data as any).scheduledDate = new Date(updateData.scheduledDate);
         }
-        if (updateData.scheduledTime) {
-          (data as any).scheduledTime = new Date(
-            `1970-01-01T${updateData.scheduledTime}`,
-          );
+        if (
+          existing.status !== RequestStatus.completed &&
+          updateData.status === RequestStatus.completed
+        ) {
+          (data as any).isCompleted = true;
+        }
+        if (
+          existing.status === RequestStatus.completed &&
+          updateData.status === RequestStatus.new
+        ) {
+          (data as any).isRepeated = true;
         }
         Object.assign(data, updateData);
       }
@@ -703,9 +778,21 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
               email: true,
             },
           },
+          statusHistory: {
+            orderBy: { changedAt: 'desc' },
+          },
         },
       });
 
+      if (existing.status !== updated.status) {
+        await tx.requestStatusHistory.create({
+          data: {
+            requestId: id,
+            status: updated.status,
+            changedBy: userId,
+          },
+        });
+      }
       return updated;
     });
 

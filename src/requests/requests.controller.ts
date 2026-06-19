@@ -18,13 +18,11 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
-import { PdfModule } from '../pdf/pdf.module';
 import { PdfService } from '../pdf/pdf.service';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { RequestQueryDto } from './dto/request-query.dto';
-import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -33,7 +31,7 @@ interface AuthenticatedRequest {
   user: {
     id: string;
     email: string;
-    roles: string[];
+    role: string;
   };
 }
 
@@ -144,35 +142,9 @@ export class RequestsController {
   async update(
     @Param('id') id: string,
     @Body() updateRequestDto: UpdateRequestDto,
-  ) {
-    return this.requestsService.update(id, updateRequestDto);
-  }
-
-  @Post(':id/assign')
-  @UseGuards(RolesGuard)
-  @Roles('Admin', 'Manager', 'Employee')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Assign a technician to a repair request' })
-  @ApiResponse({ status: 200, description: 'تم إسناد الفني بنجاح' })
-  @ApiResponse({
-    status: 400,
-    description: 'طلب غير صالح - فني غير صالح أو غير نشط',
-  })
-  @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
-  @ApiResponse({
-    status: 403,
-    description: 'ممنوع - صلاحيات الدور غير كافية',
-  })
-  async assignTechnician(
-    @Param('id') id: string,
-    @Body() assignTechnicianDto: AssignTechnicianDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.requestsService.assignTechnician(
-      id,
-      assignTechnicianDto.technicianId,
-      req.user.id,
-    );
+    return this.requestsService.update(id, updateRequestDto, req.user.id);
   }
 
   @Get(':id/status-history')

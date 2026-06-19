@@ -30,16 +30,24 @@ export class RequestQueryDto {
 
   @IsOptional()
   @MaxLength(10)
-  scheduledDate?: string;
+  startDate?: string;
+
+  @IsOptional()
+  @MaxLength(10)
+  endDate?: string;
 
   @IsOptional()
   @Type(() => Number)
   @Min(1)
-  page?: number;
+  page: number = 1;
 
   @IsOptional()
   @Type(() => Number)
   @Min(1)
-  @Max(100)
-  limit?: number;
+  @Max(10)
+  limit: number = 10;
+
+  @IsOptional()
+  @MaxLength(100)
+  search?: string;
 }
