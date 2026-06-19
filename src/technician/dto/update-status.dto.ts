@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { RequestStatus } from '@prisma/client';
 
@@ -10,4 +10,13 @@ export class UpdateTechnicianStatusDto {
   @IsNotEmpty()
   @IsString()
   status: RequestStatus;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'Optional note to provide additional context for the status update',
+    required: false,
+  })
+  notes?: string;
 }

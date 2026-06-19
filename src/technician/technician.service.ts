@@ -10,18 +10,13 @@ import {
   TechnicianRequestStatusFilter,
 } from './dto/my-requests-query.dto';
 import { UpdateTechnicianStatusDto } from './dto/update-status.dto';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { RequestStatus } from '@prisma/client';
-import { getSyriaNow } from '../common/utils/syria-date.util';
 
 @Injectable()
 export class TechnicianService {
   private readonly logger = new Logger(TechnicianService.name);
 
-  constructor(
-    private prisma: PrismaService,
-    private realtimeGateway: RealtimeGateway,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   private getStatusFilterValues(
     filter: TechnicianRequestStatusFilter,
@@ -93,7 +88,7 @@ export class TechnicianService {
     technicianId: string,
     updateDto: UpdateTechnicianStatusDto,
   ) {
-    const { status } = updateDto;
+    const { status, notes } = updateDto;
 
     const assignment = await this.prisma.technicianAssignment.findFirst({
       where: {
@@ -179,6 +174,7 @@ export class TechnicianService {
         data: {
           requestId,
           status: status,
+          notes: notes || null,
           changedBy: technicianId,
         },
       });
