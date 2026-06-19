@@ -87,7 +87,7 @@ export class RequestsController {
 
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles('Admin', 'Manager', 'Employee')
+  @Roles('Admin', 'Manager', 'Employee', 'Technician')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get repair request by ID' })
   @ApiResponse({ status: 200, description: 'تم إرجاع الطلب' })
