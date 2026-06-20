@@ -23,6 +23,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { FinanceModule } from './finance/finance.module';
 import { PdfModule } from './pdf/pdf.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { PayrollRecordsModule } from './payroll-records/payroll-records.module';
 
 @Module({
   imports: [
@@ -82,6 +83,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
 
     // Dashboard
     DashboardModule,
+
+    // Payroll Records
+    PayrollRecordsModule,
   ],
   controllers: [AppController],
   providers: [
