@@ -167,9 +167,8 @@ export class UsersController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles('Admin', 'Manager')
+  @Roles('Admin')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all users (Admin/Manager only)' })
   @ApiQuery({
     name: 'role',
     required: false,
@@ -180,14 +179,15 @@ export class UsersController {
     required: false,
     description: 'Filter by active status',
   })
+  @ApiOperation({ summary: 'List all users (Admin only)' })
   @ApiResponse({ status: 200, description: 'تم إرجاع قائمة المستخدمين' })
   @ApiResponse({
     status: 403,
     description: 'ممنوع - يتطلب صلاحية المشرف أو المدير',
   })
   async findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('page') page: string,
+    @Query('limit') limit: string,
     @Query('role') role?: string,
     @Query('isActive') isActive?: string,
   ) {
@@ -215,7 +215,7 @@ export class UsersController {
 
   @Get(':id')
   @UseGuards(RolesGuard)
-  @Roles('Admin', 'Manager')
+  @Roles('Admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user by ID (Admin/Manager or self)' })
   @ApiResponse({ status: 200, description: 'تم إرجاع المستخدم' })
