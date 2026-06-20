@@ -11,7 +11,6 @@ import {
 } from './dto/my-requests-query.dto';
 import { UpdateTechnicianStatusDto } from './dto/update-status.dto';
 import { RequestStatus } from '@prisma/client';
-import { ok } from 'assert';
 
 @Injectable()
 export class TechnicianService {
@@ -180,7 +179,7 @@ export class TechnicianService {
         },
       });
 
-      return ok(updated, 'تم تحديث الحالة بنجاح ');
+      return updated;
     });
 
     return result;
