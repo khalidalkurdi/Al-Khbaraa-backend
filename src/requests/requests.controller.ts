@@ -70,12 +70,6 @@ export class RequestsController {
   @Roles('Admin', 'Manager', 'Employee')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List repair requests with filters' })
-  @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'priority', required: false })
-  @ApiQuery({ name: 'type', required: false })
-  @ApiQuery({ name: 'scheduledDate', required: false })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
   @ApiResponse({ status: 200, description: 'تم إرجاع قائمة الطلبات' })
   @ApiResponse({
     status: 403,

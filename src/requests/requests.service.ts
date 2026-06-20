@@ -497,7 +497,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     const { status, priority, type, startDate, endDate, page, limit, search } =
       query;
 
-    const where: Prisma.RequestWhereInput = {};
+    const where: any = {};
 
     if (status) where.status = status;
     if (priority) where.priority = priority;
@@ -514,10 +514,11 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       }
     }
     if (search) {
-      const searchConditions: Prisma.RequestWhereInput[] = [];
+      const searchConditions: any[] = [];
       searchConditions.push({
         requestNumber: {
           contains: search,
+          mode: 'insensitive',
         },
       });
 
@@ -527,11 +528,13 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
             {
               firstPhone: {
                 contains: search,
+                mode: 'insensitive',
               },
             },
             {
               secondPhone: {
                 contains: search,
+                mode: 'insensitive',
               },
             },
           ],
@@ -542,6 +545,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         customer: {
           name: {
             contains: search,
+            mode: 'insensitive',
           },
         },
       });
@@ -592,6 +596,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       total,
       page,
       limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -685,7 +690,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async update(id: string, updateRequestDto: UpdateRequestDto, userId: string) {
-    const { devices, ...updateData } = updateRequestDto;
+    const { devices, technicianId, ...updateData } = updateRequestDto;
 
     const existing = await this.prisma.request.findUnique({
       where: { id },
@@ -706,27 +711,19 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       RequestStatus.arrived,
     ];
 
-    if (updateData.technicianId != undefined) {
+    if (technicianId != undefined) {
       if (existing.assignments.length > 0) {
-        if (existing.assignments[0].technicianId != updateData.technicianId) {
+        if (existing.assignments[0].technicianId != technicianId) {
           if (unAllowedStatuses.includes(existing.status)) {
             throw new BadRequestException(
               `لا يمكن تغيير الفني للطلب في حالة ${existing.status}`,
             );
           }
-          await this.assignTechnician(id, updateData.technicianId, userId);
+          await this.assignTechnician(id, technicianId, userId);
         }
       } else {
-        await this.assignTechnician(id, updateData.technicianId, userId);
+        await this.assignTechnician(id, technicianId, userId);
       }
-    }
-    if (
-      existing.status === RequestStatus.completed &&
-      updateData.status !== RequestStatus.completed
-    ) {
-      throw new BadRequestException(
-        `لا يمكن تغيير حالة الطلب من مكتمل إلى حالة أخرى`,
-      );
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -735,6 +732,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       if (Object.keys(updateData).length > 0) {
         if (updateData.scheduledDate) {
           (data as any).scheduledDate = new Date(updateData.scheduledDate);
+          delete updateData.scheduledDate;
         }
         if (
           existing.status !== RequestStatus.completed &&
@@ -749,6 +747,11 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
           (data as any).isRepeated = true;
         }
         Object.assign(data, updateData);
+        Object.keys(data).forEach((key) => {
+          if ((data as any)[key] === undefined) {
+            delete (data as any)[key];
+          }
+        });
       }
 
       if (devices && devices.length > 0) {
