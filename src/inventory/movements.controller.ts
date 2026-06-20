@@ -29,13 +29,13 @@ export class MovementsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Admin', 'Manager')
+  @Roles('Admin')
   @ApiOperation({ summary: 'Create a stock movement and update part quantity' })
   @ApiResponse({ status: 201, description: 'تم إنشاء الحركة بنجاح' })
   @ApiResponse({ status: 400, description: 'خطأ في التحقق من صحة البيانات' })
   @ApiResponse({ status: 404, description: 'القطعة غير موجودة' })
   @ApiResponse({ status: 409, description: 'الكمية النهائية سالبة' })
-  create(@Req() req: any, @Body() dto: CreateStockMovementDto) {
+  async create(@Req() req: any, @Body() dto: CreateStockMovementDto) {
     return this.movementsService.create(dto, req.user.id);
   }
 
@@ -46,7 +46,7 @@ export class MovementsController {
   @ApiResponse({ status: 200, description: 'قائمة حركات المخزون' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
-  findAll(@Query() query: QueryMovementsDto) {
+  async findAll(@Query() query: QueryMovementsDto) {
     return this.movementsService.findAll(query);
   }
 }

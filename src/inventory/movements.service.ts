@@ -40,7 +40,7 @@ export class MovementsService {
         movementNo,
         partId: dto.partId,
         movementType: dto.movementType,
-        responsibleBy: responsibleId,
+        responsibleId: responsibleId,
         reference: dto.reference,
         quantity: dto.quantity,
       },
