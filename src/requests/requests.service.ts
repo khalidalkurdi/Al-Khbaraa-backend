@@ -606,6 +606,11 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       include: {
         devices: true,
         customer: true,
+        invoice: {
+          include: {
+            payments: true,
+          },
+        },
         creator: {
           select: {
             id: true,
