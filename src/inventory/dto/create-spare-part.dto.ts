@@ -23,10 +23,9 @@ export class CreateSparePartDto {
   })
   sku?: string;
 
-  @IsInt()
-  @Min(0, { message: 'الكمية يجب أن تكون أكبر من أو تساوي 0' })
-  quantity: number;
-
+  @IsOptional()
+  @IsString()
+  shelf_location?: string;
   @IsInt()
   @Min(0, { message: 'تكلفة الليرة السورية يجب أن تكون أكبر من أو تساوي 0' })
   costSyp: number;

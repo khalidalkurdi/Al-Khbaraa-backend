@@ -69,7 +69,7 @@ export class SparePartsService {
       sparePartNumber,
       name: dto.name,
       sku: dto.sku,
-      quantity: dto.quantity,
+      shelf_location: dto.shelf_location,
       costSyp: dto.costSyp,
       costUsd: dto.costUsd,
     });
@@ -89,14 +89,10 @@ export class SparePartsService {
       }
     }
 
-    if (dto.quantity < 0) {
-      throw new BadRequestException('الكمية يجب أن تكون أكبر من أو تساوي 0');
-    }
-
     const updated = await this.repository.update(id, {
       name: dto.name,
       sku: dto.sku,
-      quantity: dto.quantity,
+      shelf_location: dto.shelf_location,
       costSyp: dto.costSyp,
       costUsd: dto.costUsd,
       isActive: true,
