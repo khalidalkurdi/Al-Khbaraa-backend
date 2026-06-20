@@ -367,9 +367,7 @@ model InventoryMovement {
   movementNo   String       @unique @map("movement_no") @db.VarChar(50)
   partId       String       @map("part_id") @db.Char(36)
   movementType MovementType @map("movement_type")
-
-  responsibleBy String   @map("responsible_by")
-  responsibleId String?  @map("responsible_id") @db.Char(36)
+  responsibleId String  @map("responsible_id") @db.Char(36)
   reference     String?  @db.VarChar(100)
   movementDate  DateTime @default(now()) @map("movement_date") @db.Timestamp(0)
   quantity      Int      @default(1)
