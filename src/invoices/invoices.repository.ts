@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, RequestStatus } from '@prisma/client';
+import { Prisma, InvoiceType, InvoiceStatus } from '@prisma/client';
 
 @Injectable()
 export class InvoicesRepository {
@@ -12,7 +12,6 @@ export class InvoicesRepository {
       include: {
         items: true,
         request: true,
-        technician: true,
       },
     });
   }
@@ -21,8 +20,8 @@ export class InvoicesRepository {
     page: number;
     limit: number;
     requestId?: string;
-    type?: string;
-    status?: string;
+    type?: InvoiceType;
+    status?: InvoiceStatus;
     userId?: string;
     isTechnician?: boolean;
   }) {
@@ -54,9 +53,7 @@ export class InvoicesRepository {
           request: {
             include: { customer: true },
           },
-          technician: {
-            select: { id: true, fullName: true, email: true },
-          },
+
           payments: true,
         },
       }),
@@ -74,9 +71,6 @@ export class InvoicesRepository {
         request: {
           include: { customer: true },
         },
-        technician: {
-          select: { id: true, fullName: true, email: true },
-        },
         payments: true,
       },
     });
@@ -93,7 +87,6 @@ export class InvoicesRepository {
         request: true,
         items: true,
         payments: true,
-        technician: true,
       },
     });
 

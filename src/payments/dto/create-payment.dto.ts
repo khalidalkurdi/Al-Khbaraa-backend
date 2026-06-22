@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID, IsEnum, IsNotEmpty } from 'class-validator';
+import { IsUUID, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CurrencyEnum } from '../../invoices/enums/currency.enum';
 
@@ -31,4 +31,12 @@ export class CreatePaymentDto {
   })
   @IsEnum(['cash', 'sham_cash'])
   paymentMethod: 'cash' | 'sham_cash';
+
+  @IsOptional()
+  @Type(() => Number)
+  dollarExchangeRate?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  convertedAmount?: number;
 }

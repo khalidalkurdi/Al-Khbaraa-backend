@@ -6,11 +6,19 @@ import { InvoiceNumberUtil } from './utils/invoice-number.util';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { PdfModule } from '../pdf/pdf.module';
+import { PaymentsModule } from 'src/payments/payments.module';
+import { InventoryModule } from 'src/inventory/inventory.module';
 
 @Module({
   controllers: [InvoicesController],
   providers: [InvoicesService, InvoicesRepository, InvoiceNumberUtil],
-  imports: [PrismaModule, RealtimeModule, PdfModule],
+  imports: [
+    PrismaModule,
+    RealtimeModule,
+    PdfModule,
+    PaymentsModule,
+    InventoryModule,
+  ],
   exports: [InvoicesService],
 })
 export class InvoicesModule {}

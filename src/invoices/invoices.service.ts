@@ -10,13 +10,23 @@ import { InvoicesRepository } from './invoices.repository';
 import { InvoiceNumberUtil } from './utils/invoice-number.util';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
-import { RequestStatus } from '@prisma/client';
+import {
+  InvoiceStatus,
+  InvoiceType,
+  MovementType,
+  RequestType,
+} from '@prisma/client';
 import type { InvoicePdfData } from '../pdf/pdf.types';
+import { CurrencyEnum } from './enums/currency.enum';
+import { MovementsService } from 'src/inventory/movements.service';
+import { CreateStockMovementDto } from 'src/inventory/dto/create-stock-movement.dto';
+import { PaymentsService } from 'src/payments/payments.service';
+import { CreatePaymentDto } from 'src/payments/dto/create-payment.dto';
 
 interface AuthenticatedUser {
   id: string;
   email: string;
-  roles: string[];
+  role: string;
 }
 
 @Injectable()
@@ -26,45 +36,66 @@ export class InvoicesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly invoicesRepository: InvoicesRepository,
+    private readonly paymentsService: PaymentsService,
     private readonly invoiceNumberUtil: InvoiceNumberUtil,
     private readonly realtimeGateway: RealtimeGateway,
+    private readonly movementsService: MovementsService,
   ) {}
 
   async create(createInvoiceDto: CreateInvoiceDto, user: AuthenticatedUser) {
-    const {
-      requestId,
-      type,
-      items,
-      warrantyPeriod,
-      notes,
-      needsCenterMaintenance,
-    } = createInvoiceDto;
-
     const request = await this.prisma.request.findUnique({
-      where: { id: requestId },
-      select: { id: true, type: true, status: true },
+      where: { id: createInvoiceDto.requestId },
+      select: { id: true, type: true, status: true, customerId: true },
     });
 
     if (!request) {
       throw new NotFoundException('الطلب غير موجود');
     }
+    createInvoiceDto.type =
+      request.type === RequestType.external
+        ? InvoiceType.external
+        : InvoiceType.internal;
 
-    const isTechnician = user.roles.includes('Technician');
+    const isTechnician = user.role === 'Technician';
     if (isTechnician) {
       const assignment = await this.prisma.technicianAssignment.findFirst({
-        where: { requestId, technicianId: user.id, isActive: true },
+        where: {
+          requestId: createInvoiceDto.requestId,
+          technicianId: user.id,
+          isActive: true,
+        },
       });
       if (!assignment) {
         throw new ForbiddenException('لست مسنداً إلى هذا الطلب');
       }
     }
 
+    const {
+      payment,
+      locationURL,
+      requestId,
+      type,
+      items,
+      status,
+      totalCurrency = payment.currency,
+      totalAmount,
+      warrantyPeriod,
+      notes,
+      needsCenterMaintenance,
+    } = createInvoiceDto;
+
     const spareParts = await this.prisma.sparePart.findMany({
       where: {
         id: { in: items.map((i) => i.sparePartId) },
         isActive: true,
       },
-      select: { id: true, name: true, quantity: true },
+      select: {
+        id: true,
+        name: true,
+        quantity: true,
+        costUsd: true,
+        costSyp: true,
+      },
     });
 
     const stockMap = new Map(spareParts.map((sp) => [sp.id, sp]));
@@ -84,13 +115,33 @@ export class InvoicesService {
       }
     }
 
-    const totalAmount = items.reduce((sum, item) => {
+    const totalPrice = items.reduce((sum, item) => {
       const qty = item.quantity ?? 1;
       const price = item.unitPrice ?? 0;
       return sum + qty * price;
     }, 0);
 
-    const currency = items[0]?.currency ?? 'SYP';
+    const calculateCost = (currency: CurrencyEnum) => {
+      const costField = currency === CurrencyEnum.SYP ? 'costSyp' : 'costUsd';
+
+      return items.reduce((sum, item) => {
+        const qty = item.quantity ?? 1;
+        const stock = stockMap.get(item.sparePartId);
+        const cost = Number(stock?.[costField]) ?? 0;
+        return sum + qty * cost;
+      }, 0);
+    };
+
+    const totalCost = calculateCost(totalCurrency);
+    const netProfit = totalAmount - totalCost;
+    const invoiceStatus =
+      totalAmount - payment.amount === 0
+        ? InvoiceStatus.paid
+        : InvoiceStatus.paid_partial;
+
+    if (invoiceStatus != status) {
+      throw new BadRequestException('الحالة غير مطابقة للمدفوع');
+    }
 
     const invoiceNumber = await this.generateUniqueInvoiceNumber();
 
@@ -99,11 +150,13 @@ export class InvoicesService {
         data: {
           invoiceNumber,
           requestId,
-          technicianId: user.id,
           type,
-          status: 'paid_partial',
+          status: invoiceStatus,
+          netProfit,
           totalAmount,
-          totalCurrency: currency,
+          totalCurrency,
+          paidAmount: payment.amount,
+          remainingAmount: totalAmount - payment.amount,
           warrantyPeriod: warrantyPeriod ?? null,
           needsCenterMaintenance: needsCenterMaintenance ?? null,
           notes: notes ?? null,
@@ -112,43 +165,44 @@ export class InvoicesService {
               sparePartId: item.sparePartId,
               quantity: item.quantity ?? 1,
               unitPrice: item.unitPrice ?? 0,
-              currency: item.currency,
+              currency: totalCurrency,
               totalPrice: (item.quantity ?? 1) * (item.unitPrice ?? 0),
             })),
           },
         },
-        include: { items: true },
+        include: { items: true, payments: true },
       });
 
+      //create first payment
+      await this.paymentsService.create(payment as CreatePaymentDto, user);
+      // movement
       for (const item of items) {
         const qty = item.quantity ?? 1;
         await tx.sparePart.update({
           where: { id: item.sparePartId },
           data: { quantity: { decrement: qty } },
         });
+        const dto = {
+          partId: item.sparePartId,
+          movementType: MovementType.issue,
+          quantity: item.quantity,
+          reference: 'استهلاك فواتير',
+        };
+        await this.movementsService.create(
+          dto as CreateStockMovementDto,
+          user.id,
+        );
       }
-
-      const newStatus =
-        type === 'external'
-          ? RequestStatus.completed
-          : RequestStatus.pulltocenter;
-      await tx.request.update({
-        where: { id: requestId },
-        data: { status: newStatus },
-      });
 
       return createdInvoice;
     });
 
-    this.realtimeGateway.sendToAll('invoice.created', {
-      invoiceId: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
-      requestId,
-      type,
-      totalAmount,
-      totalCurrency: currency,
-      createdAt: invoice.createdAt,
-    });
+    if (locationURL != undefined) {
+      await this.prisma.customer.update({
+        where: { id: request.customerId },
+        data: { locationLink: locationURL },
+      });
+    }
 
     this.logger.log(
       `Invoice ${invoice.invoiceNumber} created for request ${requestId}`,
@@ -162,10 +216,16 @@ export class InvoicesService {
     limit: number,
     userId: string,
     isTechnician: boolean,
+    requestId?: string,
+    type?: InvoiceType,
+    status?: InvoiceStatus,
   ) {
     return this.invoicesRepository.findMany({
       page,
       limit,
+      requestId,
+      type,
+      status,
       userId,
       isTechnician,
     });
@@ -202,13 +262,6 @@ export class InvoicesService {
                 address: true,
               },
             },
-          },
-        },
-        technician: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
           },
         },
         items: {
@@ -261,7 +314,6 @@ export class InvoicesService {
         secondPhone: invoice.request.customer.secondPhone ?? undefined,
         address: invoice.request.customer.address ?? undefined,
       },
-      technician: invoice.technician,
       items: invoice.items.map((item) => ({
         id: item.id,
         sparePartId: item.sparePartId,

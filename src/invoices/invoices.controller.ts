@@ -18,7 +18,6 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
-import { PdfModule } from '../pdf/pdf.module';
 import { PdfService } from '../pdf/pdf.service';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
@@ -27,12 +26,13 @@ import { InvoiceDetailResponse } from './dto/invoice-detail-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { InvoiceStatus, InvoiceType } from '@prisma/client';
 
 interface AuthenticatedRequest {
   user: {
     id: string;
     email: string;
-    roles: string[];
+    role: string;
   };
 }
 
@@ -49,12 +49,11 @@ export class InvoicesController {
   ) {}
 
   @Post()
-  @Roles('Admin', 'Manager', 'Employee')
+  @Roles('Admin', 'Manager', 'Employee', 'Technician')
   @ApiOperation({ summary: 'Create a new invoice' })
   @ApiResponse({
     status: 201,
     description: 'تم إنشاء الفاتورة بنجاح',
-    type: InvoiceResponse,
   })
   @ApiResponse({
     status: 400,
@@ -79,19 +78,19 @@ export class InvoicesController {
   @Roles('Admin', 'Manager', 'Employee')
   @ApiOperation({ summary: 'List invoices with pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'requestId', required: false, type: String })
   @ApiQuery({
     name: 'type',
     required: false,
     type: String,
-    enum: ['internal', 'external'],
+    enum: InvoiceType,
   })
   @ApiQuery({
     name: 'status',
     required: false,
     type: String,
-    enum: ['paid_full', 'paid_partial', 'refunded'],
+    enum: InvoiceStatus,
   })
   @ApiResponse({ status: 200, description: 'قائمة الفواتير مع الترقيم' })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
@@ -105,12 +104,15 @@ export class InvoicesController {
     @Query('status') status?: string,
   ) {
     const user = req.user;
-    const isTechnician = user.roles.includes('Technician');
+    const isTechnician = user.role === 'Technician';
     return this.invoicesService.findAll(
       parseInt(page ?? '1', 10),
       parseInt(limit ?? '20', 10),
       user.id,
       isTechnician,
+      requestId,
+      type as InvoiceType | undefined,
+      status as InvoiceStatus | undefined,
     );
   }
 
@@ -127,7 +129,7 @@ export class InvoicesController {
   @ApiResponse({ status: 404, description: 'الفاتورة غير موجودة' })
   async findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const user = req.user;
-    const isTechnician = user.roles.includes('Technician');
+    const isTechnician = user.role === 'Technician';
     return this.invoicesService.findOne(id, user.id, isTechnician);
   }
 
@@ -151,7 +153,7 @@ export class InvoicesController {
     @Res({ passthrough: true }) response: Response,
   ) {
     const user = req.user;
-    const isTechnician = user.roles.includes('Technician');
+    const isTechnician = user.role === 'Technician';
     const invoice = await this.invoicesService.getInvoicePdfData(
       id,
       user.id,

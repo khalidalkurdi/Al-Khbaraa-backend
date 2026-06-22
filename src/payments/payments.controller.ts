@@ -27,7 +27,7 @@ interface AuthenticatedRequest {
   user: {
     id: string;
     email: string;
-    roles: string[];
+    role: string;
   };
 }
 
@@ -90,7 +90,7 @@ export class PaymentsController {
     @Query('paymentMethod') paymentMethod?: string,
   ) {
     const user = req.user;
-    const isTechnician = user.roles.includes('Technician');
+    const isTechnician = user.role === 'Technician';
     return this.paymentsService.findByInvoice(
       invoiceId,
       user.id,

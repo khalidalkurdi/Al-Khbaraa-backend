@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsInt, Min, IsEnum, IsDecimal } from 'class-validator';
+import { IsUUID, IsInt, Min, IsEnum } from 'class-validator';
 import { CurrencyEnum } from '../enums/currency.enum';
 
 export class CreateInvoiceItemDto {
@@ -27,7 +27,6 @@ export class CreateInvoiceItemDto {
   })
   unitPrice?: number;
 
-  @ApiProperty({ description: 'Currency for this item', enum: CurrencyEnum })
   @IsEnum(CurrencyEnum)
   currency: CurrencyEnum;
 }

@@ -9,11 +9,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { Decimal } from '@prisma/client/runtime/library';
+import { InvoiceStatus } from '@prisma/client';
+import { CurrencyEnum } from '../invoices/enums/currency.enum';
 
 interface AuthenticatedUser {
   id: string;
   email: string;
-  roles: string[];
+  role: string;
 }
 
 function toDecimal(value: string | number): Decimal {
@@ -30,7 +32,14 @@ export class PaymentsService {
   ) {}
 
   async create(createPaymentDto: CreatePaymentDto, user: AuthenticatedUser) {
-    const { invoiceId, amount, currency, paymentMethod } = createPaymentDto;
+    const {
+      invoiceId,
+      amount,
+      currency,
+      paymentMethod,
+      dollarExchangeRate: providedDollarRate,
+      convertedAmount: providedConvertedAmount,
+    } = createPaymentDto;
 
     const amountDecimal = toDecimal(amount);
     if (amountDecimal.lessThanOrEqualTo(0)) {
@@ -41,6 +50,7 @@ export class PaymentsService {
       where: { id: invoiceId },
       select: {
         id: true,
+        invoiceNumber: true,
         totalAmount: true,
         paidAmount: true,
         remainingAmount: true,
@@ -54,7 +64,7 @@ export class PaymentsService {
       throw new NotFoundException('الفاتورة غير موجودة');
     }
 
-    const isTechnician = user.roles.includes('Technician');
+    const isTechnician = user.role === 'Technician';
     if (isTechnician) {
       const assignment = await this.prisma.technicianAssignment.findFirst({
         where: {
@@ -68,20 +78,29 @@ export class PaymentsService {
       }
     }
 
-    let dollarExchangeRate: Decimal = new Decimal(1);
-    let convertedAmount = amountDecimal;
+    let dollarExchangeRate: Decimal;
+    let convertedAmount: Decimal = new Decimal(0);
 
-    if (currency !== invoice.totalCurrency) {
+    const invoiceCurrency = invoice.totalCurrency as CurrencyEnum;
+
+    if (currency !== invoiceCurrency) {
       const settings = await this.prisma.getCenterSettings();
       if (!settings) {
         throw new BadRequestException('معدل الصرف غير مكوّن');
       }
       dollarExchangeRate = new Decimal(settings.dollarExchangeRate);
-
-      if (currency === 'USD' && invoice.totalCurrency === 'SYP') {
+      if (
+        currency === CurrencyEnum.USD &&
+        invoiceCurrency === CurrencyEnum.SYP
+      ) {
         convertedAmount = amountDecimal.times(dollarExchangeRate);
-      } else if (currency === 'SYP' && invoice.totalCurrency === 'USD') {
+      } else if (
+        currency === CurrencyEnum.SYP &&
+        invoiceCurrency === CurrencyEnum.USD
+      ) {
         convertedAmount = amountDecimal.dividedBy(dollarExchangeRate);
+      } else {
+        convertedAmount = new Decimal(amount);
       }
     }
 
@@ -90,9 +109,9 @@ export class PaymentsService {
       convertedAmount,
     );
     const statusChanged =
-      invoice.status === 'paid_partial' &&
+      invoice.status === InvoiceStatus.paid_partial &&
       newRemainingAmount.lessThanOrEqualTo(0);
-    const newStatus = statusChanged ? 'paid_full' : invoice.status;
+    const newStatus = statusChanged ? InvoiceStatus.paid : invoice.status;
 
     const payment = await this.prisma.$transaction(async (tx) => {
       const createdPayment = await tx.payment.create({
@@ -113,39 +132,19 @@ export class PaymentsService {
           remainingAmount: newRemainingAmount,
           status: newStatus,
         },
+        include: { payments: true },
       });
 
       return {
-        payment: createdPayment,
         invoice: updatedInvoice,
-        statusChanged,
       };
     });
 
-    this.realtimeGateway.sendToAll('payment.recorded', {
-      paymentId: payment.payment.id,
-      invoiceId,
-      amount: amountDecimal,
-      currency,
-      convertedAmount: convertedAmount,
-      newPaidAmount: newPaidAmount,
-      newRemainingAmount: newRemainingAmount,
-      statusChanged,
-    });
-
-    if (statusChanged) {
-      this.realtimeGateway.sendToAll('invoice.status.updated', {
-        invoiceId,
-        oldStatus: invoice.status,
-        newStatus,
-      });
-    }
-
     this.logger.log(
-      `Payment ${payment.payment.id} created for invoice ${invoiceId}, amount: ${amountDecimal.toString()} ${currency}`,
+      `Payment created for invoice ${invoiceId}, amount: ${amountDecimal.toString()} ${currency}`,
     );
 
-    return payment.payment;
+    return payment.invoice;
   }
 
   async findByInvoice(

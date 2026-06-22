@@ -19,5 +19,6 @@ import { MovementNoUtil } from './utils/movement-no.util';
     MovementsService,
     MovementNoUtil,
   ],
+  exports: [MovementsService],
 })
 export class InventoryModule {}

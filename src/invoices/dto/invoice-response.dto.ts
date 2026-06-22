@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { InvoiceStatus, InvoiceType } from '@prisma/client';
 import { CurrencyEnum } from '../enums/currency.enum';
 
 export class InvoiceResponse {
@@ -21,14 +21,14 @@ export class InvoiceResponse {
   })
   technicianId: string;
 
-  @ApiProperty({ description: 'Invoice type', enum: ['internal', 'external'] })
-  type: string;
+  @ApiProperty({ description: 'Invoice type', enum: InvoiceType })
+  type: InvoiceType;
 
   @ApiProperty({
     description: 'Invoice payment status',
-    enum: ['paid_full', 'paid_partial', 'refunded'],
+    enum: InvoiceStatus,
   })
-  status: string;
+  status: InvoiceStatus;
   @ApiProperty({ description: 'Subtotal amount', type: Number })
   totalAmount: number;
 
