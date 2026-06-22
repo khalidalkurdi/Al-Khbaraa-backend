@@ -184,7 +184,13 @@ export class DashboardService {
 
       const invoices = await this.prisma.invoice.findMany({
         where: {
-          technicianId: tech.id,
+          request: {
+            assignments: {
+              some: {
+                technicianId: tech.id,
+              },
+            },
+          },
         },
         select: {
           totalAmount: true,
