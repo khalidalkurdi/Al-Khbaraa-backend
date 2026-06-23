@@ -217,7 +217,7 @@ export class UsersController {
   @UseGuards(RolesGuard)
   @Roles('Admin')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user by ID (Admin/Manager or self)' })
+  @ApiOperation({ summary: 'Get user by ID (Admin )' })
   @ApiResponse({ status: 200, description: 'تم إرجاع المستخدم' })
   @ApiResponse({ status: 404, description: 'المستخدم غير موجود' })
   async findOne(@Param('id') id: string) {
