@@ -160,9 +160,7 @@ export class CustomersService {
     }
 
     if (customer._count.requests > 0) {
-      throw new ConflictException(
-        'لا يمكن حذف العميل المرتبط بطلبات صيانة. يمكن تعطيله بدلاً من ذلك.',
-      );
+      throw new ConflictException('لا يمكن حذف العميل المرتبط بطلبات صيانة');
     }
 
     await this.prisma.customer.update({

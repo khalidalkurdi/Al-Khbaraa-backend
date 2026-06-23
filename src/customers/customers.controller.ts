@@ -128,9 +128,9 @@ export class CustomersController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @Roles('Admin', 'Manager')
+  @Roles('Admin')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Soft delete customer (Admin/Manager only)' })
+  @ApiOperation({ summary: 'Soft delete customer (Admin only)' })
   @ApiResponse({ status: 204, description: 'تم تعطيل العميل' })
   @ApiResponse({
     status: 400,
