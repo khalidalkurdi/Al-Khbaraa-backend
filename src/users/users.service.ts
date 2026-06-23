@@ -214,12 +214,15 @@ export class UsersService {
 
     const updateData: Prisma.UserUpdateInput = {};
 
+    this.logger.log(
+      `Received isActive=${data.isActive}, type=${typeof data.isActive}`,
+    );
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.fullName !== undefined) updateData.fullName = data.fullName;
     if (data.jobTitle !== undefined) updateData.jobTitle = data.jobTitle;
     if (data.phone !== undefined) updateData.phone = data.phone ?? '';
     if (data.salary !== undefined) updateData.salary = data.salary;
-    if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.profileImagePath !== undefined)
       updateData.profileImagePath = data.profileImagePath;
     if (data.documentImagePath !== undefined)

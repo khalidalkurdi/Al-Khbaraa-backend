@@ -4,16 +4,17 @@ import {
   IsString,
   IsNumber,
   Min,
-  IsBoolean,
   MaxLength,
   Max,
   IsEmail,
   MinLength,
+  IsBoolean,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class UpdateUserDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'john.updated@example.com',
     required: false,
     description: 'User email address',
@@ -23,7 +24,7 @@ export class UpdateUserDto {
   @IsOptional()
   email?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'John Updated',
     required: false,
     description: 'Full name of the user',
@@ -33,7 +34,7 @@ export class UpdateUserDto {
   @MaxLength(255, { message: 'الاسم الكامل لا يجب أن يتجاوز 255 حرفاً' })
   fullName?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'Senior Technician',
     required: false,
     description: 'Job title',
@@ -43,7 +44,7 @@ export class UpdateUserDto {
   @MaxLength(255, { message: 'المسمى الوظيفي لا يجب أن يتجاوز 255 حرفاً' })
   jobTitle?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '0912345679',
     required: false,
     description: 'Phone number',
@@ -53,7 +54,7 @@ export class UpdateUserDto {
   @MaxLength(50, { message: 'رقم الهاتف لا يجب أن يتجاوز 50 حرفاً' })
   phone?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 600000,
     required: false,
     description: 'Monthly salary in SYP',
@@ -64,16 +65,27 @@ export class UpdateUserDto {
   @IsOptional()
   salary?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: false,
     required: false,
     description: 'User active status',
+    type: Boolean,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    if (value === true || value === 'true' || value === '1') return true;
+    if (value === false || value === 'false' || value === '0') return false;
+
+    return value;
   })
   @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
+  isActive?: boolean = false;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'Technician',
     required: false,
     description: 'Role name to assign',
@@ -99,20 +111,10 @@ export class UpdateUserDto {
   @IsOptional()
   documentImage?: any;
 
-  @ApiProperty({
-    required: false,
-    description: 'Profile image path (auto-generated)',
-    type: String,
-  })
   @IsOptional()
   @IsString()
   profileImagePath?: string;
 
-  @ApiProperty({
-    required: false,
-    description: 'Document image path (auto-generated)',
-    type: String,
-  })
   @IsOptional()
   @IsString()
   documentImagePath?: string;
