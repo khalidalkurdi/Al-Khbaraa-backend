@@ -38,17 +38,17 @@ export class InventoryController {
   }
 
   @Get()
-  @Roles('Admin', 'Manager')
+  @Roles('Admin', 'Manager', 'Employee')
   @ApiOperation({ summary: 'Get all daily inventory logs' })
   @ApiResponse({ status: 200, description: 'قائمة سجلات الجرد اليومية' })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع - الصلاحية غير كافية' })
   getAllInventory() {
-    return this.inventoryService.getAllInventory();
+    return this.inventoryService.getTechnicianDailyInventoryWithUsage();
   }
 
   @Delete(':id')
-  @Roles('Admin', 'Manager', 'Employee')
+  @Roles('Admin')
   @HttpCode(200)
   @ApiOperation({ summary: 'Delete an inventory log entry' })
   @ApiResponse({

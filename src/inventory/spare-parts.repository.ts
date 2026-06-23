@@ -31,13 +31,6 @@ export class SparePartsRepository {
     return this.prisma.sparePart.findFirst({ where: { sku } });
   }
 
-  async findLowStock(threshold: number): Promise<SparePart[]> {
-    return this.prisma.sparePart.findMany({
-      where: { quantity: { lte: threshold } },
-      orderBy: { quantity: 'asc' },
-    });
-  }
-
   async update(
     id: string,
     data: Prisma.SparePartUpdateInput,

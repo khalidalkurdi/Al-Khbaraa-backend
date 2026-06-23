@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Put,
+  Patch,
   Delete,
   Param,
   Body,
@@ -41,17 +41,6 @@ export class SparePartsController {
     return this.sparePartsService.create(dto);
   }
 
-  @Get('low-stock')
-  @Roles('Admin', 'Manager')
-  @ApiOperation({ summary: 'List low-stock parts' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'القطع ذات المخزون المنخفض',
-  })
-  getLowStock() {
-    return this.sparePartsService.findLowStock();
-  }
-
   @Get()
   @Roles('Admin', 'Manager', 'Employee')
   @ApiOperation({ summary: 'Search and list spare parts' })
@@ -61,7 +50,7 @@ export class SparePartsController {
   }
 
   @Get(':id')
-  @Roles('Admin', 'Manager', 'Employee')
+  @Roles('Admin')
   @ApiOperation({ summary: 'Get a spare part by ID' })
   @ApiResponse({ status: HttpStatus.OK, description: 'تفاصيل القطعة' })
   @ApiResponse({
@@ -72,7 +61,7 @@ export class SparePartsController {
     return this.sparePartsService.findById(id);
   }
 
-  @Put(':id')
+  @Patch(':id')
   @Roles('Admin')
   @ApiOperation({ summary: 'Update a spare part' })
   @ApiResponse({ status: HttpStatus.OK, description: 'تم تحديث القطعة' })

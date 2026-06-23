@@ -41,7 +41,7 @@ export class MovementsController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Admin', 'Manager', 'Employee')
+  @Roles('Admin')
   @ApiOperation({ summary: 'List all stock movements' })
   @ApiResponse({ status: 200, description: 'قائمة حركات المخزون' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })

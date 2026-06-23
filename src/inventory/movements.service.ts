@@ -7,9 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStockMovementDto } from './dto/create-stock-movement.dto';
 import { QueryMovementsDto } from './dto/query-movements.dto';
-import { MovementResponseDto } from './dto/movement-response.dto';
 import { MovementNoUtil } from './utils/movement-no.util';
-import { plainToClass } from 'class-transformer';
 import { MovementType, Prisma } from '@prisma/client';
 
 @Injectable()
@@ -103,12 +101,7 @@ export class MovementsService {
     ]);
 
     return {
-      data: movements.map((m) =>
-        plainToClass(MovementResponseDto, {
-          ...m,
-          partId: m.partId,
-        }),
-      ),
+      data: movements,
       total,
       page,
       limit,
