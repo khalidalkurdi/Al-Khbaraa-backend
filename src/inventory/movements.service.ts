@@ -10,7 +10,7 @@ import { QueryMovementsDto } from './dto/query-movements.dto';
 import { MovementResponseDto } from './dto/movement-response.dto';
 import { MovementNoUtil } from './utils/movement-no.util';
 import { plainToClass } from 'class-transformer';
-import { MovementType } from '@prisma/client';
+import { MovementType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class MovementsService {
@@ -24,32 +24,15 @@ export class MovementsService {
   async create(
     dto: CreateStockMovementDto,
     responsibleId: string,
-  ): Promise<MovementResponseDto> {
-    const part = await this.prisma.sparePart.findUnique({
+    prisma: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const part = await prisma.sparePart.findUnique({
       where: { id: dto.partId },
     });
 
     if (!part) {
       throw new NotFoundException('القطعة غير موجودة');
     }
-
-    const movementNo = await this.movementNoUtil.generateUniqueMovementNo();
-
-    const movement = await this.prisma.inventoryMovement.create({
-      data: {
-        movementNo,
-        partId: dto.partId,
-        movementType: dto.movementType,
-        responsibleId: responsibleId,
-        reference: dto.reference,
-        quantity: dto.quantity,
-      },
-      include: {
-        part: {
-          select: { id: true, name: true },
-        },
-      },
-    });
 
     const quantityDelta = this.getQuantityDelta(dto.movementType, dto.quantity);
     const newQuantity = part.quantity + quantityDelta;
@@ -58,19 +41,43 @@ export class MovementsService {
       throw new BadRequestException('لا يمكن أن تكون الكمية النهائية سالبة');
     }
 
-    await this.prisma.sparePart.update({
-      where: { id: dto.partId },
-      data: { quantity: newQuantity },
-    });
+    const executeMovement = async (
+      client: Prisma.TransactionClient | PrismaService,
+    ) => {
+      const movementNo = await this.movementNoUtil.generateUniqueMovementNo();
 
-    this.logger.log(
-      `Movement ${movementNo} created for part ${dto.partId} by user ${responsibleId}`,
-    );
+      const movement = await client.inventoryMovement.create({
+        data: {
+          movementNo,
+          partId: dto.partId,
+          movementType: dto.movementType,
+          responsibleId: responsibleId,
+          reference: dto.reference,
+          quantity: dto.quantity,
+        },
+        include: {
+          part: {
+            select: { id: true, name: true },
+          },
+        },
+      });
 
-    return plainToClass(MovementResponseDto, {
-      ...movement,
-      partId: movement.partId,
-    });
+      await client.sparePart.update({
+        where: { id: dto.partId },
+        data: { quantity: newQuantity },
+      });
+      this.logger.log(
+        `Movement ${movementNo} created for part ${dto.partId} by user ${responsibleId}`,
+      );
+    };
+
+    if (prisma === this.prisma) {
+      return await this.prisma.$transaction(async (tx) => {
+        return await executeMovement(tx);
+      });
+    } else if (prisma !== this.prisma) {
+      return await executeMovement(prisma);
+    }
   }
 
   async findAll(query: QueryMovementsDto) {
