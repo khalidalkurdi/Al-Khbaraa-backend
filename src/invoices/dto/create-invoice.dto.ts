@@ -9,123 +9,178 @@ import {
   MaxLength,
   MinLength,
   IsNotEmpty,
+  IsNumber,
+  Min,
+  IsBoolean,
 } from 'class-validator';
 import { CurrencyEnum } from '../enums/currency.enum';
 import { CreateInvoiceItemDto } from './create-invoice-item.dto';
 import { InvoiceStatus, InvoiceType, PaymentMethod } from '@prisma/client';
 import { Type } from 'class-transformer';
+
 export class CreatePaymentInline {
-  @ApiProperty({ description: 'Payment amount', example: '40000.00' })
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Payment amount',
+    example: '40000.00',
+    minimum: 0.01,
+    type: 'number',
+  })
+  @IsNotEmpty({ message: 'المبلغ مطلوب' })
+  @IsNumber({}, { message: 'المبلغ يجب أن يكون رقماً' })
+  @Min(0.01, { message: 'المبلغ يجب أن يكون أكبر من 0' })
   @Type(() => Number)
   amount: number;
 
   @ApiProperty({
     description: 'Currency of payment',
     enum: CurrencyEnum,
+    enumName: 'CurrencyEnum',
     default: CurrencyEnum.SYP,
+    example: CurrencyEnum.SYP,
   })
-  @IsEnum(CurrencyEnum)
+  @IsEnum(CurrencyEnum, { message: 'عملة غير صالحة' })
   currency: CurrencyEnum;
 
   @ApiProperty({
     description: 'Payment method',
     enum: PaymentMethod,
+    enumName: 'PaymentMethod',
     default: PaymentMethod.cash,
+    example: PaymentMethod.cash,
   })
-  @IsEnum(PaymentMethod)
+  @IsEnum(PaymentMethod, { message: 'طريقة دفع غير صالحة' })
   paymentMethod: PaymentMethod = PaymentMethod.cash;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
   @Type(() => Number)
   dollarExchangeRate?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
   @Type(() => Number)
   convertedAmount?: number;
 }
 
 export class CreateInvoiceDto {
   @ApiProperty({
-    description: 'Payment Info ',
+    description: 'Payment Information',
     type: CreatePaymentInline,
+    example: {
+      amount: 40000,
+      currency: 'SYP',
+      paymentMethod: 'cash',
+      dollarExchangeRate: 3500,
+      convertedAmount: 11.43,
+    },
   })
+  @ValidateNested({ message: 'بيانات الدفع غير صالحة' })
   @Type(() => CreatePaymentInline)
   payment: CreatePaymentInline;
 
   @ApiProperty({
     description: 'ID of the repair request to invoice',
+    example: '123e4567-e89b-12d3-a456-426614174000',
     format: 'uuid',
   })
-  @IsUUID()
+  @IsUUID(undefined, { message: 'معرف الطلب غير صالح' })
+  @IsNotEmpty({ message: 'معرف الطلب مطلوب' })
   requestId: string;
 
-  @IsEnum(InvoiceType)
+  @IsEnum(InvoiceType, { message: 'نوع الفاتورة غير صالح' })
   @IsOptional()
   type?: InvoiceType = InvoiceType.external;
 
   @ApiProperty({
     description: 'Invoice status',
     enum: InvoiceStatus,
+    enumName: 'InvoiceStatus',
     default: InvoiceStatus.paid_partial,
     example: InvoiceStatus.paid_partial,
   })
-  @IsEnum(InvoiceStatus)
+  @IsEnum(InvoiceStatus, { message: 'حالة الفاتورة غير صالحة' })
   @IsOptional()
   status?: InvoiceStatus = InvoiceStatus.paid_partial;
 
-  @ApiProperty({ description: 'PaymenTotal amount', example: '40000.00' })
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Total amount of the invoice',
+    example: '40000.00',
+    minimum: 0.01,
+    type: 'number',
+  })
+  @IsNotEmpty({ message: 'المبلغ الإجمالي مطلوب' })
+  @IsNumber({}, { message: 'المبلغ الإجمالي يجب أن يكون رقماً' })
+  @Min(0.01, { message: 'المبلغ الإجمالي يجب أن يكون أكبر من 0' })
   @Type(() => Number)
   totalAmount: number;
 
-  @IsEnum(CurrencyEnum)
+  @IsEnum(CurrencyEnum, { message: 'عملة غير صالحة' })
   @IsOptional()
-  totalCurrency?: CurrencyEnum;
+  totalCurrency?: CurrencyEnum = CurrencyEnum.SYP;
 
   @ApiPropertyOptional({
-    description: 'Warranty period string (e.g. "90 days", "6 months")',
+    description: 'Warranty period (e.g. "90 days", "6 months", "1 year")',
+    example: '90 days',
     maxLength: 50,
   })
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
+  @IsString({ message: 'فترة الضمان يجب أن تكون نصاً' })
+  @MaxLength(50, { message: 'فترة الضمان لا تتجاوز 50 حرفاً' })
   warrantyPeriod?: string;
 
   @ApiPropertyOptional({
-    description: 'Optional general notes',
+    description: 'Optional general notes about the invoice',
+    example: 'تم إصدار الفاتورة بناءً على طلب الصيانة رقم REQ-2024-001',
     maxLength: 2000,
   })
   @IsOptional()
-  @IsString()
-  @MaxLength(2000)
+  @IsString({ message: 'الملاحظات يجب أن تكون نصاً' })
+  @MaxLength(2000, { message: 'الملاحظات لا تتجاوز 2000 حرف' })
   notes?: string;
 
   @ApiPropertyOptional({
-    description: 'Optional LocationURL for customer location',
+    description: 'Location URL for customer location (Google Maps link)',
+    example: 'https://maps.google.com/...',
     maxLength: 2000,
   })
   @IsOptional()
-  @IsString()
-  @MaxLength(2000)
+  @IsString({ message: 'رابط الموقع يجب أن يكون نصاً' })
+  @MaxLength(2000, { message: 'رابط الموقع لا يتجاوز 2000 حرف' })
   locationURL?: string;
 
   @ApiPropertyOptional({
     description: 'Notes about center maintenance requirements',
+    example: 'يحتاج الجهاز إلى صيانة مركزية بسبب تعقيد المشكلة',
     maxLength: 2000,
   })
   @IsOptional()
-  @IsString()
-  @MaxLength(2000)
+  @IsString({ message: 'ملاحظات الصيانة يجب أن تكون نصاً' })
+  @MaxLength(2000, { message: 'ملاحظات الصيانة لا تتجاوز 2000 حرف' })
   needsCenterMaintenance?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Line items for the invoice',
     type: [CreateInvoiceItemDto],
+    example: [
+      {
+        sparePartId: '123e4567-e89b-12d3-a456-426614174000',
+        quantity: 1,
+        unitPrice: 25000,
+        currency: 'SYP',
+      },
+      {
+        sparePartId: '987fcdeb-51a2-43d7-9b56-426614174111',
+        quantity: 1,
+        unitPrice: 15000,
+        currency: 'SYP',
+      },
+    ],
   })
-  @IsArray()
+  @IsArray({ message: 'عناصر الفاتورة يجب أن تكون مصفوفة' })
   @ValidateNested({ each: true })
   @Type(() => CreateInvoiceItemDto)
-  @MinLength(1)
+  @IsOptional()
   items: CreateInvoiceItemDto[];
 }

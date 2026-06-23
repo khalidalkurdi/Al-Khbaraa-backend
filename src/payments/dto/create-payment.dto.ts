@@ -31,12 +31,4 @@ export class CreatePaymentDto {
   })
   @IsEnum(['cash', 'sham_cash'])
   paymentMethod: 'cash' | 'sham_cash';
-
-  @IsOptional()
-  @Type(() => Number)
-  dollarExchangeRate?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  convertedAmount?: number;
 }

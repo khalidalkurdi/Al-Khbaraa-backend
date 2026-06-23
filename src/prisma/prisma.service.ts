@@ -17,7 +17,7 @@ export class PrismaService
     super({
       // Set default transaction timeout globally
       transactionOptions: {
-        timeout: 10000, // 10 seconds timeout
+        timeout: 50000, // 50 seconds timeout
       },
     });
   }

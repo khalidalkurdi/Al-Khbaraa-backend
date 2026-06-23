@@ -1,13 +1,26 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsUUID, IsInt, Min, IsEnum } from 'class-validator';
+import {
+  IsUUID,
+  IsInt,
+  Min,
+  IsEnum,
+  IsNumber,
+  IsNotEmpty,
+  IsDefined,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { CurrencyEnum } from '../enums/currency.enum';
+import { Type } from 'class-transformer';
 
 export class CreateInvoiceItemDto {
   @ApiProperty({
-    description: 'ID of the spare part to invoice',
+    description: 'ID of the spare part to invoice (UUID)',
     format: 'uuid',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty({ message: 'sparePartId is required' })
   sparePartId: string;
 
   @ApiProperty({
@@ -15,18 +28,36 @@ export class CreateInvoiceItemDto {
     minimum: 1,
     default: 1,
     type: Number,
+    example: 2,
   })
-  @IsInt()
-  @Min(1)
-  quantity?: number;
+  @IsNumber({}, { message: 'quantity must be a number' })
+  @IsInt({ message: 'quantity must be an integer' })
+  @Min(1, { message: 'quantity must be at least 1' })
+  @IsDefined({ message: 'quantity is required' })
+  @Type(() => Number)
+  quantity: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Price per unit in the specified currency',
     minimum: 0.01,
     type: Number,
+    example: 50.0,
   })
-  unitPrice?: number;
+  @IsNumber({}, { message: 'unitPrice must be a number' })
+  @Min(0.01, { message: 'unitPrice must be at least 0.01' })
+  @IsDefined({ message: 'unitPrice is required' })
+  @Type(() => Number)
+  unitPrice: number;
 
-  @IsEnum(CurrencyEnum)
+  @ApiProperty({
+    description: 'Currency of the item price',
+    enum: CurrencyEnum,
+    enumName: 'CurrencyEnum',
+    example: CurrencyEnum.SYP,
+  })
+  @IsEnum(CurrencyEnum, {
+    message: 'currency must be one of the following values: SYP, USD',
+  })
+  @IsNotEmpty({ message: 'currency is required' })
   currency: CurrencyEnum;
 }

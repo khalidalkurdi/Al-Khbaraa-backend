@@ -51,6 +51,21 @@ export class InvoicesService {
     if (!request) {
       throw new NotFoundException('الطلب غير موجود');
     }
+    const existingInvoice = await this.prisma.invoice.findUnique({
+      where: { requestId: createInvoiceDto.requestId },
+      select: { id: true, invoiceNumber: true, status: true },
+    });
+
+    if (existingInvoice) {
+      if (existingInvoice.status === InvoiceStatus.paid) {
+        throw new BadRequestException(
+          'الطلب لديه فاتورة مدفوعة بالكامل بالفعل',
+        );
+      }
+      if (existingInvoice.status === InvoiceStatus.paid_partial) {
+        throw new BadRequestException('الطلب لديه فاتورة غير مكتملة');
+      }
+    }
     createInvoiceDto.type =
       request.type === RequestType.external
         ? InvoiceType.external
@@ -143,9 +158,8 @@ export class InvoicesService {
       throw new BadRequestException('الحالة غير مطابقة للمدفوع');
     }
 
-    const invoiceNumber = await this.generateUniqueInvoiceNumber();
-
     const invoice = await this.prisma.$transaction(async (tx) => {
+      const invoiceNumber = await this.generateUniqueInvoiceNumber();
       const createdInvoice = await tx.invoice.create({
         data: {
           invoiceNumber,
@@ -173,40 +187,35 @@ export class InvoicesService {
         include: { items: true, payments: true },
       });
 
-      //create first payment
-      await this.paymentsService.create(payment as CreatePaymentDto, user);
       // movement
       for (const item of items) {
-        const qty = item.quantity ?? 1;
-        await tx.sparePart.update({
-          where: { id: item.sparePartId },
-          data: { quantity: { decrement: qty } },
-        });
-        const dto = {
+        const dto: CreateStockMovementDto = {
           partId: item.sparePartId,
           movementType: MovementType.issue,
           quantity: item.quantity,
           reference: 'استهلاك فواتير',
         };
-        await this.movementsService.create(
-          dto as CreateStockMovementDto,
-          user.id,
-        );
+        await this.movementsService.create(dto, user.id, tx);
       }
+      const dto: CreatePaymentDto = {
+        ...payment,
+        invoiceId: createdInvoice.id,
+      };
+      //create first payment
+      await this.paymentsService.create(dto, user, tx);
+
+      if (locationURL !== undefined) {
+        await this.prisma.customer.update({
+          where: { id: request.customerId },
+          data: { locationLink: locationURL },
+        });
+      }
+      this.logger.log(
+        `Invoice ${createdInvoice.invoiceNumber} created for request ${requestId}`,
+      );
 
       return createdInvoice;
     });
-
-    if (locationURL != undefined) {
-      await this.prisma.customer.update({
-        where: { id: request.customerId },
-        data: { locationLink: locationURL },
-      });
-    }
-
-    this.logger.log(
-      `Invoice ${invoice.invoiceNumber} created for request ${requestId}`,
-    );
 
     return invoice;
   }
