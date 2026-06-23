@@ -2,14 +2,14 @@ const SYRIA_TIMEZONE_OFFSET = 3 * 60; // +03:00 in minutes
 
 export function getSyriaNow(): Date {
   const now = new Date();
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (SYRIA_TIMEZONE_OFFSET * 60000));
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  return new Date(utc + SYRIA_TIMEZONE_OFFSET * 60000);
 }
 
 export function toSyriaDate(date: Date | string): Date {
   const d = new Date(date);
-  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-  return new Date(utc + (SYRIA_TIMEZONE_OFFSET * 60000));
+  const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+  return new Date(utc + SYRIA_TIMEZONE_OFFSET * 60000);
 }
 
 export function formatSyriaDate(
