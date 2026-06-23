@@ -46,13 +46,14 @@ export class TechnicianService {
   }
 
   async getMyRequests(technicianId: string, query: MyRequestsQueryDto) {
-    const { status, page, limit } = query;
+    const { status, isRepeated, page, limit } = query;
     let skip;
     if (page !== undefined && limit !== undefined) {
       skip = (page - 1) * limit;
     }
 
     const where: any = {
+      isRepeated: isRepeated ?? false,
       assignments: {
         some: {
           technicianId,
@@ -151,7 +152,17 @@ export class TechnicianService {
         `لا يمكن تغيير الحالة بعد الوصول إلى حالة نهائية (${currentStatus})`,
       );
     }
-
+    if (
+      currentStatus === RequestStatus.cancelled ||
+      currentStatus === RequestStatus.postponed ||
+      currentStatus === RequestStatus.notanswer ||
+      currentStatus === RequestStatus.notrepairable
+    ) {
+      await this.prisma.technicianAssignment.update({
+        where: { id: assignment.id },
+        data: { isActive: false },
+      });
+    }
     const result = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.request.update({
         where: { id: requestId },

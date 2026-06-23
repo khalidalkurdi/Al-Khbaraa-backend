@@ -1,6 +1,6 @@
-import { IsOptional, IsEnum, IsNumber, Min } from 'class-validator';
+import { IsOptional, IsEnum, IsNumber, Min, IsBoolean } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export enum TechnicianRequestStatusFilter {
   NEW = 'new',
@@ -18,6 +18,25 @@ export class MyRequestsQueryDto {
   @IsEnum(TechnicianRequestStatusFilter)
   status?: TechnicianRequestStatusFilter;
 
+  @ApiPropertyOptional({
+    example: false,
+    required: false,
+    description: 'User active status',
+    type: Boolean,
+  })
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+
+    if (value === true || value === 'true' || value === '1') return true;
+    if (value === false || value === 'false' || value === '0') return false;
+
+    return value;
+  })
+  @IsBoolean()
+  isRepeated?: boolean = false;
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()
   @Type(() => Number)
