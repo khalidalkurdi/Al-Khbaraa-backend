@@ -11,6 +11,7 @@ import {
 } from './dto/my-requests-query.dto';
 import { UpdateTechnicianStatusDto } from './dto/update-status.dto';
 import { RequestStatus } from '@prisma/client';
+import { skip } from 'node:test';
 
 @Injectable()
 export class TechnicianService {
@@ -45,8 +46,11 @@ export class TechnicianService {
   }
 
   async getMyRequests(technicianId: string, query: MyRequestsQueryDto) {
-    const { status, page = 1, limit = 10 } = query;
-    const skip = (page - 1) * limit;
+    const { status, page, limit } = query;
+    let skip;
+    if (page !== undefined && limit !== undefined) {
+      skip = (page - 1) * limit;
+    }
 
     const where: any = {
       assignments: {

@@ -42,13 +42,6 @@ export class TechnicianController {
   @ApiOperation({
     summary: 'Get repair requests assigned to the authenticated technician',
   })
-  @ApiQuery({
-    name: 'status',
-    required: false,
-    enum: ['new', 'active', 'complete', 'pull_to_center'],
-  })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'تم إرجاع قائمة الطلبات' })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({
