@@ -43,7 +43,7 @@ export class RequestNumberUtil {
       });
 
       const nextSeq = count + 1;
-      const candidate = `${prefix}${String(nextSeq).padStart(4, '0')}`;
+      const candidate = `${prefix}${String(nextSeq).padStart(6, '0')}`;
 
       const exists = await this.prisma.request.findUnique({
         where: { requestNumber: candidate },

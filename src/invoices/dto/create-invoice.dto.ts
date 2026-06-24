@@ -50,18 +50,6 @@ export class CreatePaymentInline {
   })
   @IsEnum(PaymentMethod, { message: 'طريقة دفع غير صالحة' })
   paymentMethod: PaymentMethod = PaymentMethod.cash;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Type(() => Number)
-  dollarExchangeRate?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Type(() => Number)
-  convertedAmount?: number;
 }
 
 export class CreateInvoiceDto {
