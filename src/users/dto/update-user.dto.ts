@@ -83,7 +83,7 @@ export class UpdateUserDto {
     return value;
   })
   @IsBoolean()
-  isActive?: boolean = false;
+  isActive?: boolean;
 
   @ApiPropertyOptional({
     example: 'Technician',
