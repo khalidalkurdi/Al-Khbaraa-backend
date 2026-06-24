@@ -12,25 +12,13 @@ import { Type } from 'class-transformer';
 
 export class QuerySparePartsDto {
   @ApiPropertyOptional({
-    example: 'SCR-IP13-001',
-    description: 'البحث بواسطة رمز التخزين (SKU)',
+    example: 'iPhone',
+    description: 'بحث في رقم الطلب، اسم العميل، رقم الهاتف',
     maxLength: 100,
   })
   @IsOptional()
-  @IsString()
-  @MaxLength(100, { message: 'رمز التخزين لا يتجاوز 100 حرف' })
-  sku?: string;
-
-  @ApiPropertyOptional({
-    example: 'شاشة',
-    description: 'البحث بواسطة اسم قطعة الغيار (بحث جزئي)',
-    maxLength: 255,
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(255, { message: 'اسم قطعة الغيار لا يتجاوز 255 حرف' })
-  name?: string;
-
+  @MaxLength(100)
+  search?: string;
   @ApiPropertyOptional({
     example: 1,
     description: 'رقم الصفحة',

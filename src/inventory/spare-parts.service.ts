@@ -25,12 +25,30 @@ export class SparePartsService {
   async findAll(query: QuerySparePartsDto) {
     const page = query.page ?? undefined;
     const limit = query.limit ?? undefined;
+    const search = query.search ?? undefined;
+
     let skip;
     if (page && limit) skip = (page - 1) * limit;
     const where: any = {};
-    if (query.sku) where.sku = query.sku;
-    if (query.name) where.name = { contains: query.name };
-
+    if (search) {
+      where.OR = [
+        {
+          sparePartNumber: {
+            contains: search,
+          },
+        },
+        {
+          name: {
+            contains: search,
+          },
+        },
+        {
+          sku: {
+            contains: search,
+          },
+        },
+      ];
+    }
     const items = await this.repository.findMany({
       where,
       skip: skip,
