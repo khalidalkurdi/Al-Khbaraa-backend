@@ -197,6 +197,6 @@ export class TechnicianService {
       return updated;
     });
 
-    return result;
+    return { message: 'تم تحديث حالة الطلب بنجاح' };
   }
 }
