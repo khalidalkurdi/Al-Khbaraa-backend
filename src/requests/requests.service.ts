@@ -270,10 +270,9 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('تعذر تحديد معرف العميل');
     }
 
-    const requestNumber =
-      await this.requestNumberUtil.generateUniqueRequestNumber();
-
     const result = await this.prisma.$transaction(async (tx) => {
+      const requestNumber =
+        await this.requestNumberUtil.generateUniqueRequestNumber();
       const request = await tx.request.create({
         data: {
           requestNumber,
