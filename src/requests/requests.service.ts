@@ -482,7 +482,6 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       include: {
         changer: {
           select: {
-            id: true,
             fullName: true,
           },
         },
@@ -617,6 +616,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
           include: {
             technician: {
               select: {
+                id: true,
                 fullName: true,
               },
             },
