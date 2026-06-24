@@ -12,7 +12,13 @@ import { SparePartNumberUtil } from './utils/spare-part-number.util';
 import { Prisma } from '@prisma/client';
 
 export const LOW_STOCK_THRESHOLD = 5;
-
+interface AuthenticatedRequest {
+  user: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
 @Injectable()
 export class SparePartsService {
   private readonly logger = new Logger(SparePartsService.name);
@@ -22,14 +28,15 @@ export class SparePartsService {
     private readonly sparePartNumberUtil: SparePartNumberUtil,
   ) {}
 
-  async findAll(query: QuerySparePartsDto) {
-    const page = query.page ?? undefined;
-    const limit = query.limit ?? undefined;
+  async findAll(query: QuerySparePartsDto, req: AuthenticatedRequest) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
     const search = query.search ?? undefined;
 
     let skip;
     if (page && limit) skip = (page - 1) * limit;
-    const where: any = {};
+    const where: any = { isActive: true };
+
     if (search) {
       where.OR = [
         {
@@ -49,14 +56,39 @@ export class SparePartsService {
         },
       ];
     }
-    const items = await this.repository.findMany({
-      where,
-      skip: skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return items;
+    const [items, total] = await Promise.all([
+      this.repository.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.repository.count(where),
+    ]);
+    const isTechnician = req.user.role === 'Technician';
+    if (isTechnician) {
+      return {
+        data: items.map((p) => ({
+          id: p.id,
+          name: p.name,
+        })),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    }
+    return {
+      data: items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findById(id: string) {

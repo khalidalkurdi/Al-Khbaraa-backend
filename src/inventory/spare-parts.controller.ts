@@ -9,6 +9,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,7 +22,13 @@ import { CreateSparePartDto } from './dto/create-spare-part.dto';
 import { UpdateSparePartDto } from './dto/update-spare-part.dto';
 import { QuerySparePartsDto } from './dto/query-spare-parts.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
-
+interface AuthenticatedRequest {
+  user: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
 @ApiTags('inventory')
 @ApiBearerAuth()
 @Controller('inventory/parts')
@@ -42,11 +49,14 @@ export class SparePartsController {
   }
 
   @Get()
-  @Roles('Admin', 'Manager', 'Employee')
+  @Roles('Admin', 'Manager', 'Employee', 'Technician')
   @ApiOperation({ summary: 'Search and list spare parts' })
   @ApiResponse({ status: HttpStatus.OK, description: 'قائمة القطع مع الترقيم' })
-  findAll(@Query() query: QuerySparePartsDto) {
-    return this.sparePartsService.findAll(query);
+  findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: QuerySparePartsDto,
+  ) {
+    return this.sparePartsService.findAll(query, req);
   }
 
   @Get(':id')
