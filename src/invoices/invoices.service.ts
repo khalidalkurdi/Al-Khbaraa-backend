@@ -213,7 +213,11 @@ export class InvoicesService {
       this.logger.log(
         `Invoice ${createdInvoice.invoiceNumber} created for request ${requestId}`,
       );
-
+      await tx.request.update({
+        where: { id: createInvoiceDto.requestId },
+        data: { hasInvoice: true },
+      });
+      
       return createdInvoice;
     });
 

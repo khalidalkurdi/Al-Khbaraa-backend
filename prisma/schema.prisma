@@ -204,6 +204,7 @@ model Request {
   notes            String?       @db.Text
   scheduledDate    DateTime?     @map("scheduled_date") @db.Date
   isRepeated       Boolean       @default(false) @map("is_repeated")
+  hasInvoice       Boolean       @default(false) @map("has_invoice")
   isCompleted      Boolean       @default(false) @map("is_completed")
   status           RequestStatus @default(new)
   createdBy        String        @map("created_by") @db.Char(36)
