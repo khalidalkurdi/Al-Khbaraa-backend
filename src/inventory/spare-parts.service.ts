@@ -29,7 +29,7 @@ export class SparePartsService {
     if (page && limit) skip = (page - 1) * limit;
     const where: any = {};
     if (query.sku) where.sku = query.sku;
-    if (query.name) where.name = { contains: query.name, mode: 'insensitive' };
+    if (query.name) where.name = { contains: query.name };
 
     const items = await this.repository.findMany({
       where,
