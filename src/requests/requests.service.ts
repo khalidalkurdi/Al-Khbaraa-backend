@@ -491,7 +491,6 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
 
     return history;
   }
-
   async findAll(query: RequestQueryDto) {
     const { status, priority, type, startDate, endDate, page, limit, search } =
       query;
@@ -501,6 +500,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     if (status) where.status = status;
     if (priority) where.priority = priority;
     if (type) where.type = type;
+
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) {
@@ -512,48 +512,47 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         where.createdAt.lte = end;
       }
     }
+
     if (search) {
-      const searchConditions: any[] = [];
-      searchConditions.push({
-        requestNumber: {
-          contains: search,
-          mode: 'insensitive',
-        },
-      });
-
-      searchConditions.push({
-        customer: {
-          OR: [
-            {
-              firstPhone: {
-                contains: search,
-                mode: 'insensitive',
-              },
-            },
-            {
-              secondPhone: {
-                contains: search,
-                mode: 'insensitive',
-              },
-            },
-          ],
-        },
-      });
-
-      searchConditions.push({
-        customer: {
-          name: {
+      where.OR = [
+        {
+          requestNumber: {
             contains: search,
             mode: 'insensitive',
           },
         },
-      });
-      where.OR = searchConditions;
+        {
+          customer: {
+            is: {
+              OR: [
+                {
+                  firstPhone: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  secondPhone: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  name: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ];
     }
 
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.request.findMany({
         where,
         skip,
