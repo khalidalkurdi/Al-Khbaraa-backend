@@ -30,7 +30,7 @@ export class InventoryService {
         technicianId: dto.technicianId,
       },
     });
-    if (existing !== undefined) {
+    if (existing) {
       throw new ConflictException(
         'يوجد مخزون يومي لهذا الفني لهذا الفني حاليا',
       );
