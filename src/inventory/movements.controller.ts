@@ -44,8 +44,6 @@ export class MovementsController {
   @Roles('Admin')
   @ApiOperation({ summary: 'List all stock movements' })
   @ApiResponse({ status: 200, description: 'قائمة حركات المخزون' })
-  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
   async findAll(@Query() query: QueryMovementsDto) {
     return this.movementsService.findAll(query);
   }

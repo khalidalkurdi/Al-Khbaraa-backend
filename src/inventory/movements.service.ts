@@ -83,8 +83,23 @@ export class MovementsService {
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
 
+    const where: any = {};
+    if (query.startDate) {
+      where.movementDate = {
+        ...where.movementDate,
+        gte: new Date(query.startDate + 'T00:00:00.000Z'),
+      };
+    }
+
+    if (query.endDate) {
+      where.movementDate = {
+        ...where.movementDate,
+        lte: new Date(query.endDate + 'T23:59:59.999Z'),
+      };
+    }
     const [movements, total] = await Promise.all([
       this.prisma.inventoryMovement.findMany({
+        where,
         orderBy: { movementDate: 'desc' },
         skip,
         take: limit,

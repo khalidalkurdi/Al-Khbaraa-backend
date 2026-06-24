@@ -1,8 +1,25 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsInt, Min, Max, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryMovementsDto {
+  @ApiPropertyOptional({
+    example: '2026-06-01',
+    description: 'تاريخ البداية للتصفية (YYYY-MM-DD)',
+    maxLength: 10,
+  })
+  @IsOptional()
+  @MaxLength(10)
+  startDate?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-06-20',
+    description: 'تاريخ النهاية للتصفية (YYYY-MM-DD)',
+    maxLength: 10,
+  })
+  @IsOptional()
+  @MaxLength(10)
+  endDate?: string;
   @ApiPropertyOptional({
     example: 1,
     description: 'رقم الصفحة المطلوبة',
