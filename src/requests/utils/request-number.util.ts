@@ -10,6 +10,6 @@ export class RequestNumberUtil {
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
     const random = crypto.randomInt(0, 10000).toString().padStart(4, '0');
-    return `INV-${yyyy}${mm}${dd}-${random}`;
+    return `REQ-${yyyy}${mm}${dd}-${random}`;
   }
 }
