@@ -32,28 +32,27 @@ export class TechnicianService {
           RequestStatus.arrived,
           RequestStatus.underrepair,
         ];
-      case TechnicianRequestStatusFilter.COMPLETE:
-        return [
-          RequestStatus.completed,
-          RequestStatus.incompleted,
-          RequestStatus.notrepairable,
-        ];
+      case TechnicianRequestStatusFilter.INCOMPLETED:
+        return [RequestStatus.incompleted];
+      case TechnicianRequestStatusFilter.COMPLETED:
+        return [RequestStatus.completed];
       case TechnicianRequestStatusFilter.PULL_TO_CENTER:
         return [RequestStatus.pulltocenter];
+      case TechnicianRequestStatusFilter.REPEATED:
+        return [RequestStatus.repeated];
       default:
         return [];
     }
   }
 
   async getMyRequests(technicianId: string, query: MyRequestsQueryDto) {
-    const { status, isRepeated, page, limit } = query;
+    const { status, page, limit } = query;
     let skip;
     if (page !== undefined && limit !== undefined) {
       skip = (page - 1) * limit;
     }
 
     const where: any = {
-      isRepeated: isRepeated ?? false,
       assignments: {
         some: {
           technicianId,
@@ -63,7 +62,12 @@ export class TechnicianService {
     };
 
     if (status) {
-      where.status = { in: this.getStatusFilterValues(status) };
+      let reqStatus = this.getStatusFilterValues(status);
+      if (reqStatus[0] !== RequestStatus.repeated) {
+        where.status = { in: reqStatus };
+      } else {
+        where.isRepeqte = true;
+      }
     }
 
     const [data, total] = await this.prisma.$transaction([
