@@ -383,8 +383,8 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     void this.notificationsService
       .sendPushNotification({
         userId: technicianId,
-        title: 'New repair request assigned',
-        body: `Request #${request.requestNumber} has been assigned to you.`,
+        title: 'تم تعيين طلب إصلاح جديد',
+        body: `تم تعيين الطلب رقم #${request.requestNumber} إليك`,
       })
       .catch((error: any) => {
         this.logger.warn(`FCM push notification failed: ${error?.message}`);
