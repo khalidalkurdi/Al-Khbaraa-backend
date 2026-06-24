@@ -82,7 +82,7 @@ export class PaymentsService {
       }
     }
 
-    let convertedAmount: Decimal = new Decimal(0);
+    let convertedAmount: Decimal = amountDecimal;
 
     const invoiceCurrency = invoice.totalCurrency as CurrencyEnum;
     const settings = await prisma.centerSettings.findFirst();
@@ -102,15 +102,17 @@ export class PaymentsService {
         invoiceCurrency === CurrencyEnum.USD
       ) {
         convertedAmount = amountDecimal.dividedBy(dollarExchangeRate);
-      } else {
-        convertedAmount = amountDecimal;
       }
     }
 
-    const newPaidAmount = new Decimal(invoice.paidAmount).plus(convertedAmount);
-    const newRemainingAmount = new Decimal(invoice.remainingAmount).minus(
-      convertedAmount,
-    );
+    if (convertedAmount.greaterThan(invoice.remainingAmount)) {
+      throw new BadRequestException(
+        `المبلغ المدخل (${convertedAmount}) يتجاوز المبلغ المتبقي (${invoice.remainingAmount})`,
+      );
+    }
+    const newPaidAmount = invoice.paidAmount.plus(convertedAmount);
+    const newRemainingAmount = invoice.remainingAmount.minus(convertedAmount);
+
     const statusChanged =
       invoice.status === InvoiceStatus.paid_partial &&
       newRemainingAmount.lessThanOrEqualTo(0);
@@ -144,19 +146,21 @@ export class PaymentsService {
       };
     };
 
-    let payment;
+    let result;
     if (prisma === this.prisma) {
-      payment = await this.prisma.$transaction(async (tx) => {
+      result = await this.prisma.$transaction(async (tx) => {
         return await executePayment(tx);
       });
-      return payment.invoice;
-    } else if (prisma !== this.prisma) {
-      payment = await executePayment(prisma);
-      return payment.invoice;
+      this.logger.log(
+        `Payment created for invoice ${invoiceId}, amount: ${amountDecimal.toString()} ${currency}`,
+      );
+    } else {
+      result = await executePayment(prisma);
     }
     this.logger.log(
       `Payment created for invoice ${invoiceId}, amount: ${amountDecimal.toString()} ${currency}`,
     );
+    return result.invoice;
   }
 
   async findByInvoice(
