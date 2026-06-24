@@ -498,6 +498,11 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     const where: any = {};
 
     if (status) where.status = status;
+    if (status === RequestStatus.repeated) {
+      where.status = undefined;
+      where.isRepeated = true;
+    }
+
     if (priority) where.priority = priority;
     if (type) where.type = type;
 
