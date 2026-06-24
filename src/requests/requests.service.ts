@@ -610,6 +610,18 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
             payments: true,
           },
         },
+        assignments: {
+          where: {
+            isActive: true,
+          },
+          include: {
+            technician: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        },
         creator: {
           select: {
             id: true,
