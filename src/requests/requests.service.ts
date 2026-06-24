@@ -518,7 +518,6 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         {
           requestNumber: {
             contains: search,
-            mode: 'insensitive',
           },
         },
         {
@@ -528,19 +527,16 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
                 {
                   firstPhone: {
                     contains: search,
-                    mode: 'insensitive',
                   },
                 },
                 {
                   secondPhone: {
                     contains: search,
-                    mode: 'insensitive',
                   },
                 },
                 {
                   name: {
                     contains: search,
-                    mode: 'insensitive',
                   },
                 },
               ],
