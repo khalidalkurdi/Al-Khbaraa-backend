@@ -24,6 +24,13 @@ export class UpdateUserDto {
   @IsOptional()
   email?: string;
 
+  @ApiPropertyOptional({ example: 'securepassword' })
+  @IsString()
+  @IsOptional()
+  @MinLength(8, { message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' })
+  @MaxLength(255)
+  password: string;
+
   @ApiPropertyOptional({
     example: 'John Updated',
     required: false,

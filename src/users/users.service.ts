@@ -219,6 +219,9 @@ export class UsersService {
     );
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.email !== undefined) updateData.email = data.email;
+    if (data.password !== undefined) {
+      updateData.passwordHash = await bcrypt.hash(data.password, 10);
+    }
     if (data.fullName !== undefined) updateData.fullName = data.fullName;
     if (data.jobTitle !== undefined) updateData.jobTitle = data.jobTitle;
     if (data.phone !== undefined) updateData.phone = data.phone ?? '';
