@@ -694,7 +694,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async update(id: string, updateRequestDto: UpdateRequestDto, userId: string) {
-    const { devices, technicianId, ...updateData } = updateRequestDto;
+    const { devices, customer, technicianId, ...updateData } = updateRequestDto;
 
     const existing = await this.prisma.request.findUnique({
       where: { id },
@@ -731,6 +731,43 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      if (customer) {
+        const existingCustomer = await tx.customer.findFirst({
+          where: {
+            OR: [
+              { firstPhone: customer.firstPhone },
+              { secondPhone: customer.firstPhone },
+              { firstPhone: customer.secondPhone },
+              { secondPhone: customer.secondPhone },
+            ],
+          },
+        });
+
+        if (existingCustomer) {
+          await tx.customer.update({
+            where: { id: existingCustomer.id },
+            data: {
+              name: customer.name,
+              firstPhone: customer.firstPhone,
+              secondPhone: customer.secondPhone,
+              address: customer.address,
+              locationLink: customer.locationLink,
+            },
+          });
+        } else {
+          const newCustomer = await tx.customer.create({
+            data: {
+              customerNumber:
+                await this.customerNumberUtil.generateUniqueCustomerNumber(),
+              name: customer.name,
+              firstPhone: customer.firstPhone,
+              secondPhone: customer.secondPhone,
+              address: customer.address,
+              locationLink: customer.locationLink,
+            },
+          });
+        }
+      }
       const data: Prisma.RequestUpdateInput = {};
 
       if (Object.keys(updateData).length > 0) {
