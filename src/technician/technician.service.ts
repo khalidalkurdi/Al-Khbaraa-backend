@@ -66,7 +66,7 @@ export class TechnicianService {
       if (reqStatus[0] !== RequestStatus.repeated) {
         where.status = { in: reqStatus };
       } else {
-        where.isRepeqte = true;
+        where.isRepeated = true;
       }
     }
 
