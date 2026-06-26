@@ -37,10 +37,15 @@ export class InvoicesRepository {
     if (status) where.status = status;
 
     // Filter by currency
-    if (currency) where.currency = currency;
+    if (currency) where.totalCurrency = currency;
 
-    // Filter by payment method
-    if (paymentMethod) where.paymentMethod = paymentMethod;
+    if (paymentMethod) {
+      where.payments = {
+        some: {
+          paymentMethod: paymentMethod,
+        },
+      };
+    }
 
     // Date range filter
     if (startDate || endDate) {
