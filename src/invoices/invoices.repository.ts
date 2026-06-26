@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, InvoiceType, InvoiceStatus } from '@prisma/client';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
@@ -120,7 +120,12 @@ export class InvoicesRepository {
       include: {
         items: true,
         request: {
-          include: { customer: true },
+          include: {
+            customer: true,
+            assignments: {
+              include: { technician: true },
+            },
+          },
         },
         payments: true,
       },
@@ -135,8 +140,15 @@ export class InvoicesRepository {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: {
-        request: true,
         items: true,
+        request: {
+          include: {
+            customer: true,
+            assignments: {
+              include: { technician: true },
+            },
+          },
+        },
         payments: true,
       },
     });
@@ -151,7 +163,11 @@ export class InvoicesRepository {
           isActive: true,
         },
       });
-      if (!assignment) return null;
+      if (!assignment) {
+        throw new NotFoundException(
+          'الطلب غير موجود أو غير مسند إلى هذا الفني',
+        );
+      }
     }
 
     return invoice;
