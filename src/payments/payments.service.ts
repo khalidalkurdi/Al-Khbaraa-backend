@@ -60,7 +60,7 @@ export class PaymentsService {
     if (!invoice) {
       throw new NotFoundException('الفاتورة غير موجودة');
     }
-    if (invoice.status === InvoiceStatus.paid) {
+    if (invoice.totalAmount === invoice.paidAmount) {
       throw new BadRequestException('الفاتورة مدفوعة بالكامل بالفعل');
     }
 
@@ -100,7 +100,7 @@ export class PaymentsService {
       } else if (
         currency === CurrencyEnum.SYP &&
         invoiceCurrency === CurrencyEnum.USD
-      ) {
+      )else {
         convertedAmount = amountDecimal.dividedBy(dollarExchangeRate);
       }
     }
