@@ -100,7 +100,7 @@ export class PaymentsService {
       } else if (
         currency === CurrencyEnum.SYP &&
         invoiceCurrency === CurrencyEnum.USD
-      )else {
+      ) {
         convertedAmount = amountDecimal.dividedBy(dollarExchangeRate);
       }
     }
