@@ -9,7 +9,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { InvoicesRepository } from './invoices.repository';
 import { InvoiceNumberUtil } from './utils/invoice-number.util';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import {
   InvoiceStatus,
   InvoiceType,
@@ -22,6 +21,7 @@ import { MovementsService } from 'src/inventory/movements.service';
 import { CreateStockMovementDto } from 'src/inventory/dto/create-stock-movement.dto';
 import { PaymentsService } from 'src/payments/payments.service';
 import { CreatePaymentDto } from 'src/payments/dto/create-payment.dto';
+import { InvoiceQueryDto } from './dto/invoice-query.dto';
 
 interface AuthenticatedUser {
   id: string;
@@ -38,7 +38,6 @@ export class InvoicesService {
     private readonly invoicesRepository: InvoicesRepository,
     private readonly paymentsService: PaymentsService,
     private readonly invoiceNumberUtil: InvoiceNumberUtil,
-    private readonly realtimeGateway: RealtimeGateway,
     private readonly movementsService: MovementsService,
   ) {}
 
@@ -180,7 +179,7 @@ export class InvoicesService {
               quantity: item.quantity ?? 1,
               unitPrice: item.unitPrice ?? 0,
               currency: totalCurrency,
-              totalPrice: (item.quantity ?? 1) * (item.unitPrice ?? 0),
+              totalPrice: totalPrice,
             })),
           },
         },
@@ -217,31 +216,15 @@ export class InvoicesService {
         where: { id: createInvoiceDto.requestId },
         data: { hasInvoice: true },
       });
-      
+
       return createdInvoice;
     });
 
     return invoice;
   }
 
-  async findAll(
-    page: number,
-    limit: number,
-    userId: string,
-    isTechnician: boolean,
-    requestId?: string,
-    type?: InvoiceType,
-    status?: InvoiceStatus,
-  ) {
-    return this.invoicesRepository.findMany({
-      page,
-      limit,
-      requestId,
-      type,
-      status,
-      userId,
-      isTechnician,
-    });
+  async findAll(query: InvoiceQueryDto) {
+    return this.invoicesRepository.findMany(query);
   }
 
   async findOne(id: string, userId: string, isTechnician: boolean) {

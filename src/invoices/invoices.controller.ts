@@ -27,6 +27,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { InvoiceStatus, InvoiceType } from '@prisma/client';
+import { InvoiceQueryDto } from './dto/invoice-query.dto';
+import { CurrencyEnum } from './enums/currency.enum';
 
 interface AuthenticatedRequest {
   user: {
@@ -77,43 +79,14 @@ export class InvoicesController {
   @Get()
   @Roles('Admin', 'Manager', 'Employee')
   @ApiOperation({ summary: 'List invoices with pagination' })
-  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
-  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  @ApiQuery({ name: 'requestId', required: false, type: String })
-  @ApiQuery({
-    name: 'type',
-    required: false,
-    type: String,
-    enum: InvoiceType,
-  })
-  @ApiQuery({
-    name: 'status',
-    required: false,
-    type: String,
-    enum: InvoiceStatus,
-  })
   @ApiResponse({ status: 200, description: 'قائمة الفواتير مع الترقيم' })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
   async findAll(
     @Req() req: AuthenticatedRequest,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('requestId') requestId?: string,
-    @Query('type') type?: string,
-    @Query('status') status?: string,
+    @Query() query: InvoiceQueryDto,
   ) {
-    const user = req.user;
-    const isTechnician = user.role === 'Technician';
-    return this.invoicesService.findAll(
-      parseInt(page ?? '1', 10),
-      parseInt(limit ?? '20', 10),
-      user.id,
-      isTechnician,
-      requestId,
-      type as InvoiceType | undefined,
-      status as InvoiceStatus | undefined,
-    );
+    return this.invoicesService.findAll(query);
   }
 
   @Get(':id')

@@ -57,11 +57,9 @@ export class CreateInvoiceDto {
     description: 'Payment Information',
     type: CreatePaymentInline,
     example: {
-      amount: 40000,
+      amount: 20000,
       currency: 'SYP',
       paymentMethod: 'cash',
-      dollarExchangeRate: 3500,
-      convertedAmount: 11.43,
     },
   })
   @ValidateNested({ message: 'بيانات الدفع غير صالحة' })
