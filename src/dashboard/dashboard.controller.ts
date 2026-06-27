@@ -1,7 +1,7 @@
 import { Controller, Get, Query, UseGuards, Res } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { DashboardStatsResponseDto } from './dto/dashboard-stats-response.dto';
-import { TechnicianPerformanceQueryDto } from './dto/technician-performance-query.dto';
+import { TechnicianPerformanceResponseDto } from './dto/technician-performance-response.dto';
 import {
   FinancialReportQueryDto,
   FinancialReportResponseDto,
@@ -27,10 +27,8 @@ export class DashboardController {
 
   @Get('technician-performance')
   @Roles('Admin')
-  async getTechnicianPerformance(
-    @Query() query: TechnicianPerformanceQueryDto,
-  ) {
-    return this.dashboardService.getTechnicianPerformance(query);
+  async getTechnicianPerformance(): Promise<TechnicianPerformanceResponseDto> {
+    return this.dashboardService.getTechnicianPerformance();
   }
 
   @Get('financial-report')
