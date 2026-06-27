@@ -62,7 +62,7 @@ export class TechnicianService {
     };
 
     if (status) {
-      let reqStatus = this.getStatusFilterValues(status);
+      const reqStatus = this.getStatusFilterValues(status);
       if (reqStatus[0] !== RequestStatus.repeated) {
         where.status = { in: reqStatus };
       } else {
