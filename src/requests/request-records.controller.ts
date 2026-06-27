@@ -28,17 +28,17 @@ export class RequestRecordsController {
 
   @Post('records')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Admin', 'Manager', 'Employee')
+  @Roles('Technician')
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['requestNumber', 'records'],
+      required: ['requestId', 'records'],
       properties: {
-        requestNumber: {
+        requestId: {
           type: 'string',
-          example: 'REQ-20260614-0001',
+          example: 'ddff58d6-b9af-4520-a7b5-bf174cd0eec2',
         },
         records: {
           type: 'array',

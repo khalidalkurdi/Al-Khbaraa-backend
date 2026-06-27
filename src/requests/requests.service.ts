@@ -9,6 +9,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import * as mm from 'music-metadata';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
@@ -393,7 +394,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async uploadRequestVoiceRecords(
-    requestNumber: string,
+    requestId: string,
     files: Express.Multer.File[],
   ) {
     if (!files || files.length === 0) {
@@ -401,70 +402,199 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     }
 
     const request = await this.prisma.request.findUnique({
-      where: { requestNumber },
-      select: { id: true, requestNumber: true },
+      where: { id: requestId },
+      select: {
+        id: true,
+        requestNumber: true,
+        status: true,
+      },
     });
 
     if (!request) {
-      throw new NotFoundException(`طلب ${requestNumber} غير موجود`);
+      throw new NotFoundException(`الطلب رقم ${requestId} غير موجود`);
     }
 
-    const recordFiles = files.map((file) => {
-      if (!this.allowedRecordMimeTypes.includes(file.mimetype)) {
+    if (request.status === 'cancelled') {
+      throw new BadRequestException('لا يمكن إضافة ملفات لطلب مكتمل أو ملغي');
+    }
+
+    const allowedExtensions = ['mp3', 'wav', 'aac', 'flac', 'ogg', 'm4a'];
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const maxFilesCount = 10;
+
+    if (files.length > maxFilesCount) {
+      throw new BadRequestException(
+        `يمكن رفع ${maxFilesCount} ملفات كحد أقصى في المرة الواحدة`,
+      );
+    }
+
+    const recordFiles: Array<{
+      file: Express.Multer.File;
+      filename: string;
+      originalName: string;
+      size: number;
+    }> = [];
+
+    for (const file of files) {
+      if (file.size > maxFileSize) {
         throw new BadRequestException(
-          'نوع الملف غير صالح. يسمح فقط بالملفات الصوتية.',
+          `الملف "${file.originalname}" كبير جداً. الحد الأقصى هو ${maxFileSize / 1024 / 1024}MB`,
         );
       }
 
       const extension = this.getSafeFileExtension(file.originalname);
-      const filename = `${Date.now()}-${randomUUID()}${extension}`;
 
-      return {
+      if (!allowedExtensions.includes(extension)) {
+        throw new BadRequestException(
+          `الملف "${file.originalname}" غير صالح. الامتدادات المسموحة: ${allowedExtensions.join(', ')}`,
+        );
+      }
+
+      const timestamp = Date.now();
+      const uniqueId = randomUUID();
+      const filename = `${timestamp}-${uniqueId}.${extension}`;
+
+      recordFiles.push({
         file,
         filename,
-      };
-    });
+        originalName: file.originalname,
+        size: file.size,
+      });
+    }
 
     const requestRecordsDir = path.join(this.recordsDir, request.requestNumber);
-    fs.mkdirSync(requestRecordsDir, { recursive: true });
-
-    const records = recordFiles.map(({ file, filename }) => {
-      const filePath = path.join(requestRecordsDir, filename);
-      fs.writeFileSync(filePath, file.buffer);
-
-      return {
-        requestId: request.id,
-        fullFilePath: `/uploads/Records/${request.requestNumber}/${filename}`,
-        fileSize: file.size,
-        mimeType: file.mimetype,
-      };
-    });
 
     try {
-      await this.prisma.requestVoiceRecord.createMany({ data: records });
-    } catch {
-      throw new InternalServerErrorException('فشل حفظ الملفات الصوتية');
+      fs.mkdirSync(requestRecordsDir, { recursive: true });
+    } catch (error) {
+      throw new InternalServerErrorException('فشل إنشاء مجلد الملفات');
     }
 
-    return this.prisma.requestVoiceRecord.findMany({
+    const savedRecords: Array<{
+      requestId: string;
+      fullFilePath: string;
+      fileSize: number | null;
+      mimeType: string | null;
+      duration: number | null;
+    }> = [];
+
+    const errors: Array<{
+      filename: string;
+      error: string;
+    }> = [];
+
+    for (const { file, filename, originalName, size } of recordFiles) {
+      try {
+        const filePath = path.join(requestRecordsDir, filename);
+
+        fs.writeFileSync(filePath, file.buffer);
+
+        let duration: number | null = null;
+        try {
+          duration = await this.getAudioDuration(file.buffer);
+        } catch (error) {
+          console.warn('فشل حساب مدة الصوت:', error);
+        }
+
+        savedRecords.push({
+          requestId: request.id,
+          fullFilePath: `/uploads/Records/${request.requestNumber}/${filename}`,
+          fileSize: size,
+          mimeType: file.mimetype || null,
+          duration: duration,
+        });
+      } catch (error: any) {
+        errors.push({
+          filename: originalName,
+          error: error.message,
+        });
+      }
+    }
+
+    if (errors.length > 0 && savedRecords.length === 0) {
+      throw new InternalServerErrorException(
+        `فشل حفظ جميع الملفات: ${errors.map((e) => e.filename).join(', ')}`,
+      );
+    }
+
+    try {
+      if (savedRecords.length > 0) {
+        await this.prisma.requestVoiceRecord.createMany({
+          data: savedRecords,
+          skipDuplicates: true,
+        });
+      }
+
+      this.logger.log(
+        `تم رفع ${savedRecords.length} ملف صوتي للطلب ${request.requestNumber}`,
+      );
+    } catch (error) {
+      for (const record of savedRecords) {
+        try {
+          const fileName = path.basename(record.fullFilePath);
+          const filePath = path.join(requestRecordsDir, fileName);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        } catch (unlinkError) {
+          console.error('فشل حذف الملف:', unlinkError);
+        }
+      }
+
+      throw new InternalServerErrorException(
+        'فشل حفظ الملفات الصوتية في قاعدة البيانات',
+      );
+    }
+
+    const result = await this.prisma.requestVoiceRecord.findMany({
       where: {
         requestId: request.id,
-        fullFilePath: {
-          in: records.map((record) => record.fullFilePath),
-        },
       },
       orderBy: { createdAt: 'desc' },
+      take: 20,
     });
+
+    return {
+      success: true,
+      message: `تم رفع ${savedRecords.length} ملف صوتي بنجاح`,
+      data: {
+        records: result,
+        totalUploaded: savedRecords.length,
+        totalErrors: errors.length,
+        errors: errors.length > 0 ? errors : undefined,
+        request: {
+          id: request.id,
+          number: request.requestNumber,
+        },
+      },
+    };
   }
+  private async getAudioDuration(buffer: Buffer): Promise<number | null> {
+    try {
+      const metadata = await mm.parseBuffer(buffer, undefined, {
+        duration: true,
+        skipCovers: true,
+        skipPostHeaders: true,
+      });
 
-  private getSafeFileExtension(originalname: string) {
-    const extension = path.extname(originalname).toLowerCase();
-
-    if (/^\.[a-z0-9]{1,8}$/.test(extension)) {
-      return extension;
+      if (metadata.format.duration) {
+        return Math.round(metadata.format.duration);
+      }
+      return null;
+    } catch (error) {
+      console.warn('فشل حساب مدة الصوت:', error.message);
+      return null;
+    }
+  }
+  private getSafeFileExtension(filename: string): string {
+    if (!filename || !filename.includes('.')) {
+      return '';
     }
 
-    return '.m4a';
+    const parts = filename.split('.');
+    const extension = parts[parts.length - 1].toLowerCase().trim();
+
+    return extension.split('?')[0].split('#')[0];
   }
 
   async getStatusHistory(id: string) {
@@ -658,6 +788,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         customer: {
           select: {
             id: true,
+            customerNumber: true,
             name: true,
             firstPhone: true,
             secondPhone: true,
@@ -668,7 +799,6 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
           select: {
             id: true,
             fullName: true,
-            email: true,
           },
         },
       },
@@ -692,7 +822,9 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         secondPhone: request.customer.secondPhone ?? undefined,
         address: request.customer.address ?? undefined,
       },
-      creator: request.creator,
+      creator: request.creator
+        ? { id: request.creator.id, fullName: request.creator.fullName }
+        : undefined,
       devices: request.devices.map((device) => ({
         id: device.id,
         deviceType: device.deviceType,
