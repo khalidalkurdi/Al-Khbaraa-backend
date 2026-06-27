@@ -75,10 +75,6 @@ export class CreateInvoiceDto {
   @IsNotEmpty({ message: 'معرف الطلب مطلوب' })
   requestId: string;
 
-  @IsEnum(InvoiceType, { message: 'نوع الفاتورة غير صالح' })
-  @IsOptional()
-  type?: InvoiceType = InvoiceType.external;
-
   @ApiProperty({
     description: 'Invoice status',
     enum: InvoiceStatus,
@@ -101,10 +97,6 @@ export class CreateInvoiceDto {
   @Min(0.01, { message: 'المبلغ الإجمالي يجب أن يكون أكبر من 0' })
   @Type(() => Number)
   totalAmount: number;
-
-  @IsEnum(CurrencyEnum, { message: 'عملة غير صالحة' })
-  @IsOptional()
-  totalCurrency?: CurrencyEnum = CurrencyEnum.SYP;
 
   @ApiPropertyOptional({
     description: 'Warranty period (e.g. "90 days", "6 months", "1 year")',
@@ -154,13 +146,11 @@ export class CreateInvoiceDto {
         sparePartId: '123e4567-e89b-12d3-a456-426614174000',
         quantity: 1,
         unitPrice: 25000,
-        currency: 'SYP',
       },
       {
         sparePartId: '987fcdeb-51a2-43d7-9b56-426614174111',
         quantity: 1,
         unitPrice: 15000,
-        currency: 'SYP',
       },
     ],
   })

@@ -54,6 +54,16 @@ export class PaymentsService {
         status: true,
         totalCurrency: true,
         requestId: true,
+        request: {
+          select: {
+            customerId: true,
+            customer: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -86,12 +96,12 @@ export class PaymentsService {
 
     const invoiceCurrency = invoice.totalCurrency as CurrencyEnum;
     const settings = await prisma.centerSettings.findFirst();
-    const dollarExchangeRate = settings?.dollarExchangeRate ?? 140;
+    const dollarExchangeRate = settings?.dollarExchangeRate;
+    if (!dollarExchangeRate) {
+      throw new BadRequestException('معدل الصرف غير مكوّن');
+    }
 
     if (currency !== invoiceCurrency) {
-      if (!settings) {
-        throw new BadRequestException('معدل الصرف غير مكوّن');
-      }
       if (
         currency === CurrencyEnum.USD &&
         invoiceCurrency === CurrencyEnum.SYP
@@ -105,11 +115,15 @@ export class PaymentsService {
       }
     }
 
-    if (convertedAmount.greaterThan(invoice.remainingAmount)) {
+    if (
+      convertedAmount.greaterThan(invoice.remainingAmount) &&
+      invoice.status === InvoiceStatus.paid_partial
+    ) {
       throw new BadRequestException(
-        `المبلغ المدخل (${convertedAmount}) يتجاوز المبلغ المتبقي (${invoice.remainingAmount})`,
+        `المبلغ المدخل (${convertedAmount.toFixed(2)} ${currency}) يتجاوز المبلغ المتبقي (${invoice.remainingAmount.toFixed(2)} ${invoiceCurrency})`,
       );
     }
+
     const newPaidAmount = invoice.paidAmount.plus(convertedAmount);
     const newRemainingAmount = invoice.remainingAmount.minus(convertedAmount);
 

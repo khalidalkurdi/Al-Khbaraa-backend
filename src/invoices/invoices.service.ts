@@ -65,10 +65,6 @@ export class InvoicesService {
         throw new BadRequestException('الطلب لديه فاتورة غير مكتملة');
       }
     }
-    createInvoiceDto.type =
-      request.type === RequestType.external
-        ? InvoiceType.external
-        : InvoiceType.internal;
 
     const isTechnician = user.role === 'Technician';
     if (isTechnician) {
@@ -88,54 +84,57 @@ export class InvoicesService {
       payment,
       locationURL,
       requestId,
-      type,
       items,
       status,
-      totalCurrency = payment.currency,
       totalAmount,
       warrantyPeriod,
       notes,
       needsCenterMaintenance,
     } = createInvoiceDto;
 
-    const spareParts = await this.prisma.sparePart.findMany({
-      where: {
-        id: { in: items.map((i) => i.sparePartId) },
-        isActive: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        quantity: true,
-        costUsd: true,
-        costSyp: true,
-      },
-    });
+    let stockMap = new Map();
+    let totalPrice = 0;
 
-    const stockMap = new Map(spareParts.map((sp) => [sp.id, sp]));
+    if (items && items.length > 0) {
+      const spareParts = await this.prisma.sparePart.findMany({
+        where: {
+          id: { in: items.map((i) => i.sparePartId) },
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          quantity: true,
+          costUsd: true,
+          costSyp: true,
+        },
+      });
+      stockMap = new Map(spareParts.map((sp) => [sp.id, sp]));
 
-    for (const item of items) {
-      const part = stockMap.get(item.sparePartId);
-      if (!part) {
-        throw new BadRequestException(
-          `قطعة الغيار ${item.sparePartId} غير موجودة أو غير نشطة`,
-        );
+      for (const item of items) {
+        const part = stockMap.get(item.sparePartId);
+        if (!part) {
+          throw new BadRequestException(
+            `قطعة الغيار ${item.sparePartId} غير موجودة أو غير نشطة`,
+          );
+        }
+        const qty = item.quantity ?? 1;
+        if (part.quantity < qty) {
+          throw new BadRequestException(
+            `المخزون غير كافٍ لـ ${part.name}: المتاح ${part.quantity}، والمطلوب ${qty}`,
+          );
+        }
       }
-      const qty = item.quantity ?? 1;
-      if (part.quantity < qty) {
-        throw new BadRequestException(
-          `المخزون غير كافٍ لـ ${part.name}: المتاح ${part.quantity}، والمطلوب ${qty}`,
-        );
-      }
+
+      totalPrice = items.reduce((sum, item) => {
+        const qty = item.quantity ?? 1;
+        const price = item.unitPrice ?? 0;
+        return sum + qty * price;
+      }, 0);
     }
 
-    const totalPrice = items.reduce((sum, item) => {
-      const qty = item.quantity ?? 1;
-      const price = item.unitPrice ?? 0;
-      return sum + qty * price;
-    }, 0);
-
     const calculateCost = (currency: CurrencyEnum) => {
+      if (!items || items.length === 0) return 0;
       const costField = currency === CurrencyEnum.SYP ? 'costSyp' : 'costUsd';
 
       return items.reduce((sum, item) => {
@@ -145,7 +144,7 @@ export class InvoicesService {
         return sum + qty * cost;
       }, 0);
     };
-
+    const totalCurrency = payment.currency;
     const totalCost = calculateCost(totalCurrency);
     const netProfit = totalAmount - totalCost;
     const invoiceStatus =
@@ -156,6 +155,9 @@ export class InvoicesService {
     if (invoiceStatus != status) {
       throw new BadRequestException('الحالة غير مطابقة للمدفوع');
     }
+    const type = RequestType.external
+      ? InvoiceType.external
+      : InvoiceType.internal;
 
     const invoice = await this.prisma.$transaction(async (tx) => {
       const invoiceNumber = await this.generateUniqueInvoiceNumber();
@@ -173,29 +175,35 @@ export class InvoicesService {
           warrantyPeriod: warrantyPeriod ?? null,
           needsCenterMaintenance: needsCenterMaintenance ?? null,
           notes: notes ?? null,
-          items: {
-            create: items.map((item) => ({
-              sparePartId: item.sparePartId,
-              quantity: item.quantity ?? 1,
-              unitPrice: item.unitPrice ?? 0,
-              currency: totalCurrency,
-              totalPrice: totalPrice,
-            })),
-          },
+          ...(items &&
+            items.length > 0 && {
+              items: {
+                create: items.map((item) => ({
+                  sparePartId: item.sparePartId,
+                  quantity: item.quantity ?? 1,
+                  unitPrice: item.unitPrice ?? 0,
+                  currency: totalCurrency,
+                  totalPrice: (item.unitPrice ?? 0) * (item.quantity ?? 1),
+                })),
+              },
+            }),
         },
         include: { items: true, payments: true },
       });
 
       // movement
-      for (const item of items) {
-        const dto: CreateStockMovementDto = {
-          partId: item.sparePartId,
-          movementType: MovementType.issue,
-          quantity: item.quantity,
-          reference: 'استهلاك فواتير',
-        };
-        await this.movementsService.create(dto, user.id, tx);
+      if (items && items.length > 0) {
+        for (const item of items) {
+          const dto: CreateStockMovementDto = {
+            partId: item.sparePartId,
+            movementType: MovementType.issue,
+            quantity: item.quantity,
+            reference: 'استهلاك فواتير',
+          };
+          await this.movementsService.create(dto, user.id, tx);
+        }
       }
+
       const dto: CreatePaymentDto = {
         ...payment,
         invoiceId: createdInvoice.id,
