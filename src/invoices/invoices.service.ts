@@ -247,11 +247,7 @@ export class InvoicesService {
     return invoice;
   }
 
-  async getInvoicePdfData(
-    id: string,
-    userId: string,
-    isTechnician: boolean,
-  ): Promise<InvoicePdfData> {
+  async getInvoicePdfData(id: string, userId: string, isTechnician: boolean) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: {
@@ -299,12 +295,6 @@ export class InvoicesService {
       }
     }
 
-    const paidAmount = invoice.payments.reduce(
-      (sum, payment) =>
-        sum + Number(payment.convertedAmount || payment.amount || 0),
-      0,
-    );
-
     return {
       id: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
@@ -338,7 +328,6 @@ export class InvoicesService {
       })),
       totalAmount: Number(invoice.totalAmount),
       totalCurrency: invoice.totalCurrency,
-      paidAmount,
       remainingAmount: Number(invoice.remainingAmount),
       warrantyPeriod: invoice.warrantyPeriod ?? undefined,
       needsCenterMaintenance: invoice.needsCenterMaintenance ?? undefined,

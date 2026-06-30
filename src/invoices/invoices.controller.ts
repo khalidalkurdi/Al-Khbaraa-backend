@@ -29,6 +29,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { InvoiceStatus, InvoiceType } from '@prisma/client';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
 import { CurrencyEnum } from './enums/currency.enum';
+import { SettingsService } from 'src/settings/settings.service';
 
 interface AuthenticatedRequest {
   user: {
@@ -47,7 +48,7 @@ export class InvoicesController {
 
   constructor(
     private readonly invoicesService: InvoicesService,
-    private readonly pdfService: PdfService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   @Post()
@@ -112,18 +113,14 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Generate invoice PDF' })
   @ApiResponse({
     status: 200,
-    description: 'تم إرجاع مستند PDF',
-    content: {
-      'application/pdf': { schema: { type: 'string', format: 'binary' } },
-    },
+    description: 'تم إرجاع بيانات الفاتورة ',
   })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
   @ApiResponse({ status: 404, description: 'الفاتورة غير موجودة' })
-  async generatePdf(
+  async getInvoicePdfData(
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Res({ passthrough: true }) response: Response,
   ) {
     const user = req.user;
     const isTechnician = user.role === 'Technician';
@@ -132,18 +129,7 @@ export class InvoicesController {
       user.id,
       isTechnician,
     );
-    const result = await this.pdfService.generateInvoicePdf(invoice, {
-      documentType: 'invoice',
-      filename: `invoice-${invoice.invoiceNumber}`,
-    });
-
-    response.setHeader('Content-Type', result.contentType);
-    response.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${result.filename}"`,
-    );
-    response.setHeader('Cache-Control', 'private, no-cache');
-    response.setHeader('Content-Length', result.buffer.length);
-    response.send(result.buffer);
+    const settings = this.settingsService.getSettings();
+    return { settings, invoice };
   }
 }
