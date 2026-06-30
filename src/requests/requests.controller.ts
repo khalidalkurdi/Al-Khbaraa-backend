@@ -26,6 +26,7 @@ import { RequestQueryDto } from './dto/request-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { SettingsService } from 'src/settings/settings.service';
 
 interface AuthenticatedRequest {
   user: {
@@ -41,7 +42,7 @@ interface AuthenticatedRequest {
 export class RequestsController {
   constructor(
     private readonly requestsService: RequestsService,
-    private readonly pdfService: PdfService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   @Post()
@@ -97,32 +98,15 @@ export class RequestsController {
   @ApiOperation({ summary: 'Generate request receipt PDF' })
   @ApiResponse({
     status: 200,
-    description: 'تم إرجاع مستند PDF',
-    content: {
-      'application/pdf': { schema: { type: 'string', format: 'binary' } },
-    },
+    description: 'تم إرجاع معلومات الطلب PDF',
   })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
   @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
-  async generatePdf(
-    @Param('id') id: string,
-    @Res({ passthrough: true }) response: Response,
-  ) {
+  async getRequestReceiptPdfData(@Param('id') id: string) {
     const request = await this.requestsService.getRequestReceiptPdfData(id);
-    const result = await this.pdfService.generateRequestReceiptPdf(request, {
-      documentType: 'request_receipt',
-      filename: `request-${request.requestNumber}`,
-    });
-
-    response.setHeader('Content-Type', result.contentType);
-    response.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${result.filename}"`,
-    );
-    response.setHeader('Cache-Control', 'private, no-cache');
-    response.setHeader('Content-Length', result.buffer.length);
-    response.send(result.buffer);
+    const settings = this.settingsService.getSettings();
+    return { settings, request };
   }
 
   @Patch(':id')
