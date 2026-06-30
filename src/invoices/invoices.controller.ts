@@ -129,7 +129,7 @@ export class InvoicesController {
       user.id,
       isTechnician,
     );
-    const settings = this.settingsService.getSettings();
+    const settings = await this.settingsService.getSettings();
     return { settings, invoice };
   }
 }
