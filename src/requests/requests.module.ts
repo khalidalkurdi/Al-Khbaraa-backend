@@ -7,11 +7,13 @@ import { RealtimeModule } from '../realtime/realtime.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PdfModule } from '../pdf/pdf.module';
 import { CustomersModule } from '../customers/customers.module';
+import { SettingsModule } from 'src/settings/settings.module';
+import { SettingsService } from 'src/settings/settings.service';
 
 @Module({
   controllers: [RequestsController, RequestRecordsController],
-  providers: [RequestsService, RequestNumberUtil],
-  imports: [RealtimeModule, NotificationsModule, PdfModule, CustomersModule],
+  providers: [RequestsService, RequestNumberUtil, SettingsService],
+  imports: [RealtimeModule, NotificationsModule, CustomersModule],
   exports: [RequestsService],
 })
 export class RequestsModule {}
