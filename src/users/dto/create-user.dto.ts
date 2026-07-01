@@ -40,10 +40,12 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'رقم الهاتف مطلوب' })
   phone: string;
 
-  @ApiProperty({ example: 500000 })
+  @ApiProperty({ example: 20000 })
   @IsNumber()
-  @Min(0)
-  @Max(9999999999.99)
+  @Min(10, { message: 'الراتب يجب أن يكون على الأقل 10' })
+  @Max(9999999999.99, {
+    message: 'الراتب يجب أن يكون على الأكثر 9999999999.99',
+  })
   salary: number;
 
   @ApiProperty({ example: 'Technician' })
