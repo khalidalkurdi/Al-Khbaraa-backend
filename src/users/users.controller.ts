@@ -125,6 +125,9 @@ export class UsersController {
     },
     @Body() createUserDto: CreateUserDto,
   ) {
+    if (createUserDto.salary && typeof createUserDto.salary === 'string') {
+      createUserDto.salary = parseFloat(createUserDto.salary);
+    }
     const uploadedFiles = files ?? {};
     const profileImage = uploadedFiles.profileImage?.[0];
     const documentImage = uploadedFiles.documentImage?.[0];
