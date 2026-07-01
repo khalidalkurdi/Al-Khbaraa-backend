@@ -14,22 +14,15 @@ export class PayrollRecordsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async createPayrollRecord(
-    dto: {
-      userId: string;
-      amount: number;
-      note?: string;
-      type: SettlementType;
-    },
-    user: { id: string; email: string; roles: string[] },
-  ) {
-    this.logger.log(
-      `User ${user.email} creating payroll record for user ${dto.userId}`,
-    );
+  async createPayrollRecord(createPayrollRecorddto, userId) {
+    const dto = createPayrollRecorddto;
+    this.logger.log(`User creating payroll record for user ${userId}`);
 
     const payrollRecord = await this.prisma.payrollRecord.create({
       data: {
-        userId: dto.userId,
+        userId: userId,
+        year: dto.year,
+        month: dto.month,
         amount: dto.amount,
         note: dto.note,
         type: dto.type,

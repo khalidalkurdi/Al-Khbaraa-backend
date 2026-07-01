@@ -9,6 +9,15 @@ export class CreatePayrollRecordDto {
   @IsNumber()
   @Min(0)
   @Type(() => Number)
+  year: number;
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  month: number;
+
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
   amount: number;
 
   @IsOptional()

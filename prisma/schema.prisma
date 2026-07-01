@@ -423,7 +423,8 @@ model PayrollRecord {
   amount Decimal        @db.Decimal(10, 2) // e.g., 0 or 1,500,000.00
   note   String?        @db.Text
   type   SettlementType @map("type")
-
+  month     Int?
+  year      Int?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
 
