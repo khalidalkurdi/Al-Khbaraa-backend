@@ -9,6 +9,7 @@ import {
   IsOptional,
   Max,
   MinLength,
+  isString,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -41,12 +42,8 @@ export class CreateUserDto {
   phone: string;
 
   @ApiProperty({ example: 20000 })
-  @IsNumber()
-  @Min(10, { message: 'الراتب يجب أن يكون على الأقل 10' })
-  @Max(9999999999.99, {
-    message: 'الراتب يجب أن يكون على الأكثر 9999999999.99',
-  })
-  salary: number;
+  @IsString()
+  salary: string;
 
   @ApiProperty({ example: 'Technician' })
   @IsString()

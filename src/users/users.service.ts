@@ -71,6 +71,18 @@ export class UsersService {
     if (!roleRecord) {
       throw new BadRequestException(`الدور غير موجود: ${data.role}`);
     }
+    let salaryValue: number = 0;
+    if (data.salary && typeof data.salary === 'string') {
+      salaryValue = Number(data.salary);
+    }
+    if (typeof salaryValue !== 'number' || isNaN(salaryValue)) {
+      throw new BadRequestException('الراتب يجب أن يكون رقماً صحيحاً');
+    }
+    if (salaryValue < 10 || salaryValue > 9999999999.99) {
+      throw new BadRequestException(
+        'الراتب يجب أن يكون بين 10 و 9999999999.99',
+      );
+    }
 
     const user = await this.prisma.user.create({
       data: {
@@ -81,7 +93,7 @@ export class UsersService {
         jobTitle: data.jobTitle,
         roleId: roleRecord.id,
         phone: data.phone,
-        salary: data.salary,
+        salary: salaryValue,
         tokenDevice: '',
         lastLoginAt: null,
         profileImagePath: data.profileImagePath,
