@@ -10,6 +10,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { Response } from 'express';
 import { PdfService } from '../pdf/pdf.service';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 
 @Controller('api/dashboard')
 @UseGuards(JwtAuthGuard)
@@ -20,19 +22,34 @@ export class DashboardController {
   ) {}
 
   @Get('stats')
-  @Roles('Admin', 'Manager')
+  @Roles('Admin')
+  @UseGuards(RolesGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  @ApiResponse({ status: 404, description: 'الحالة غير موجودة' })
   async getStats(): Promise<DashboardStatsResponseDto> {
     return this.dashboardService.getDashboardStats();
   }
 
   @Get('technician-performance')
   @Roles('Admin')
+  @UseGuards(RolesGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  @ApiResponse({ status: 404, description: 'الاداء غير موجود' })
   async getTechnicianPerformance(): Promise<TechnicianPerformanceResponseDto> {
     return this.dashboardService.getTechnicianPerformance();
   }
 
   @Get('financial-report')
   @Roles('Admin')
+  @UseGuards(RolesGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  @ApiResponse({ status: 404, description: 'التقرير المالي غير موجود' })
   async getFinancialReport(
     @Query() query: FinancialReportQueryDto,
     @Query('format') format: string,
