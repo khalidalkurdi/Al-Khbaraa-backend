@@ -177,22 +177,10 @@ export class FinanceController {
     @Query() query: FinanceSummaryQueryDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const report = await this.financeService.getFinancialReportPdfData(
+    const data = await this.financeService.getFinancialReportPdfData(
       query.startDate,
       query.endDate,
     );
-    const result = await this.pdfService.generateFinancialReportPdf(report, {
-      documentType: 'financial_report',
-      filename: `financial-report-${query.startDate}-to-${query.endDate}`,
-    });
-
-    response.setHeader('Content-Type', result.contentType);
-    response.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${result.filename}"`,
-    );
-    response.setHeader('Cache-Control', 'private, no-cache');
-    response.setHeader('Content-Length', result.buffer.length);
-    response.send(result.buffer);
+    return data;
   }
 }

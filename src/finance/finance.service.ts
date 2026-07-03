@@ -180,10 +180,7 @@ export class FinanceService {
     });
   }
 
-  async getFinancialReportPdfData(
-    startDate: string,
-    endDate: string,
-  ): Promise<FinancialReportPdfData> {
+  async getFinancialReportPdfData(startDate: string, endDate: string) {
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
 
@@ -217,7 +214,6 @@ export class FinanceService {
       salariesResult,
       fixedExpensesResult,
       variableExpensesResult,
-      otherExpensesResult,
     ] = await Promise.all([
       this.prisma.payment.findMany({
         where: {
@@ -261,18 +257,6 @@ export class FinanceService {
         _sum: { amount: true },
         where: {
           type: 'variable',
-          ...buildExpenseMonthYearWhere(
-            startMonth,
-            startYear,
-            endMonth,
-            endYear,
-          ),
-        },
-      }),
-      this.prisma.expense.aggregate({
-        _sum: { amount: true },
-        where: {
-          type: 'other',
           ...buildExpenseMonthYearWhere(
             startMonth,
             startYear,
@@ -340,8 +324,7 @@ export class FinanceService {
       toDecimal(salariesResult._sum.salary) +
       toDecimal(fixedExpensesResult._sum.amount);
     const variableCosts = toDecimal(variableExpensesResult._sum.amount);
-    const otherCosts = toDecimal(otherExpensesResult._sum.amount);
-    const totalCosts = fixedCosts + variableCosts + partsCosts + otherCosts;
+    const totalCosts = fixedCosts + variableCosts + partsCosts;
     const netProfit = totalRevenues - totalCosts;
 
     return {
@@ -351,7 +334,6 @@ export class FinanceService {
       fixedCosts: toFixed2(fixedCosts),
       variableCosts: toFixed2(variableCosts),
       partsCosts: toFixed2(partsCosts),
-      otherCosts: toFixed2(otherCosts),
       netProfit: toFixed2(netProfit),
       assumptions: [
         'Revenue is calculated from Payment.convertedAmount using payment date.',
@@ -362,19 +344,7 @@ export class FinanceService {
     };
   }
 
-  async getSummary(
-    startDate: string,
-    endDate: string,
-  ): Promise<{
-    totalRevenues: string;
-    fixedCosts: string;
-    variableCosts: string;
-    partsCosts: string;
-    otherCosts: string;
-    netProfit: string;
-    periodStart: string;
-    periodEnd: string;
-  }> {
+  async getSummary(startDate: string, endDate: string) {
     const start = new Date(startDate);
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
@@ -399,7 +369,6 @@ export class FinanceService {
       salariesResult,
       fixedExpensesResult,
       variableExpensesResult,
-      otherExpensesResult,
       partsCostsResult,
     ] = await Promise.all([
       this.prisma.payment.aggregate({
@@ -428,18 +397,7 @@ export class FinanceService {
           ),
         },
       }),
-      this.prisma.expense.aggregate({
-        _sum: { amount: true },
-        where: {
-          type: 'other',
-          ...buildExpenseMonthYearWhere(
-            startMonth,
-            startYear,
-            endMonth,
-            endYear,
-          ),
-        },
-      }),
+
       this.prisma.$queryRaw<{ partsCost: number }[]>`
         SELECT COALESCE(SUM(si.cost_syp * ii.quantity), 0) AS partsCost
         FROM invoice_items ii
@@ -454,11 +412,10 @@ export class FinanceService {
     const salariesSum = toDecimal(salariesResult._sum.salary);
     const fixedExpensesSum = toDecimal(fixedExpensesResult._sum.amount);
     const variableCosts = toDecimal(variableExpensesResult._sum.amount);
-    const otherCosts = toDecimal(otherExpensesResult._sum.amount);
     const partsCosts = toDecimal(partsCostsResult[0]?.partsCost);
 
     const fixedCosts = salariesSum + fixedExpensesSum;
-    const totalCosts = fixedCosts + variableCosts + partsCosts + otherCosts;
+    const totalCosts = fixedCosts + variableCosts + partsCosts;
     const netProfit = totalRevenues - totalCosts;
 
     return {
@@ -466,7 +423,6 @@ export class FinanceService {
       fixedCosts: toFixed2(fixedCosts),
       variableCosts: toFixed2(variableCosts),
       partsCosts: toFixed2(partsCosts),
-      otherCosts: toFixed2(otherCosts),
       netProfit: toFixed2(netProfit),
       periodStart: start.toISOString(),
       periodEnd: end.toISOString(),
