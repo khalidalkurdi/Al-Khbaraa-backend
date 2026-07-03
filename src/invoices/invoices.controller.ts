@@ -15,20 +15,14 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiQuery,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
-import { PdfService } from '../pdf/pdf.service';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
-import { InvoiceResponse } from './dto/invoice-response.dto';
 import { InvoiceDetailResponse } from './dto/invoice-detail-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { InvoiceStatus, InvoiceType } from '@prisma/client';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
-import { CurrencyEnum } from './enums/currency.enum';
 import { SettingsService } from 'src/settings/settings.service';
 
 interface AuthenticatedRequest {

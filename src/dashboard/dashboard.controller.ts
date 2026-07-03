@@ -2,24 +2,16 @@ import { Controller, Get, Query, UseGuards, Res } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { DashboardStatsResponseDto } from './dto/dashboard-stats-response.dto';
 import { TechnicianPerformanceResponseDto } from './dto/technician-performance-response.dto';
-import {
-  FinancialReportQueryDto,
-  FinancialReportResponseDto,
-} from './dto/financial-report-query.dto';
+import { FinancialReportQueryDto } from './dto/financial-report-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import type { Response } from 'express';
-import { PdfService } from '../pdf/pdf.service';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 
 @Controller('api/dashboard')
 @UseGuards(JwtAuthGuard)
 export class DashboardController {
-  constructor(
-    private readonly dashboardService: DashboardService,
-    private readonly pdfService: PdfService,
-  ) {}
+  constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('stats')
   @Roles('Admin')
@@ -50,9 +42,7 @@ export class DashboardController {
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
   @ApiResponse({ status: 404, description: 'التقرير المالي غير موجود' })
-  async getFinancialReport(
-    @Query() query: FinancialReportQueryDto,
-  ) {
+  async getFinancialReport(@Query() query: FinancialReportQueryDto) {
     const data = await this.dashboardService.getFinancialReport(query);
 
     return data;

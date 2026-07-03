@@ -5,7 +5,6 @@ import { InvoicesRepository } from './invoices.repository';
 import { InvoiceNumberUtil } from './utils/invoice-number.util';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RealtimeModule } from '../realtime/realtime.module';
-import { PdfModule } from '../pdf/pdf.module';
 import { PaymentsModule } from 'src/payments/payments.module';
 import { InventoryModule } from 'src/inventory/inventory.module';
 import { SettingsService } from 'src/settings/settings.service';
@@ -18,13 +17,7 @@ import { SettingsService } from 'src/settings/settings.service';
     InvoiceNumberUtil,
     SettingsService,
   ],
-  imports: [
-    PrismaModule,
-    RealtimeModule,
-    PdfModule,
-    PaymentsModule,
-    InventoryModule,
-  ],
+  imports: [PrismaModule, RealtimeModule, PaymentsModule, InventoryModule],
   exports: [InvoicesService],
 })
 export class InvoicesModule {}

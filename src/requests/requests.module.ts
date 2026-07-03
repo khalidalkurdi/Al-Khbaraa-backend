@@ -5,9 +5,7 @@ import { RequestRecordsController } from './request-records.controller';
 import { RequestNumberUtil } from './utils/request-number.util';
 import { RealtimeModule } from '../realtime/realtime.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { PdfModule } from '../pdf/pdf.module';
 import { CustomersModule } from '../customers/customers.module';
-import { SettingsModule } from 'src/settings/settings.module';
 import { SettingsService } from 'src/settings/settings.service';
 
 @Module({

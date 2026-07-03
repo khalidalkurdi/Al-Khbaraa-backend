@@ -19,7 +19,6 @@ import { RequestQueryDto } from './dto/request-query.dto';
 import { Prisma, RequestStatus, RequestType, Priority } from '@prisma/client';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
-import type { RequestReceiptPdfData } from '../pdf/pdf.types';
 import { RequestNumberUtil } from './utils/request-number.util';
 import { CustomerNumberUtil } from '../customers/utils/customer-number.util';
 import { getSyriaNow } from '../common/utils/syria-date.util';
@@ -780,7 +779,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     return request;
   }
 
-  async getRequestReceiptPdfData(id: string): Promise<RequestReceiptPdfData> {
+  async getRequestReceiptPdfData(id: string) {
     const request = await this.prisma.request.findUnique({
       where: { id },
       include: {

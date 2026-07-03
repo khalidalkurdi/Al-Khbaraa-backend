@@ -19,8 +19,6 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
-import { PdfModule } from '../pdf/pdf.module';
-import { PdfService } from '../pdf/pdf.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -42,10 +40,7 @@ interface AuthenticatedRequest {
 @Controller('finance')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class FinanceController {
-  constructor(
-    private readonly financeService: FinanceService,
-    private readonly pdfService: PdfService,
-  ) {}
+  constructor(private readonly financeService: FinanceService) {}
 
   @Post('expenses')
   @Roles('Admin')

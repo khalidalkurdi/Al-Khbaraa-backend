@@ -16,7 +16,6 @@ import {
   MovementType,
   RequestType,
 } from '@prisma/client';
-import type { InvoicePdfData } from '../pdf/pdf.types';
 import { CurrencyEnum } from './enums/currency.enum';
 import { MovementsService } from 'src/inventory/movements.service';
 import { CreateStockMovementDto } from 'src/inventory/dto/create-stock-movement.dto';

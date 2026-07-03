@@ -7,7 +7,6 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
-import type { FinancialReportPdfData } from '../pdf/pdf.types';
 
 function buildExpenseMonthYearWhere(
   startMonth: number,
