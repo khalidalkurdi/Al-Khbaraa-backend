@@ -15,10 +15,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiQuery,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
-import { PdfService } from '../pdf/pdf.service';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
@@ -103,6 +100,7 @@ export class RequestsController {
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
   @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
+  
   async getRequestReceiptPdfData(@Param('id') id: string) {
     const request = await this.requestsService.getRequestReceiptPdfData(id);
     const settings = this.settingsService.getSettings();
