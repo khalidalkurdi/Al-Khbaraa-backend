@@ -19,8 +19,6 @@ export class InvoicesRepository {
 
   async findMany(query: InvoiceQueryDto) {
     const {
-      page = 1,
-      limit = 10,
       type,
       status,
       currency,
@@ -29,6 +27,8 @@ export class InvoicesRepository {
       endDate,
       startDate,
     } = query;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
 
     const where: Prisma.InvoiceWhereInput = {};
 
