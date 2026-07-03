@@ -124,8 +124,16 @@ export class PaymentsService {
       );
     }
 
-    const newPaidAmount = invoice.paidAmount.plus(convertedAmount);
-    const newRemainingAmount = invoice.remainingAmount.minus(convertedAmount);
+    const existingPayments = await prisma.payment.count({
+      where: { invoiceId },
+    });
+
+    let newPaidAmount;
+    let newRemainingAmount;
+    if (existingPayments !== 0) {
+      newPaidAmount = invoice.paidAmount.plus(convertedAmount);
+      newRemainingAmount = invoice.remainingAmount.minus(convertedAmount);
+    }
 
     const statusChanged =
       invoice.status === InvoiceStatus.paid_partial &&

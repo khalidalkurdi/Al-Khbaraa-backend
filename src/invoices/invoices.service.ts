@@ -152,6 +152,8 @@ export class InvoicesService {
       totalAmount - payment.amount === 0
         ? InvoiceStatus.paid
         : InvoiceStatus.paid_partial;
+    const paidAmount = payment.amount;
+    const remainingAmount = totalAmount - paidAmount;
 
     if (invoiceStatus != status) {
       throw new BadRequestException('الحالة غير مطابقة للمدفوع');
@@ -171,8 +173,8 @@ export class InvoicesService {
           netProfit,
           totalAmount,
           totalCurrency,
-          paidAmount: 0,
-          remainingAmount: totalAmount,
+          paidAmount,
+          remainingAmount,
           warrantyPeriod: warrantyPeriod ?? null,
           needsCenterMaintenance: needsCenterMaintenance ?? null,
           notes: notes ?? null,
