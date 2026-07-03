@@ -56,33 +56,6 @@ export class InvoiceQueryDto {
   type?: RequestType;
 
   @ApiPropertyOptional({
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'تصفية حسب معرف الطلب',
-    format: 'uuid',
-  })
-  @IsOptional()
-  @IsUUID(undefined, { message: 'معرف الطلب غير صالح' })
-  requestId?: string;
-
-  @ApiPropertyOptional({
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'تصفية حسب معرف العميل',
-    format: 'uuid',
-  })
-  @IsOptional()
-  @IsUUID(undefined, { message: 'معرف العميل غير صالح' })
-  customerId?: string;
-
-  @ApiPropertyOptional({
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    description: 'تصفية حسب معرف الفني',
-    format: 'uuid',
-  })
-  @IsOptional()
-  @IsUUID(undefined, { message: 'معرف الفني غير صالح' })
-  technicianId?: string;
-
-  @ApiPropertyOptional({
     example: '2024-06-01',
     description: 'تاريخ البداية للتصفية (YYYY-MM-DD)',
     maxLength: 10,

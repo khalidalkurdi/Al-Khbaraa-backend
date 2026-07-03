@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
   Logger,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoicesRepository } from './invoices.repository';
@@ -170,8 +171,8 @@ export class InvoicesService {
           netProfit,
           totalAmount,
           totalCurrency,
-          paidAmount: payment.amount,
-          remainingAmount: totalAmount - payment.amount,
+          paidAmount: 0,
+          remainingAmount: totalAmount,
           warrantyPeriod: warrantyPeriod ?? null,
           needsCenterMaintenance: needsCenterMaintenance ?? null,
           notes: notes ?? null,
@@ -188,7 +189,6 @@ export class InvoicesService {
               },
             }),
         },
-        include: { items: true, payments: true },
       });
 
       // movement
@@ -224,15 +224,23 @@ export class InvoicesService {
         where: { id: createInvoiceDto.requestId },
         data: { hasInvoice: true },
       });
+      const invoiceWithPayments = await tx.invoice.findUnique({
+        where: { id: createdInvoice.id },
+        include: { items: true, payments: true },
+      });
 
-      return createdInvoice;
+      return invoiceWithPayments;
     });
 
     return invoice;
   }
 
   async findAll(query: InvoiceQueryDto) {
-    return this.invoicesRepository.findMany(query);
+    try {
+      return await this.invoicesRepository.findMany(query);
+    } catch (error) {
+      throw new InternalServerErrorException('حدث خطأ أثناء جلب الفواتير');
+    }
   }
 
   async findOne(id: string, userId: string, isTechnician: boolean) {
