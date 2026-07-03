@@ -512,9 +512,7 @@ export class DashboardService {
     return { overall, technicians: techniciansResult };
   }
 
-  async getFinancialReport(
-    query: FinancialReportQueryDto,
-  ): Promise<FinancialReportResponseDto> {
+  async getFinancialReport(query: FinancialReportQueryDto) {
     this.logger.log(
       `Fetching financial report from ${query.startDate} to ${query.endDate}`,
     );
@@ -531,7 +529,6 @@ export class DashboardService {
       fixedCosts: data.fixedCosts,
       variableCosts: data.variableCosts,
       partsCosts: data.partsCosts,
-      otherCosts: data.otherCosts,
       netProfit: data.netProfit,
       assumptions: data.assumptions,
     };

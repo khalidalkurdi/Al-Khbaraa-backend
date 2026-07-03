@@ -52,27 +52,8 @@ export class DashboardController {
   @ApiResponse({ status: 404, description: 'التقرير المالي غير موجود' })
   async getFinancialReport(
     @Query() query: FinancialReportQueryDto,
-    @Query('format') format: string,
-    @Res({ passthrough: true }) response: Response,
-  ): Promise<FinancialReportResponseDto | void> {
+  ) {
     const data = await this.dashboardService.getFinancialReport(query);
-
-    if (format === 'pdf') {
-      const pdf = await this.pdfService.generateFinancialReportPdf(data, {
-        documentType: 'financial_report',
-        filename: `financial-report-${query.startDate}-to-${query.endDate}.pdf`,
-      });
-
-      response.setHeader('Content-Type', pdf.contentType);
-      response.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${pdf.filename}"`,
-      );
-      response.setHeader('Cache-Control', 'private, no-cache');
-      response.setHeader('Content-Length', pdf.buffer.length);
-      response.send(pdf.buffer);
-      return;
-    }
 
     return data;
   }
