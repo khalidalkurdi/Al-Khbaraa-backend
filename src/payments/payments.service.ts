@@ -25,9 +25,7 @@ function toDecimal(value: string | number): Decimal {
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
 
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(
     createPaymentDto: CreatePaymentDto,
@@ -95,21 +93,25 @@ export class PaymentsService {
     const invoiceCurrency = invoice.totalCurrency as CurrencyEnum;
     const settings = await prisma.centerSettings.findFirst();
     const dollarExchangeRate = settings?.dollarExchangeRate;
-    if (!dollarExchangeRate) {
-      throw new BadRequestException('معدل الصرف غير مكوّن');
+    if (!dollarExchangeRate || Number(dollarExchangeRate) <= 0) {
+      throw new BadRequestException('معدل الصرف غير مكوّن أو غير صالح');
     }
 
     if (currency !== invoiceCurrency) {
+      const safeRate = new Decimal(dollarExchangeRate);
+      if (safeRate.isZero() || !safeRate.isFinite()) {
+        throw new BadRequestException('معدل الصرف غير صالح');
+      }
       if (
         currency === CurrencyEnum.USD &&
         invoiceCurrency === CurrencyEnum.SYP
       ) {
-        convertedAmount = amountDecimal.times(dollarExchangeRate);
+        convertedAmount = amountDecimal.times(safeRate);
       } else if (
         currency === CurrencyEnum.SYP &&
         invoiceCurrency === CurrencyEnum.USD
       ) {
-        convertedAmount = amountDecimal.dividedBy(dollarExchangeRate);
+        convertedAmount = amountDecimal.dividedBy(safeRate);
       }
     }
 
@@ -126,18 +128,6 @@ export class PaymentsService {
       where: { invoiceId },
     });
 
-    let newPaidAmount;
-    let newRemainingAmount;
-    if (existingPayments !== 0) {
-      newPaidAmount = invoice.paidAmount.plus(convertedAmount);
-      newRemainingAmount = invoice.remainingAmount.minus(convertedAmount);
-    }
-
-    const statusChanged =
-      invoice.status === InvoiceStatus.paid_partial &&
-      newRemainingAmount.lessThanOrEqualTo(0);
-    const newStatus = statusChanged ? InvoiceStatus.paid : invoice.status;
-
     const executePayment = async (tx: Prisma.TransactionClient) => {
       const createdPayment = await tx.payment.create({
         data: {
@@ -150,12 +140,37 @@ export class PaymentsService {
         },
       });
 
+      const latestInvoice = await tx.invoice.findUnique({
+        where: { id: invoiceId },
+      });
+
+      if (!latestInvoice) {
+        throw new NotFoundException('الفاتورة غير موجودة');
+      }
+
+      const latestPaidAmount = latestInvoice.paidAmount.plus(convertedAmount);
+      const latestRemainingAmount =
+        latestInvoice.remainingAmount.minus(convertedAmount);
+      let latestNewStatus = latestInvoice.status;
+
+      if (
+        latestInvoice.status === InvoiceStatus.paid_partial &&
+        latestRemainingAmount.lessThanOrEqualTo(0)
+      ) {
+        latestNewStatus = InvoiceStatus.paid;
+      } else if (
+        latestInvoice.status === InvoiceStatus.paid_partial &&
+        existingPayments === 0
+      ) {
+        latestNewStatus = InvoiceStatus.paid_partial;
+      }
+
       const updatedInvoice = await tx.invoice.update({
         where: { id: invoiceId },
         data: {
-          paidAmount: newPaidAmount,
-          remainingAmount: newRemainingAmount,
-          status: newStatus,
+          paidAmount: latestPaidAmount,
+          remainingAmount: latestRemainingAmount,
+          status: latestNewStatus,
         },
         include: { payments: true },
       });
@@ -171,14 +186,11 @@ export class PaymentsService {
       result = await this.prisma.$transaction(async (tx) => {
         return await executePayment(tx);
       });
-      this.logger.log(
-        `Payment created for invoice ${invoiceId}, amount: ${amountDecimal.toString()} ${currency}`,
-      );
     } else {
       result = await executePayment(prisma);
     }
     this.logger.log(
-      `Payment created for invoice ${invoiceId}, amount: ${amountDecimal.toString()} ${currency}`,
+      `Payment created for invoice ${invoiceId}`,
     );
     return result.invoice;
   }

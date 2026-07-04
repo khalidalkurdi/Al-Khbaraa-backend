@@ -22,6 +22,7 @@ import { PaymentResponseDto } from './dto/payment-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Throttle } from '@nestjs/throttler';
 
 interface AuthenticatedRequest {
   user: {
@@ -42,6 +43,7 @@ export class PaymentsController {
 
   @Post()
   @Roles('Admin', 'Manager', 'Employee', 'Technician')
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   @ApiOperation({ summary: 'Record a payment for an invoice' })
   @ApiResponse({
     status: 201,
