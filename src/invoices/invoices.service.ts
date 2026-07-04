@@ -157,7 +157,7 @@ export class InvoicesService {
     if (invoiceStatus != status) {
       throw new BadRequestException('الحالة غير مطابقة للمدفوع');
     }
-    const type = RequestType.external
+    const type = request.type === RequestType.external
       ? InvoiceType.external
       : InvoiceType.internal;
 
