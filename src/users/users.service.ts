@@ -104,7 +104,7 @@ export class UsersService {
       },
     });
 
-    this.logger.log(`User created: ${user.email} with role: ${data.role}`);
+    this.logger.log(`User created for role: ${data.role}`);
 
     return this.stripPassword(user);
   }
