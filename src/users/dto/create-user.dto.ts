@@ -9,7 +9,7 @@ import {
   IsOptional,
   Max,
   MinLength,
-  isString,
+  Matches,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -19,10 +19,13 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
   email: string;
 
-  @ApiProperty({ example: 'securepassword' })
+  @ApiProperty({ example: 'SecurePass123!' })
   @IsString()
   @IsNotEmpty({ message: 'كلمة المرور مطلوبة' })
   @MinLength(8, { message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, {
+    message: 'كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم ورمز خاص على الأقل',
+  })
   @MaxLength(255)
   password: string;
 
