@@ -1,12 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SettlementType } from '@prisma/client';
-
-export interface PayrollRecordFilters {
-  userId?: string;
-  page?: number;
-  limit?: number;
-}
+import { PayrollRecordsQueryDto } from './dto/payroll-records-query.dto';
 
 @Injectable()
 export class PayrollRecordsService {
@@ -31,13 +25,37 @@ export class PayrollRecordsService {
     return payrollRecord;
   }
 
-  async findAll(filters?: PayrollRecordFilters) {
+  async findAll(filters?: PayrollRecordsQueryDto) {
     const page = filters?.page ?? 1;
     const limit = filters?.limit ?? 10;
     const skip = (page - 1) * limit;
 
+    const where: any = {};
+
+    if (filters?.type) {
+      where.type = filters.type;
+    }
+
+    if (filters?.year !== undefined) {
+      where.year = filters.year;
+    }
+
+    if (filters?.month !== undefined) {
+      where.month = filters.month;
+    }
+
+    if (filters?.search) {
+      where.user = {
+        OR: [
+          { userNumber: { contains: filters.search } },
+          { fullName: { contains: filters.search } },
+        ],
+      };
+    }
+
     const [data, total] = await Promise.all([
       this.prisma.payrollRecord.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -45,6 +63,7 @@ export class PayrollRecordsService {
           user: {
             select: {
               fullName: true,
+              userNumber: true,
               role: {
                 select: {
                   name: true,
@@ -54,7 +73,7 @@ export class PayrollRecordsService {
           },
         },
       }),
-      this.prisma.payrollRecord.count(),
+      this.prisma.payrollRecord.count({ where }),
     ]);
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };

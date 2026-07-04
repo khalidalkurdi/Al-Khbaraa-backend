@@ -6,7 +6,6 @@ import {
   Body,
   Param,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,21 +13,13 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { PayrollRecordsService } from './payroll-records.service';
 import { CreatePayrollRecordDto } from './dto/create-payroll-record.dto';
-
-interface AuthenticatedRequest {
-  user: {
-    id: string;
-    email: string;
-    roles: string[];
-  };
-}
+import { PayrollRecordsQueryDto } from './dto/payroll-records-query.dto';
 
 @ApiTags('Payroll Records')
 @ApiBearerAuth()
@@ -49,7 +40,6 @@ export class PayrollRecordsController {
   @ApiResponse({ status: 403, description: 'ممنوع - الصلاحيات غير كافية' })
   async createPayrollRecord(
     @Body() dto: CreatePayrollRecordDto,
-    @Req() req: AuthenticatedRequest,
   ) {
     return this.payrollRecordsService.createPayrollRecord(dto);
   }
@@ -57,8 +47,6 @@ export class PayrollRecordsController {
   @Get()
   @Roles('Admin')
   @ApiOperation({ summary: 'List payroll records with optional filters' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({
     status: 200,
     description: 'قائمة سجلات الرواتب',
@@ -66,13 +54,8 @@ export class PayrollRecordsController {
   })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
-  async findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
-    const pageNum = parseInt(page || '1', 10);
-    const limitNum = parseInt(limit || '10', 10);
-    return this.payrollRecordsService.findAll({
-      page: pageNum,
-      limit: limitNum,
-    });
+  async findAll(@Query() query: PayrollRecordsQueryDto) {
+    return this.payrollRecordsService.findAll(query);
   }
 
   @Delete(':id')
