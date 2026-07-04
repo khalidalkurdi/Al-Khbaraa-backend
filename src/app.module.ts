@@ -37,8 +37,14 @@ import { PayrollRecordsModule } from './payroll-records/payroll-records.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => [
         {
+          name: 'default',
           ttl: (config.get<number>('throttler.ttl') ?? 60) * 1000,
           limit: config.get<number>('throttler.limit') ?? 100,
+        },
+        {
+          name: 'short',
+          ttl: 60000,
+          limit: 10,
         },
       ],
     }),

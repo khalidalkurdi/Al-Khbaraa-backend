@@ -13,6 +13,7 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Public } from './decorators/public.decorator';
+import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -21,6 +22,7 @@ export class AuthController {
 
   @Public()
   @UseGuards(LocalAuthGuard)
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'User login' })
@@ -36,6 +38,7 @@ export class AuthController {
 
   @Public()
   @Post('refresh')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rotate JWT access and refresh tokens' })
   @ApiResponse({ status: 200, description: 'تم تحديث الرموز بنجاح' })
