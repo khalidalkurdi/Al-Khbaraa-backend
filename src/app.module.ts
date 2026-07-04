@@ -4,7 +4,6 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import configuration from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
-import { RealtimeModule } from './realtime/realtime.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -46,9 +45,6 @@ import { PayrollRecordsModule } from './payroll-records/payroll-records.module';
 
     // Database
     PrismaModule,
-
-    // WebSockets
-    RealtimeModule,
 
     // Authentication & Authorization
     AuthModule,

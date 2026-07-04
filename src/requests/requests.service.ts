@@ -17,7 +17,6 @@ import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { RequestQueryDto } from './dto/request-query.dto';
 import { Prisma, RequestStatus, RequestType, Priority } from '@prisma/client';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RequestNumberUtil } from './utils/request-number.util';
 import { CustomerNumberUtil } from '../customers/utils/customer-number.util';
@@ -34,7 +33,6 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     private prisma: PrismaService,
     private requestNumberUtil: RequestNumberUtil,
     private customerNumberUtil: CustomerNumberUtil,
-    private readonly realtimeGateway: RealtimeGateway,
     private readonly notificationsService: NotificationsService,
   ) {}
 

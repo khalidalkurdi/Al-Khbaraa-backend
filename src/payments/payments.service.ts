@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { Decimal } from '@prisma/client/runtime/library';
 import { InvoiceStatus, Prisma } from '@prisma/client';
 import { CurrencyEnum } from '../invoices/enums/currency.enum';
@@ -28,7 +27,6 @@ export class PaymentsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly realtimeGateway: RealtimeGateway,
   ) {}
 
   async create(
