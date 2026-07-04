@@ -28,7 +28,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import * as fs from 'fs';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ImageNumberUtil } from './utils/image-number.util';
 
@@ -77,18 +77,16 @@ export class UsersController {
     }
   }
 
-  private moveUploadedFile(file: Express.Multer.File, filename: string) {
+  private async moveUploadedFile(file: Express.Multer.File, filename: string): Promise<void> {
     const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
     const targetPath = path.join(USERS_UPLOAD_DIR, filename);
 
-    if (!fs.existsSync(USERS_UPLOAD_DIR)) {
-      fs.mkdirSync(USERS_UPLOAD_DIR, { recursive: true });
-    }
+    await fs.mkdir(USERS_UPLOAD_DIR, { recursive: true });
 
     if (file.path) {
-      fs.renameSync(file.path, targetPath);
+      await fs.rename(file.path, targetPath);
     } else if (file.buffer) {
-      fs.writeFileSync(targetPath, file.buffer);
+      await fs.writeFile(targetPath, file.buffer);
     } else {
       throw new BadRequestException('تعذر معالجة الملف المرفوع');
     }
@@ -135,10 +133,10 @@ export class UsersController {
         'حجم الصورة الشخصية يتجاوز 5 ميجابايت',
         'نوع ملف الصورة الشخصية غير صالح',
       );
-      const newFilename = this.imageNumberUtil.getNextImageFilename(
+      const newFilename = await this.imageNumberUtil.getNextImageFilename(
         profileImage.originalname,
       );
-      this.moveUploadedFile(profileImage, newFilename);
+      await this.moveUploadedFile(profileImage, newFilename);
     }
 
     if (documentImage) {
@@ -147,10 +145,10 @@ export class UsersController {
         'حجم الصورة للوثيقة يتجاوز 5 ميجابايت',
         'نوع ملف صورة الوثيقة غير صالح',
       );
-      const newFilename = this.imageNumberUtil.getNextImageFilename(
+      const newFilename = await this.imageNumberUtil.getNextImageFilename(
         documentImage.originalname,
       );
-      this.moveUploadedFile(documentImage, newFilename);
+      await this.moveUploadedFile(documentImage, newFilename);
     }
     const dataWithPaths: CreateUserDto = { ...createUserDto };
 
@@ -263,14 +261,15 @@ export class UsersController {
       );
       const targetFilename = existingUser.profileImagePath
         ? path.basename(existingUser.profileImagePath)
-        : this.imageNumberUtil.getNextImageFilename(profileImage.originalname);
+        : await this.imageNumberUtil.getNextImageFilename(profileImage.originalname);
       if (existingUser.profileImagePath) {
         const oldPath = path.join(process.cwd(), existingUser.profileImagePath);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
+        try {
+          await fs.unlink(oldPath);
+        } catch {
         }
       }
-      this.moveUploadedFile(profileImage, targetFilename);
+      await this.moveUploadedFile(profileImage, targetFilename);
     }
 
     if (documentImage) {
@@ -281,17 +280,18 @@ export class UsersController {
       );
       const targetFilename = existingUser.documentImagePath
         ? path.basename(existingUser.documentImagePath)
-        : this.imageNumberUtil.getNextImageFilename(documentImage.originalname);
+        : await this.imageNumberUtil.getNextImageFilename(documentImage.originalname);
       if (existingUser.documentImagePath) {
         const oldPath = path.join(
           process.cwd(),
           existingUser.documentImagePath,
         );
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
+        try {
+          await fs.unlink(oldPath);
+        } catch {
         }
       }
-      this.moveUploadedFile(documentImage, targetFilename);
+      await this.moveUploadedFile(documentImage, targetFilename);
     }
 
     const dataWithPaths: UpdateUserDto = { ...updateUserDto };

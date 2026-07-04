@@ -81,7 +81,7 @@ export class CustomersService {
       where.name = { contains: name };
     }
 
-    const [customers, total] = await this.prisma.$transaction([
+    const [customers, total] = await Promise.all([
       this.prisma.customer.findMany({
         where,
         skip,

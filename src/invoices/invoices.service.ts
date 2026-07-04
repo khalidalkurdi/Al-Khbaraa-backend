@@ -213,7 +213,7 @@ export class InvoicesService {
       await this.paymentsService.create(dto, user, tx);
 
       if (locationURL !== undefined) {
-        await this.prisma.customer.update({
+        await tx.customer.update({
           where: { id: request.customerId },
           data: { locationLink: locationURL },
         });

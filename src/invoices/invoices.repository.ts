@@ -88,7 +88,7 @@ export class InvoicesRepository {
       ];
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.invoice.findMany({
         where,
         skip: (page - 1) * limit,

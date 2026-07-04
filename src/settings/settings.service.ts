@@ -7,7 +7,7 @@ import {
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import * as fs from 'fs';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 
 @Injectable()
@@ -37,13 +37,11 @@ export class SettingsService {
         );
       }
 
-      if (!fs.existsSync(this.uploadDir)) {
-        fs.mkdirSync(this.uploadDir, { recursive: true });
-      }
+      await fs.mkdir(this.uploadDir, { recursive: true });
 
       const filename = `logo${ext}`;
       const filePath = path.join(this.uploadDir, filename);
-      fs.writeFileSync(filePath, file.buffer);
+      await fs.writeFile(filePath, file.buffer);
       logoPath = `/uploads/logo/${filename}`;
     }
 

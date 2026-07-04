@@ -70,7 +70,7 @@ export class TechnicianService {
       }
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.request.findMany({
         where,
         skip,
