@@ -73,9 +73,16 @@ export class RequestsController {
     status: 403,
     description: 'ممنوح - صلاحيات الدور غير كافية',
   })
-  async findAll(@Req() req: AuthenticatedRequest, @Query() requestQueryDto: RequestQueryDto) {
+  async findAll(
+    @Req() req: AuthenticatedRequest,
+    @Query() requestQueryDto: RequestQueryDto,
+  ) {
     const isTechnician = req.user.role === 'Technician';
-    return this.requestsService.findAll(requestQueryDto, req.user.id, isTechnician);
+    return this.requestsService.findAll(
+      requestQueryDto,
+      req.user.id,
+      isTechnician,
+    );
   }
 
   @Get(':id')
@@ -102,7 +109,6 @@ export class RequestsController {
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوح' })
   @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
-  
   async getRequestReceiptPdfData(@Param('id') id: string) {
     const request = await this.requestsService.getRequestReceiptPdfData(id);
     const settings = this.settingsService.getSettings();
