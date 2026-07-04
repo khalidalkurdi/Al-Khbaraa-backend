@@ -617,11 +617,20 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
 
     return history;
   }
-  async findAll(query: RequestQueryDto) {
+  async findAll(query: RequestQueryDto, userId: string, isTechnician: boolean) {
     const { status, priority, type, startDate, endDate, page, limit, search } =
       query;
 
     const where: any = {};
+
+    if (isTechnician) {
+      where.assignments = {
+        some: {
+          technicianId: userId,
+          isActive: true,
+        },
+      };
+    }
 
     if (status) where.status = status;
     if (status === RequestStatus.repeated) {
@@ -725,7 +734,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string, isTechnician: boolean) {
     const request = await this.prisma.request.findUnique({
       where: { id },
       include: {
@@ -772,6 +781,21 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
 
     if (!request) {
       throw new NotFoundException(`طلب بالمعرف ${id} غير موجود`);
+    }
+
+    if (isTechnician) {
+      const assignment = await this.prisma.technicianAssignment.findFirst({
+        where: {
+          requestId: id,
+          technicianId: userId,
+          isActive: true,
+        },
+      });
+      if (!assignment) {
+        throw new NotFoundException(
+          'الطلب غير موجود أو غير مسند إلى هذا الفني',
+        );
+      }
     }
 
     return request;

@@ -65,16 +65,17 @@ export class RequestsController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles('Admin', 'Manager', 'Employee')
+  @Roles('Admin', 'Manager', 'Employee', 'Technician')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List repair requests with filters' })
   @ApiResponse({ status: 200, description: 'تم إرجاع قائمة الطلبات' })
   @ApiResponse({
     status: 403,
-    description: 'ممنوع - صلاحيات الدور غير كافية',
+    description: 'ممنوح - صلاحيات الدور غير كافية',
   })
-  async findAll(@Query() requestQueryDto: RequestQueryDto) {
-    return this.requestsService.findAll(requestQueryDto);
+  async findAll(@Req() req: AuthenticatedRequest, @Query() requestQueryDto: RequestQueryDto) {
+    const isTechnician = req.user.role === 'Technician';
+    return this.requestsService.findAll(requestQueryDto, req.user.id, isTechnician);
   }
 
   @Get(':id')
@@ -84,8 +85,9 @@ export class RequestsController {
   @ApiOperation({ summary: 'Get repair request by ID' })
   @ApiResponse({ status: 200, description: 'تم إرجاع الطلب' })
   @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
-  async findOne(@Param('id') id: string) {
-    return this.requestsService.findOne(id);
+  async findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    const isTechnician = req.user.role === 'Technician';
+    return this.requestsService.findOne(id, req.user.id, isTechnician);
   }
 
   @Get(':id/pdf')
@@ -98,7 +100,7 @@ export class RequestsController {
     description: 'تم إرجاع معلومات الطلب PDF',
   })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
-  @ApiResponse({ status: 403, description: 'ممنوع' })
+  @ApiResponse({ status: 403, description: 'ممنوح' })
   @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   
   async getRequestReceiptPdfData(@Param('id') id: string) {
@@ -132,7 +134,7 @@ export class RequestsController {
   @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   @ApiResponse({
     status: 403,
-    description: 'ممنوع - صلاحيات الدور غير كافية',
+    description: 'ممنوح - صلاحيات الدور غير كافية',
   })
   async getStatusHistory(@Param('id') id: string) {
     return this.requestsService.getStatusHistory(id);
