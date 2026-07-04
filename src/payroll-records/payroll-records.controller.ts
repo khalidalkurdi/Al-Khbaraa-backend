@@ -51,8 +51,7 @@ export class PayrollRecordsController {
     @Body() dto: CreatePayrollRecordDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    const user = req.user;
-    return this.payrollRecordsService.createPayrollRecord(dto, user);
+    return this.payrollRecordsService.createPayrollRecord(dto);
   }
 
   @Get()
