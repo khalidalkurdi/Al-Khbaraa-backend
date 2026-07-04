@@ -24,24 +24,25 @@ export class MovementsService {
     responsibleId: string,
     prisma: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const part = await prisma.sparePart.findUnique({
-      where: { id: dto.partId },
-    });
-
-    if (!part) {
-      throw new NotFoundException('القطعة غير موجودة');
-    }
-
     const quantityDelta = this.getQuantityDelta(dto.movementType, dto.quantity);
-    const newQuantity = part.quantity + quantityDelta;
-
-    if (newQuantity < 0) {
-      throw new BadRequestException('لا يمكن أن تكون الكمية النهائية سالبة');
-    }
 
     const executeMovement = async (
       client: Prisma.TransactionClient | PrismaService,
     ) => {
+      const part = await client.sparePart.findUnique({
+        where: { id: dto.partId },
+      });
+
+      if (!part) {
+        throw new NotFoundException('القطعة غير موجودة');
+      }
+
+      const newQuantity = part.quantity + quantityDelta;
+
+      if (newQuantity < 0) {
+        throw new BadRequestException('لا يمكن أن تكون الكمية النهائية سالبة');
+      }
+
       const movementNo = await this.movementNoUtil.generateUniqueMovementNo();
 
       const movement = await client.inventoryMovement.create({
@@ -67,6 +68,7 @@ export class MovementsService {
       this.logger.log(
         `Movement ${movementNo} created for part ${dto.partId} by user ${responsibleId}`,
       );
+      return movement;
     };
 
     if (prisma === this.prisma) {
