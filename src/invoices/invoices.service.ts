@@ -147,8 +147,7 @@ export class InvoicesService {
       }, 0);
     };
     const totalCurrency = payment.currency;
-    const totalCost = calculateCost(totalCurrency);
-    const netProfit = totalAmount - totalCost;
+    let totalCost = 0;
     const invoiceStatus =
       totalAmount - payment.amount === 0
         ? InvoiceStatus.paid
@@ -169,11 +168,14 @@ export class InvoicesService {
       async (tx) => {
         await validateStock(tx);
 
+        const totalCost = calculateCost(totalCurrency);
+        const netProfit = totalAmount - totalCost;
+
         const invoiceNumber = await this.generateUniqueInvoiceNumber();
         const createdInvoice = await tx.invoice.create({
           data: {
             invoiceNumber,
-            requestId,
+            request: { connect: { id: requestId } },
             type,
             status: invoiceStatus,
             netProfit,
