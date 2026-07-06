@@ -10,7 +10,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { CurrencyEnum } from '../enums/currency.enum';
 import { Type } from 'class-transformer';
 
 export class CreateInvoiceItemDto {
@@ -48,16 +47,4 @@ export class CreateInvoiceItemDto {
   @IsDefined({ message: 'unitPrice is required' })
   @Type(() => Number)
   unitPrice: number;
-
-  @ApiProperty({
-    description: 'Currency of the item price',
-    enum: CurrencyEnum,
-    enumName: 'CurrencyEnum',
-    example: CurrencyEnum.SYP,
-  })
-  @IsEnum(CurrencyEnum, {
-    message: 'currency must be one of the following values: SYP, USD',
-  })
-  @IsNotEmpty({ message: 'currency is required' })
-  currency: CurrencyEnum;
 }
