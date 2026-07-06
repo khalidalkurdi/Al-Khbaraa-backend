@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
+import { omitEmpty } from '../common/utils/object.util';
 
 function buildExpenseMonthYearWhere(
   startMonth: number,
@@ -157,9 +158,15 @@ export class FinanceService {
     if (dto.month !== undefined) data.month = dto.month;
     if (dto.year !== undefined) data.year = dto.year;
 
+    const cleanedData = omitEmpty(data);
+
+    if (Object.keys(cleanedData).length === 0) {
+      return toExpenseResponse(existing);
+    }
+
     const updated = await this.prisma.expense.update({
       where: { id },
-      data,
+      data: cleanedData,
     });
 
     return toExpenseResponse(updated);

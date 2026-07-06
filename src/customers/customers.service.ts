@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerNumberUtil } from './utils/customer-number.util';
+import { omitEmpty } from '../common/utils/object.util';
 
 @Injectable()
 export class CustomersService {
@@ -145,7 +146,7 @@ export class CustomersService {
 
     return this.prisma.customer.update({
       where: { id },
-      data: updateCustomerDto,
+      data: omitEmpty(updateCustomerDto as Record<string, unknown>),
     });
   }
 

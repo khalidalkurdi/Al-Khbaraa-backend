@@ -21,6 +21,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { RequestNumberUtil } from './utils/request-number.util';
 import { CustomerNumberUtil } from '../customers/utils/customer-number.util';
 import { getSyriaNow } from '../common/utils/syria-date.util';
+import { omitEmpty } from '../common/utils/object.util';
 
 @Injectable()
 export class RequestsService implements OnModuleInit, OnModuleDestroy {
@@ -386,6 +387,22 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       });
 
     return { assignment: result };
+  }
+
+  async removeAllAssignments(id: string, userId: string) {
+    const request = await this.prisma.request.findUnique({
+      where: { id },
+      select: { id: true, requestNumber: true },
+    });
+
+    if (!request) {
+      throw new NotFoundException(`طلب بالمعرف ${id} غير موجود`);
+    }
+
+    await this.prisma.technicianAssignment.updateMany({
+      where: { requestId: id, isActive: true },
+      data: { isActive: false },
+    });
   }
 
   async uploadRequestVoiceRecords(
@@ -896,6 +913,15 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       } else {
         await this.assignTechnician(id, technicianId, userId);
       }
+    } else if (technicianId === undefined) {
+      if (
+        existing.status === RequestStatus.new ||
+        existing.status === RequestStatus.accepted
+      ) {
+        if (existing.assignments.length > 0) {
+          await this.removeAllAssignments(id, userId);
+        }
+      }
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -914,24 +940,26 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         if (existingCustomer) {
           await tx.customer.update({
             where: { id: existingCustomer.id },
-            data: {
+            data: omitEmpty({
               name: customer.name,
               firstPhone: customer.firstPhone,
               secondPhone: customer.secondPhone,
               address: customer.address,
               locationLink: customer.locationLink,
-            },
+            }),
           });
         } else {
-          const newCustomer = await tx.customer.create({
+          await tx.customer.create({
             data: {
+              ...(omitEmpty({
+                name: customer.name,
+                firstPhone: customer.firstPhone,
+                secondPhone: customer.secondPhone,
+                address: customer.address,
+                locationLink: customer.locationLink,
+              }) as Prisma.CustomerUncheckedCreateInput),
               customerNumber:
                 await this.customerNumberUtil.generateUniqueCustomerNumber(),
-              name: customer.name,
-              firstPhone: customer.firstPhone,
-              secondPhone: customer.secondPhone,
-              address: customer.address,
-              locationLink: customer.locationLink,
             },
           });
         }
@@ -957,7 +985,8 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         }
         Object.assign(data, updateData);
         Object.keys(data).forEach((key) => {
-          if ((data as any)[key] === undefined) {
+          const value = (data as any)[key];
+          if (value === undefined || value === null || value === '') {
             delete (data as any)[key];
           }
         });

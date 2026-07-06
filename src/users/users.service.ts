@@ -11,6 +11,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { getSyriaNow } from '../common/utils/syria-date.util';
+import { omitEmpty } from '../common/utils/object.util';
 
 @Injectable()
 export class UsersService {
@@ -236,7 +237,7 @@ export class UsersService {
     }
     if (data.fullName !== undefined) updateData.fullName = data.fullName;
     if (data.jobTitle !== undefined) updateData.jobTitle = data.jobTitle;
-    if (data.phone !== undefined) updateData.phone = data.phone ?? '';
+    if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.salary !== undefined) updateData.salary = data.salary;
     if (data.profileImagePath !== undefined)
       updateData.profileImagePath = data.profileImagePath;
@@ -256,7 +257,7 @@ export class UsersService {
 
     const updatedUser = await this.prisma.user.update({
       where: { id },
-      data: updateData,
+      data: omitEmpty(updateData),
       include: {
         role: true,
       },

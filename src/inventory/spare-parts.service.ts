@@ -10,6 +10,7 @@ import { UpdateSparePartDto } from './dto/update-spare-part.dto';
 import { QuerySparePartsDto } from './dto/query-spare-parts.dto';
 import { SparePartNumberUtil } from './utils/spare-part-number.util';
 import { Prisma } from '@prisma/client';
+import { omitEmpty } from '../common/utils/object.util';
 
 export const LOW_STOCK_THRESHOLD = 5;
 interface AuthenticatedRequest {
@@ -133,17 +134,19 @@ export class SparePartsService {
 
     const updateData: Prisma.SparePartUpdateInput = {};
     if (dto.name !== undefined) updateData.name = dto.name;
-    if (dto.sku !== undefined) updateData.sku = dto.sku;
+    if (dto.sku !== undefined && dto.sku !== '') updateData.sku = dto.sku;
     if (dto.shelfLocation !== undefined)
       updateData.shelf_location = dto.shelfLocation;
     if (dto.costSyp !== undefined) updateData.costSyp = dto.costSyp;
     if (dto.costUsd !== undefined) updateData.costUsd = dto.costUsd;
 
-    if (Object.keys(updateData).length === 0) {
+    const cleanedData = omitEmpty(updateData);
+
+    if (Object.keys(cleanedData).length === 0) {
       return this.findById(id);
     }
 
-    const updated = await this.repository.update(id, updateData);
+    const updated = await this.repository.update(id, cleanedData);
 
     this.logger.log(`Spare part updated: ${id}`);
     return updated;
