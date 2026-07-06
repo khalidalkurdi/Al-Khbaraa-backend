@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import * as mm from 'music-metadata';
-import * as fs from 'fs';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRequestDto } from './dto/create-request.dto';
@@ -107,10 +107,10 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       }
 
       try {
-        fs.rmSync(filePath, { force: true, recursive: true });
+        await fs.rm(filePath, { force: true, recursive: true });
         deletedFiles++;
         removableRecordIds.push(record.id);
-        this.removeEmptyRequestVoiceRecordDirectories(filePath);
+        await this.removeEmptyRequestVoiceRecordDirectories(filePath);
       } catch (error) {
         this.logger.warn(
           `Failed to delete expired request voice record file: ${record.fullFilePath}`,
@@ -168,15 +168,18 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     return absolutePath;
   }
 
-  private removeEmptyRequestVoiceRecordDirectories(filePath: string) {
+  private async removeEmptyRequestVoiceRecordDirectories(
+    filePath: string,
+  ): Promise<void> {
     const recordDirectory = path.dirname(filePath);
 
     try {
-      if (fs.readdirSync(recordDirectory).length !== 0) {
+      const files = await fs.readdir(recordDirectory);
+      if (files.length !== 0) {
         return;
       }
 
-      fs.rmdirSync(recordDirectory);
+      await fs.rmdir(recordDirectory);
 
       if (recordDirectory === this.recordsDir) {
         return;
@@ -184,12 +187,11 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
 
       const parentDirectory = path.dirname(recordDirectory);
 
-      if (
-        parentDirectory !== this.recordsDir &&
-        fs.existsSync(parentDirectory) &&
-        fs.readdirSync(parentDirectory).length === 0
-      ) {
-        fs.rmdirSync(parentDirectory);
+      if (parentDirectory !== this.recordsDir) {
+        const parentFiles = await fs.readdir(parentDirectory);
+        if (parentFiles.length === 0) {
+          await fs.rmdir(parentDirectory);
+        }
       }
     } catch {
       return;
@@ -216,59 +218,55 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('يجب إضافة جهاز واحد على الأقل');
     }
 
-    let resolvedCustomerId;
+    let resolvedCustomerId: string | null = null;
     let generatedCustomerNumber: string | null = null;
 
-    // Generate customer number before transaction if we need to create a customer
     if (customer) {
       generatedCustomerNumber =
         await this.customerNumberUtil.generateUniqueCustomerNumber();
     }
 
-    let createdCustomer: { id: string } | null = null;
-
-    if (customer && generatedCustomerNumber) {
-      const whereCondition: any = {
-        OR: [
-          { firstPhone: customer.firstPhone },
-          { secondPhone: customer.firstPhone },
-        ],
-      };
-
-      if (customer.secondPhone) {
-        whereCondition.OR.push(
-          { firstPhone: customer.secondPhone },
-          { secondPhone: customer.secondPhone },
-        );
-      }
-
-      const existingCustomer = await this.prisma.customer.findFirst({
-        where: whereCondition,
-      });
-
-      if (existingCustomer === null) {
-        createdCustomer = await this.prisma.customer.create({
-          data: {
-            customerNumber: generatedCustomerNumber,
-            name: customer.name,
-            firstPhone: customer.firstPhone,
-            secondPhone: customer.secondPhone,
-            address: customer.address,
-            locationLink: customer.locationLink,
-          },
-        });
-      }
-
-      resolvedCustomerId = createdCustomer
-        ? createdCustomer.id
-        : existingCustomer?.id;
-    }
-
-    if (resolvedCustomerId === null) {
-      throw new BadRequestException('تعذر تحديد معرف العميل');
-    }
-
     const result = await this.prisma.$transaction(async (tx) => {
+      if (customer && generatedCustomerNumber) {
+        const whereCondition: any = {
+          OR: [
+            { firstPhone: customer.firstPhone },
+            { secondPhone: customer.firstPhone },
+          ],
+        };
+
+        if (customer.secondPhone) {
+          whereCondition.OR.push(
+            { firstPhone: customer.secondPhone },
+            { secondPhone: customer.secondPhone },
+          );
+        }
+
+        const existingCustomer = await tx.customer.findFirst({
+          where: whereCondition,
+        });
+
+        if (existingCustomer === null) {
+          const createdCustomer = await tx.customer.create({
+            data: {
+              customerNumber: generatedCustomerNumber,
+              name: customer.name,
+              firstPhone: customer.firstPhone,
+              secondPhone: customer.secondPhone,
+              address: customer.address,
+              locationLink: customer.locationLink,
+            },
+          });
+          resolvedCustomerId = createdCustomer.id;
+        } else {
+          resolvedCustomerId = existingCustomer.id;
+        }
+      }
+
+      if (resolvedCustomerId === null) {
+        throw new BadRequestException('تعذر تحديد معرف العميل');
+      }
+
       const requestNumber =
         await this.requestNumberUtil.generateUniqueRequestNumber();
       const request = await tx.request.create({
@@ -309,7 +307,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         throw new ConflictException('فشل إنشاء الطلب');
       }
 
-      return { request, customer: createdCustomer };
+      return { request };
     });
 
     if (technicianId != null && technicianId != undefined) {
@@ -462,7 +460,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     const requestRecordsDir = path.join(this.recordsDir, request.requestNumber);
 
     try {
-      fs.mkdirSync(requestRecordsDir, { recursive: true });
+      await fs.mkdir(requestRecordsDir, { recursive: true });
     } catch (error) {
       throw new InternalServerErrorException('فشل إنشاء مجلد الملفات');
     }
@@ -484,7 +482,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       try {
         const filePath = path.join(requestRecordsDir, filename);
 
-        fs.writeFileSync(filePath, file.buffer);
+        await fs.writeFile(filePath, file.buffer);
 
         let duration: number | null = null;
         try {
@@ -530,11 +528,15 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         try {
           const fileName = path.basename(record.fullFilePath);
           const filePath = path.join(requestRecordsDir, fileName);
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+          try {
+            await fs.unlink(filePath);
+          } catch (unlinkError: any) {
+            if (unlinkError.code !== 'ENOENT') {
+              console.error('فشل حذف الملف:', unlinkError);
+            }
           }
-        } catch (unlinkError) {
-          console.error('فشل حذف الملف:', unlinkError);
+        } catch (e) {
+          console.error('فشل حذف الملف:', e);
         }
       }
 
@@ -604,7 +606,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     }
 
     const history = await this.prisma.requestStatusHistory.findMany({
-      where: { requestId: id },
+      where: { requestId: id, isActive: true },
       orderBy: { changedAt: 'desc' },
       include: {
         changer: {
@@ -690,7 +692,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
 
     const [data, total] = await Promise.all([
       this.prisma.request.findMany({
-        where,
+        where: { ...where, isActive: true },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -722,7 +724,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
           },
         },
       }),
-      this.prisma.request.count({ where }),
+      this.prisma.request.count({ where: { ...where, isActive: true } }),
     ]);
 
     return {
