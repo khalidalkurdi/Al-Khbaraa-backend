@@ -129,7 +129,7 @@ export class PaymentsService {
     });
 
     const executePayment = async (tx: Prisma.TransactionClient) => {
-      const createdPayment = await tx.payment.create({
+      await tx.payment.create({
         data: {
           invoiceId,
           amount: amountDecimal,
@@ -156,15 +156,14 @@ export class PaymentsService {
           ? InvoiceStatus.paid
           : latestInvoice.status;
 
-      let updatedInvoice;
+      let invoiceWithPayments;
       if (existingPayments === 0 && latestInvoice.paidAmount.greaterThan(0)) {
-        const invoiceWithPayments = await tx.invoice.findUnique({
+        invoiceWithPayments = await tx.invoice.findUnique({
           where: { id: invoiceId },
           include: { items: true, payments: true },
         });
-        updatedInvoice = invoiceWithPayments;
       } else {
-        updatedInvoice = await tx.invoice.update({
+        invoiceWithPayments = await tx.invoice.update({
           where: { id: invoiceId },
           data: {
             paidAmount: { increment: convertedAmount },
@@ -175,7 +174,7 @@ export class PaymentsService {
         });
       }
 
-      return createdPayment;
+      return invoiceWithPayments;
     };
 
     let result;
@@ -192,7 +191,7 @@ export class PaymentsService {
       result = await executePayment(prisma);
     }
     this.logger.log(`Payment created for invoice ${invoiceId}`);
-    return result.invoice;
+    return result;
   }
 
   async findByInvoice(

@@ -96,8 +96,9 @@ export class InvoicesService {
     let stockMap = new Map();
     let totalPrice = 0;
 
-    if (items && items.length > 0) {
-      const spareParts = await this.prisma.sparePart.findMany({
+    const validateStock = async (client: Prisma.TransactionClient) => {
+      if (!items || items.length === 0) return;
+      const spareParts = await client.sparePart.findMany({
         where: {
           id: { in: items.map((i) => i.sparePartId) },
           isActive: true,
@@ -132,7 +133,7 @@ export class InvoicesService {
         const price = item.unitPrice ?? 0;
         return sum + qty * price;
       }, 0);
-    }
+    };
 
     const calculateCost = (currency: CurrencyEnum) => {
       if (!items || items.length === 0) return 0;
@@ -166,6 +167,8 @@ export class InvoicesService {
 
     const invoice = await this.prisma.$transaction(
       async (tx) => {
+        await validateStock(tx);
+
         const invoiceNumber = await this.generateUniqueInvoiceNumber();
         const createdInvoice = await tx.invoice.create({
           data: {
