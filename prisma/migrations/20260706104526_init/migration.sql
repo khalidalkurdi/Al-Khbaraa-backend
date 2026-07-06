@@ -304,6 +304,7 @@ CREATE TABLE `inventory_movements` (
     `responsible_id` CHAR(36) NOT NULL,
     `reference` VARCHAR(100) NULL,
     `is_active` BOOLEAN NOT NULL DEFAULT true,
+    `quantity` INTEGER NOT NULL DEFAULT 1,
     `movement_date` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
