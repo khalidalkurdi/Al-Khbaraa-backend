@@ -3,8 +3,7 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-async function main() 
-{
+async function main() {
   const roles = ['Admin', 'Manager', 'Employee', 'Technician'];
 
   for (const roleName of roles) {
@@ -23,7 +22,7 @@ async function main()
   });
 
   if (!existingAdmin) {
-    const passwordHash = await bcrypt.hash(adminPassword, 10) as string;
+    const passwordHash = (await bcrypt.hash(adminPassword, 10)) as string;
     const adminRole = await prisma.role.findUnique({
       where: { name: 'Admin' },
     });
@@ -33,7 +32,7 @@ async function main()
         email: adminEmail,
         passwordHash,
         fullName: 'المسؤول',
-        jobTitle: 'مدير النظام',
+        jobTitle: 'مسؤول النظام الرئيسي',
         userNumber: 'ADMIN-001',
         roleId: adminRole!.id,
         phone: '',
@@ -45,7 +44,6 @@ async function main()
   } else {
     console.log('✓ Admin user already exists');
   }
-
 }
 
 main()

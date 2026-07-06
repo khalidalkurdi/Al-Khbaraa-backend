@@ -121,9 +121,10 @@ CREATE TABLE `requests` (
     `fault_description` TEXT NOT NULL,
     `notes` TEXT NULL,
     `scheduled_date` DATE NULL,
-    `scheduled_time` TIME(0) NULL,
     `is_repeated` BOOLEAN NOT NULL DEFAULT false,
+    `has_invoice` BOOLEAN NOT NULL DEFAULT false,
     `is_completed` BOOLEAN NOT NULL DEFAULT false,
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
     `status` ENUM('new', 'accepted', 'ontheway', 'arrived', 'underrepair', 'completed', 'incompleted', 'pulltocenter', 'postponed', 'cancelled', 'notanswer', 'notrepairable', 'repeated') NOT NULL DEFAULT 'new',
     `created_by` CHAR(36) NOT NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -136,6 +137,7 @@ CREATE TABLE `requests` (
     INDEX `idx_is_completed`(`is_completed`),
     INDEX `idx_priority`(`priority`),
     INDEX `idx_scheduled_date`(`scheduled_date`),
+    INDEX `idx_is_active`(`is_active`),
     INDEX `idx_created_at`(`created_at`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -148,10 +150,12 @@ CREATE TABLE `request_status_history` (
     `changed_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
     `changed_by` CHAR(36) NULL,
     `notes` TEXT NULL,
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
 
     INDEX `idx_request_id`(`request_id`),
     INDEX `idx_status`(`status`),
     INDEX `idx_changed_at`(`changed_at`),
+    INDEX `idx_is_active`(`is_active`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -163,9 +167,11 @@ CREATE TABLE `request_devices` (
     `device_name` VARCHAR(255) NOT NULL,
     `brand` VARCHAR(100) NULL,
     `model` VARCHAR(100) NULL,
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `idx_request_id`(`request_id`),
+    INDEX `idx_is_active`(`is_active`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -228,9 +234,10 @@ CREATE TABLE `invoices` (
     `id` CHAR(36) NOT NULL,
     `invoice_number` VARCHAR(50) NOT NULL,
     `request_id` CHAR(36) NOT NULL,
-    `technician_id` CHAR(36) NOT NULL,
-    `type` VARCHAR(20) NOT NULL,
-    `status` VARCHAR(20) NOT NULL DEFAULT 'paid_partial',
+    `type` ENUM('internal', 'external') NOT NULL DEFAULT 'external',
+    `status` ENUM('paid', 'paid_partial', 'refunded') NOT NULL DEFAULT 'paid_partial',
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
+    `net_profit` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     `total_amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     `total_currency` ENUM('SYP', 'USD') NOT NULL DEFAULT 'SYP',
     `paid_amount` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
@@ -244,9 +251,9 @@ CREATE TABLE `invoices` (
     UNIQUE INDEX `invoices_invoice_number_key`(`invoice_number`),
     INDEX `idx_invoice_number`(`invoice_number`),
     INDEX `idx_request_id`(`request_id`),
-    INDEX `idx_technician_id`(`technician_id`),
     INDEX `idx_status`(`status`),
     INDEX `idx_type`(`type`),
+    INDEX `idx_is_active`(`is_active`),
     UNIQUE INDEX `unique_request_id`(`request_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -259,10 +266,12 @@ CREATE TABLE `invoice_items` (
     `quantity` INTEGER NOT NULL DEFAULT 1,
     `unit_price` DECIMAL(12, 2) NOT NULL,
     `currency` ENUM('SYP', 'USD') NOT NULL DEFAULT 'SYP',
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
     `total_price` DECIMAL(12, 2) NOT NULL,
 
     INDEX `idx_invoice_id`(`invoice_id`),
     INDEX `idx_spare_part_id`(`spare_part_id`),
+    INDEX `idx_is_active`(`is_active`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -272,15 +281,17 @@ CREATE TABLE `payments` (
     `invoice_id` CHAR(36) NOT NULL,
     `amount` DECIMAL(12, 2) NOT NULL,
     `currency` ENUM('SYP', 'USD') NOT NULL DEFAULT 'SYP',
-    `payment_method` VARCHAR(20) NOT NULL,
+    `paymentMethod` ENUM('cash', 'sham_cash') NOT NULL DEFAULT 'cash',
     `dollar_exchange_rate` DECIMAL(12, 4) NOT NULL,
     `converted_amount` DECIMAL(12, 2) NOT NULL,
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
     `paid_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `idx_invoice_id`(`invoice_id`),
     INDEX `idx_paid_at`(`paid_at`),
     INDEX `idx_currency`(`currency`),
-    INDEX `idx_payment_method`(`payment_method`),
+    INDEX `idx_payment_method`(`paymentMethod`),
+    INDEX `idx_is_active`(`is_active`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -290,11 +301,10 @@ CREATE TABLE `inventory_movements` (
     `movement_no` VARCHAR(50) NOT NULL,
     `part_id` CHAR(36) NOT NULL,
     `movement_type` ENUM('supply', 'issue', 'adjust', 'return') NOT NULL,
-    `responsible_by` VARCHAR(191) NOT NULL,
-    `responsible_id` CHAR(36) NULL,
+    `responsible_id` CHAR(36) NOT NULL,
     `reference` VARCHAR(100) NULL,
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
     `movement_date` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `quantity` INTEGER NOT NULL DEFAULT 1,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     UNIQUE INDEX `inventory_movements_movement_no_key`(`movement_no`),
@@ -302,15 +312,17 @@ CREATE TABLE `inventory_movements` (
     INDEX `idx_part`(`part_id`),
     INDEX `idx_movement_date`(`movement_date`),
     INDEX `idx_movement_type`(`movement_type`),
+    INDEX `idx_is_active`(`is_active`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `expenses` (
     `id` CHAR(36) NOT NULL,
-    `type` VARCHAR(20) NOT NULL,
+    `type` ENUM('fixed', 'variable') NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `amount` DECIMAL(12, 2) NOT NULL,
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
     `month` INTEGER NULL,
     `year` INTEGER NULL,
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
@@ -318,6 +330,26 @@ CREATE TABLE `expenses` (
     INDEX `idx_type`(`type`),
     INDEX `idx_month_year`(`month`, `year`),
     INDEX `idx_created_at`(`created_at`),
+    INDEX `idx_is_active`(`is_active`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `payroll_records` (
+    `id` CHAR(36) NOT NULL,
+    `user_id` CHAR(36) NOT NULL,
+    `amount` DECIMAL(10, 2) NOT NULL,
+    `note` TEXT NULL,
+    `type` ENUM('salary', 'bonus', 'deduction', 'overtime', 'commission') NOT NULL,
+    `is_active` BOOLEAN NOT NULL DEFAULT true,
+    `month` INTEGER NULL,
+    `year` INTEGER NULL,
+    `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    `updated_at` TIMESTAMP(0) NOT NULL,
+
+    INDEX `idx_created_at`(`created_at`),
+    INDEX `idx_user_id`(`user_id`),
+    INDEX `idx_is_active`(`is_active`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -377,9 +409,6 @@ ALTER TABLE `technician_assignments` ADD CONSTRAINT `technician_assignments_assi
 ALTER TABLE `invoices` ADD CONSTRAINT `invoices_request_id_fkey` FOREIGN KEY (`request_id`) REFERENCES `requests`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `invoices` ADD CONSTRAINT `invoices_technician_id_fkey` FOREIGN KEY (`technician_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE `invoice_items` ADD CONSTRAINT `invoice_items_invoice_id_fkey` FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -392,7 +421,10 @@ ALTER TABLE `payments` ADD CONSTRAINT `payments_invoice_id_fkey` FOREIGN KEY (`i
 ALTER TABLE `inventory_movements` ADD CONSTRAINT `inventory_movements_part_id_fkey` FOREIGN KEY (`part_id`) REFERENCES `spare_parts`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `inventory_movements` ADD CONSTRAINT `inventory_movements_responsible_id_fkey` FOREIGN KEY (`responsible_id`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `inventory_movements` ADD CONSTRAINT `inventory_movements_responsible_id_fkey` FOREIGN KEY (`responsible_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `payroll_records` ADD CONSTRAINT `payroll_records_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `notifications` ADD CONSTRAINT `notifications_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
