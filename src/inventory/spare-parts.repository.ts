@@ -16,11 +16,16 @@ export class SparePartsRepository {
     take?: number;
     orderBy?: Prisma.SparePartOrderByWithRelationInput;
   }): Promise<SparePart[]> {
-    return this.prisma.sparePart.findMany(params);
+    return this.prisma.sparePart.findMany({
+      ...params,
+      where: { ...params.where, isActive: true },
+    });
   }
 
   async count(where?: Prisma.SparePartWhereInput): Promise<number> {
-    return this.prisma.sparePart.count({ where });
+    return this.prisma.sparePart.count({
+      where: { ...where, isActive: true },
+    });
   }
 
   async findById(id: string): Promise<SparePart | null> {
