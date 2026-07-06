@@ -28,7 +28,7 @@ export class RequestRecordsController {
 
   @Post('records')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Technician')
+  @Roles('Admin', 'Technician')
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
