@@ -408,6 +408,7 @@ model InventoryMovement {
   responsibleId String       @map("responsible_id") @db.Char(36)
   reference     String?      @db.VarChar(100)
   isActive      Boolean      @default(true) @map("is_active")
+  quantity      Int          @default(1)
   movementDate  DateTime     @default(now()) @map("movement_date") @db.Timestamp(0)
   createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
 
