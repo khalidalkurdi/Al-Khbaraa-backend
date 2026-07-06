@@ -15,6 +15,7 @@ import {
   InvoiceType,
   MovementType,
   RequestType,
+  Prisma,
 } from '@prisma/client';
 import { CurrencyEnum } from './enums/currency.enum';
 import { MovementsService } from 'src/inventory/movements.service';
@@ -151,87 +152,94 @@ export class InvoicesService {
       totalAmount - payment.amount === 0
         ? InvoiceStatus.paid
         : InvoiceStatus.paid_partial;
+
     const paidAmount = payment.amount;
     const remainingAmount = totalAmount - paidAmount;
 
     if (invoiceStatus != status) {
       throw new BadRequestException('الحالة غير مطابقة للمدفوع');
     }
-    const type = request.type === RequestType.external
-      ? InvoiceType.external
-      : InvoiceType.internal;
+    const type =
+      request.type === RequestType.external
+        ? InvoiceType.external
+        : InvoiceType.internal;
 
-    const invoice = await this.prisma.$transaction(async (tx) => {
-      const invoiceNumber = await this.generateUniqueInvoiceNumber();
-      const createdInvoice = await tx.invoice.create({
-        data: {
-          invoiceNumber,
-          requestId,
-          type,
-          status: invoiceStatus,
-          netProfit,
-          totalAmount,
-          totalCurrency,
-          paidAmount,
-          remainingAmount,
-          warrantyPeriod: warrantyPeriod ?? null,
-          needsCenterMaintenance: needsCenterMaintenance ?? null,
-          notes: notes ?? null,
-          ...(items &&
-            items.length > 0 && {
-              items: {
-                create: items.map((item) => ({
-                  sparePartId: item.sparePartId,
-                  quantity: item.quantity ?? 1,
-                  unitPrice: item.unitPrice ?? 0,
-                  currency: totalCurrency,
-                  totalPrice: (item.unitPrice ?? 0) * (item.quantity ?? 1),
-                })),
-              },
-            }),
-        },
-      });
-
-      // movement
-      if (items && items.length > 0) {
-        for (const item of items) {
-          const dto: CreateStockMovementDto = {
-            partId: item.sparePartId,
-            movementType: MovementType.issue,
-            quantity: item.quantity,
-            reference: 'استهلاك فواتير',
-          };
-          await this.movementsService.create(dto, user.id, tx);
-        }
-      }
-
-      const dto: CreatePaymentDto = {
-        ...payment,
-        invoiceId: createdInvoice.id,
-      };
-      //create first payment
-      await this.paymentsService.create(dto, user, tx);
-
-      if (locationURL !== undefined) {
-        await tx.customer.update({
-          where: { id: request.customerId },
-          data: { locationLink: locationURL },
+    const invoice = await this.prisma.$transaction(
+      async (tx) => {
+        const invoiceNumber = await this.generateUniqueInvoiceNumber();
+        const createdInvoice = await tx.invoice.create({
+          data: {
+            invoiceNumber,
+            requestId,
+            type,
+            status: invoiceStatus,
+            netProfit,
+            totalAmount,
+            totalCurrency,
+            paidAmount,
+            remainingAmount,
+            warrantyPeriod: warrantyPeriod ?? null,
+            needsCenterMaintenance: needsCenterMaintenance ?? null,
+            notes: notes ?? null,
+            ...(items &&
+              items.length > 0 && {
+                items: {
+                  create: items.map((item) => ({
+                    sparePartId: item.sparePartId,
+                    quantity: item.quantity ?? 1,
+                    unitPrice: item.unitPrice ?? 0,
+                    currency: totalCurrency,
+                    totalPrice: (item.unitPrice ?? 0) * (item.quantity ?? 1),
+                  })),
+                },
+              }),
+          },
         });
-      }
-      this.logger.log(
-        `Invoice ${createdInvoice.invoiceNumber} created for request ${requestId}`,
-      );
-      await tx.request.update({
-        where: { id: createInvoiceDto.requestId },
-        data: { hasInvoice: true },
-      });
-      const invoiceWithPayments = await tx.invoice.findUnique({
-        where: { id: createdInvoice.id },
-        include: { items: true, payments: true },
-      });
 
-      return invoiceWithPayments;
-    });
+        // movement
+        if (items && items.length > 0) {
+          for (const item of items) {
+            const dto: CreateStockMovementDto = {
+              partId: item.sparePartId,
+              movementType: MovementType.issue,
+              quantity: item.quantity,
+              reference: 'استهلاك فواتير',
+            };
+            await this.movementsService.create(dto, user.id, tx);
+          }
+        }
+
+        const dto: CreatePaymentDto = {
+          ...payment,
+          invoiceId: createdInvoice.id,
+        };
+        //create first payment
+        await this.paymentsService.create(dto, user, tx);
+
+        if (locationURL !== undefined) {
+          await tx.customer.update({
+            where: { id: request.customerId },
+            data: { locationLink: locationURL },
+          });
+        }
+        this.logger.log(
+          `Invoice ${createdInvoice.invoiceNumber} created for request ${requestId}`,
+        );
+        await tx.request.update({
+          where: { id: createInvoiceDto.requestId },
+          data: { hasInvoice: true },
+        });
+        const invoiceWithPayments = await tx.invoice.findUnique({
+          where: { id: createdInvoice.id },
+          include: { items: true, payments: true },
+        });
+
+        return invoiceWithPayments;
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      },
+    );
 
     return invoice;
   }

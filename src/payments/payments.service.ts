@@ -125,7 +125,7 @@ export class PaymentsService {
     }
 
     const existingPayments = await prisma.payment.count({
-      where: { invoiceId },
+      where: { invoiceId, isActive: true },
     });
 
     const executePayment = async (tx: Prisma.TransactionClient) => {
@@ -148,50 +148,44 @@ export class PaymentsService {
         throw new NotFoundException('الفاتورة غير موجودة');
       }
 
-      const latestPaidAmount = latestInvoice.paidAmount.plus(convertedAmount);
-      const latestRemainingAmount =
-        latestInvoice.remainingAmount.minus(convertedAmount);
-      let latestNewStatus = latestInvoice.status;
+      const latestNewStatus =
+        latestInvoice.status === InvoiceStatus.paid_partial &&
+        latestInvoice.remainingAmount
+          .minus(convertedAmount)
+          .lessThanOrEqualTo(0)
+          ? InvoiceStatus.paid
+          : latestInvoice.status;
 
-      if (
-        latestInvoice.status === InvoiceStatus.paid_partial &&
-        latestRemainingAmount.lessThanOrEqualTo(0)
-      ) {
-        latestNewStatus = InvoiceStatus.paid;
-      } else if (
-        latestInvoice.status === InvoiceStatus.paid_partial &&
-        existingPayments === 0
-      ) {
-        latestNewStatus = InvoiceStatus.paid_partial;
+      let updatedInvoice;
+      if (existingPayments !== 0) {
+        updatedInvoice = await tx.invoice.update({
+          where: { id: invoiceId },
+          data: {
+            paidAmount: { increment: convertedAmount },
+            remainingAmount: { decrement: convertedAmount },
+            status: latestNewStatus,
+          },
+          include: { payments: true },
+        });
       }
 
-      const updatedInvoice = await tx.invoice.update({
-        where: { id: invoiceId },
-        data: {
-          paidAmount: latestPaidAmount,
-          remainingAmount: latestRemainingAmount,
-          status: latestNewStatus,
-        },
-        include: { payments: true },
-      });
-
-      return {
-        payment: createdPayment,
-        invoice: updatedInvoice,
-      };
+      return createdPayment;
     };
 
     let result;
     if (prisma === this.prisma) {
-      result = await this.prisma.$transaction(async (tx) => {
-        return await executePayment(tx);
-      });
+      result = await this.prisma.$transaction(
+        async (tx) => {
+          return await executePayment(tx);
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        },
+      );
     } else {
       result = await executePayment(prisma);
     }
-    this.logger.log(
-      `Payment created for invoice ${invoiceId}`,
-    );
+    this.logger.log(`Payment created for invoice ${invoiceId}`);
     return result.invoice;
   }
 
@@ -227,6 +221,7 @@ export class PaymentsService {
     return this.prisma.payment.findMany({
       where: {
         invoiceId,
+        isActive: true,
         ...(currency && { currency: currency as 'SYP' | 'USD' }),
         ...(paymentMethod && {
           paymentMethod: paymentMethod as 'cash' | 'sham_cash',
