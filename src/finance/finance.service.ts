@@ -123,7 +123,7 @@ export class FinanceService {
     }
 
     const expenses = await this.prisma.expense.findMany({
-      where,
+      where: { ...where, isActive: true },
       orderBy: { createdAt: 'desc' },
     });
     return expenses.map(toExpenseResponse);
@@ -220,6 +220,7 @@ export class FinanceService {
             gte: start,
             lt: endExclusive,
           },
+          isActive: true,
         },
         include: {
           invoice: {
@@ -241,6 +242,7 @@ export class FinanceService {
         _sum: { amount: true },
         where: {
           type: 'fixed',
+          isActive: true,
           OR: [
             { month: null, year: null },
             buildExpenseMonthYearWhere(
@@ -256,6 +258,7 @@ export class FinanceService {
         _sum: { amount: true },
         where: {
           type: 'variable',
+          isActive: true,
           ...buildExpenseMonthYearWhere(
             startMonth,
             startYear,
@@ -277,6 +280,7 @@ export class FinanceService {
     const allPaymentsByInvoice = await this.prisma.payment.findMany({
       where: {
         invoiceId: { in: invoiceIds },
+        isActive: true,
       },
       select: {
         invoiceId: true,
@@ -374,6 +378,7 @@ export class FinanceService {
         _sum: { convertedAmount: true },
         where: {
           paidAt: { gte: start, lte: end },
+          isActive: true,
         },
       }),
       this.prisma.user.aggregate({
@@ -382,12 +387,13 @@ export class FinanceService {
       }),
       this.prisma.expense.aggregate({
         _sum: { amount: true },
-        where: { type: 'fixed' },
+        where: { type: 'fixed', isActive: true },
       }),
       this.prisma.expense.aggregate({
         _sum: { amount: true },
         where: {
           type: 'variable',
+          isActive: true,
           ...buildExpenseMonthYearWhere(
             startMonth,
             startYear,
@@ -404,6 +410,9 @@ export class FinanceService {
         INNER JOIN spare_parts si ON ii.spare_part_id = si.id
         INNER JOIN payments p ON p.invoice_id = i.id
         WHERE p.paid_at >= ${start} AND p.paid_at <= ${end}
+          AND i.is_active = 1
+          AND ii.is_active = 1
+          AND p.is_active = 1
       `,
     ]);
 

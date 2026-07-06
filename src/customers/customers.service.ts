@@ -83,12 +83,12 @@ export class CustomersService {
 
     const [customers, total] = await Promise.all([
       this.prisma.customer.findMany({
-        where,
+        where: { ...where, isActive: true },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.customer.count({ where }),
+      this.prisma.customer.count({ where: { ...where, isActive: true } }),
     ]);
 
     return {

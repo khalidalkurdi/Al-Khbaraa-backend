@@ -55,7 +55,7 @@ export class PayrollRecordsService {
 
     const [data, total] = await Promise.all([
       this.prisma.payrollRecord.findMany({
-        where,
+        where: { ...where, isActive: true },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -73,7 +73,7 @@ export class PayrollRecordsService {
           },
         },
       }),
-      this.prisma.payrollRecord.count({ where }),
+      this.prisma.payrollRecord.count({ where: { ...where, isActive: true } }),
     ]);
 
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };

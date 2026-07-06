@@ -72,7 +72,7 @@ export class TechnicianService {
 
     const [data, total] = await Promise.all([
       this.prisma.request.findMany({
-        where,
+        where: { ...where, isActive: true },
         skip,
         take: limit,
         orderBy: [{ priority: 'asc' }, { scheduledDate: 'asc' }],
@@ -81,7 +81,7 @@ export class TechnicianService {
           devices: true,
         },
       }),
-      this.prisma.request.count({ where }),
+      this.prisma.request.count({ where: { ...where, isActive: true } }),
     ]);
 
     return {

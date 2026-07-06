@@ -47,77 +47,89 @@ export class DashboardService {
       totalRevenuesAgg,
     ] = await Promise.all([
       this.prisma.request.count({
-        where: { createdAt: { gte: todayStart, lt: todayEnd } },
+        where: { createdAt: { gte: todayStart, lt: todayEnd }, isActive: true },
       }),
       this.prisma.request.count({
         where: {
           type: 'internal',
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.request.count({
         where: {
           type: 'external',
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.request.count({
         where: {
           status: RequestStatus.completed,
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.request.count({
         where: {
           status: RequestStatus.incompleted,
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.request.count({
         where: {
           status: RequestStatus.pulltocenter,
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.request.count({
         where: {
           status: RequestStatus.repeated,
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.request.count({
         where: {
           status: RequestStatus.postponed,
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.request.count({
         where: {
           status: RequestStatus.notrepairable,
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.invoice.count({
         where: {
           type: 'external',
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.invoice.count({
         where: {
           type: 'internal',
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.customer.count({
         where: {
           createdAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
       this.prisma.payment.aggregate({
         _sum: { convertedAmount: true },
         where: {
           paidAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
         },
       }),
     ]);
@@ -132,6 +144,7 @@ export class DashboardService {
     const todayPayments = await this.prisma.payment.findMany({
       where: {
         paidAt: { gte: todayStart, lt: todayEnd },
+        isActive: true,
         invoice: {
           createdAt: { gte: todayStart, lt: todayEnd },
         },
@@ -181,6 +194,7 @@ export class DashboardService {
     const netProfitTodaySyp = salesSyp - partsCosts;
 
     const lastRequestsRaw = await this.prisma.request.findMany({
+      where: { isActive: true },
       take: 10,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -263,6 +277,7 @@ export class DashboardService {
               RequestStatus.underrepair,
             ],
           },
+          isActive: true,
         },
         select: { requestId: true, status: true },
       }),
@@ -315,11 +330,11 @@ export class DashboardService {
     const [paymentsSypTodayAgg, paymentsUsdTodayAgg] = await Promise.all([
       this.prisma.payment.aggregate({
         _sum: { amount: true },
-        where: { paidAt: { gte: todayStart, lt: todayEnd }, currency: 'SYP' },
+        where: { paidAt: { gte: todayStart, lt: todayEnd }, currency: 'SYP', isActive: true },
       }),
       this.prisma.payment.aggregate({
         _sum: { amount: true },
-        where: { paidAt: { gte: todayStart, lt: todayEnd }, currency: 'USD' },
+        where: { paidAt: { gte: todayStart, lt: todayEnd }, currency: 'USD', isActive: true },
       }),
     ]);
 

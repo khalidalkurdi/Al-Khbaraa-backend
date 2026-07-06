@@ -90,7 +90,7 @@ export class InvoicesRepository {
 
     const [data, total] = await Promise.all([
       this.prisma.invoice.findMany({
-        where,
+        where: { ...where, isActive: true },
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -102,7 +102,7 @@ export class InvoicesRepository {
           payments: true,
         },
       }),
-      this.prisma.invoice.count({ where }),
+      this.prisma.invoice.count({ where: { ...where, isActive: true } }),
     ]);
 
     return {

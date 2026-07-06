@@ -101,7 +101,7 @@ export class MovementsService {
     }
     const [movements, total] = await Promise.all([
       this.prisma.inventoryMovement.findMany({
-        where,
+        where: { ...where, isActive: true },
         orderBy: { movementDate: 'desc' },
         skip,
         take: limit,
@@ -114,7 +114,7 @@ export class MovementsService {
           },
         },
       }),
-      this.prisma.inventoryMovement.count(),
+      this.prisma.inventoryMovement.count({ where: { ...where, isActive: true } }),
     ]);
 
     return {
