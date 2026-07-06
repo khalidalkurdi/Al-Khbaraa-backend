@@ -13,12 +13,14 @@ interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly configService: ConfigService) {
+    const secret = configService.get<string>('jwt.accessSecret');
+    if (!secret) {
+      throw new Error('JWT access secret is not configured');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey:
-        configService.get<string>('jwt.accessSecret') ||
-        'super-secret-access-token-key-change-in-prod',
+      secretOrKey: secret,
     });
   }
 
