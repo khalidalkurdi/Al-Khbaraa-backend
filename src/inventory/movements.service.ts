@@ -24,12 +24,13 @@ export class MovementsService {
     responsibleId: string,
     prisma: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const quantityDelta = this.getQuantityDelta(dto.movementType, dto.quantity);
-
     const executeMovement = async (
       client: Prisma.TransactionClient | PrismaService,
     ) => {
-      const quantityDelta = this.getQuantityDelta(dto.movementType, dto.quantity);
+      const quantityDelta = this.getQuantityDelta(
+        dto.movementType,
+        dto.quantity,
+      );
 
       if (dto.movementType === MovementType.issue) {
         const result = await client.sparePart.updateMany({
@@ -47,7 +48,9 @@ export class MovementsService {
           if (!part) {
             throw new NotFoundException('القطعة غير موجودة');
           }
-          throw new BadRequestException('لا يمكن أن تكون الكمية النهائية سالبة');
+          throw new BadRequestException(
+            'لا يمكن أن تكون الكمية النهائية سالبة',
+          );
         }
       } else {
         await client.sparePart.update({
@@ -123,7 +126,9 @@ export class MovementsService {
           },
         },
       }),
-      this.prisma.inventoryMovement.count({ where: { ...where, isActive: true } }),
+      this.prisma.inventoryMovement.count({
+        where: { ...where, isActive: true },
+      }),
     ]);
 
     return {

@@ -330,11 +330,19 @@ export class DashboardService {
     const [paymentsSypTodayAgg, paymentsUsdTodayAgg] = await Promise.all([
       this.prisma.payment.aggregate({
         _sum: { amount: true },
-        where: { paidAt: { gte: todayStart, lt: todayEnd }, currency: 'SYP', isActive: true },
+        where: {
+          paidAt: { gte: todayStart, lt: todayEnd },
+          currency: 'SYP',
+          isActive: true,
+        },
       }),
       this.prisma.payment.aggregate({
         _sum: { amount: true },
-        where: { paidAt: { gte: todayStart, lt: todayEnd }, currency: 'USD', isActive: true },
+        where: {
+          paidAt: { gte: todayStart, lt: todayEnd },
+          currency: 'USD',
+          isActive: true,
+        },
       }),
     ]);
 

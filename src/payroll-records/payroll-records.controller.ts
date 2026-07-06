@@ -38,9 +38,7 @@ export class PayrollRecordsController {
   })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع - الصلاحيات غير كافية' })
-  async createPayrollRecord(
-    @Body() dto: CreatePayrollRecordDto,
-  ) {
+  async createPayrollRecord(@Body() dto: CreatePayrollRecordDto) {
     return this.payrollRecordsService.createPayrollRecord(dto);
   }
 

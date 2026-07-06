@@ -77,7 +77,10 @@ export class UsersController {
     }
   }
 
-  private async moveUploadedFile(file: Express.Multer.File, filename: string): Promise<void> {
+  private async moveUploadedFile(
+    file: Express.Multer.File,
+    filename: string,
+  ): Promise<void> {
     const USERS_UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'users');
     const targetPath = path.join(USERS_UPLOAD_DIR, filename);
 
@@ -267,8 +270,7 @@ export class UsersController {
         const oldPath = path.join(process.cwd(), existingUser.profileImagePath);
         try {
           await fs.unlink(oldPath);
-        } catch {
-        }
+        } catch {}
       }
       await this.moveUploadedFile(profileImage, await targetFilename);
     }
@@ -290,8 +292,7 @@ export class UsersController {
         );
         try {
           await fs.unlink(oldPath);
-        } catch {
-        }
+        } catch {}
       }
       await this.moveUploadedFile(documentImage, await targetFilename);
     }

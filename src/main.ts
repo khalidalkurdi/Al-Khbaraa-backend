@@ -23,20 +23,22 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // Security headers with Helmet
-  app.use(helmet.default({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
+  app.use(
+    helmet.default({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
       },
-    },
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-    },
-  }));
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+      },
+    }),
+  );
 
   // CORS — user has 2 origins, defaulting to placeholders they can update
   app.enableCors({

@@ -147,7 +147,6 @@ export class InvoicesService {
       }, 0);
     };
     const totalCurrency = payment.currency;
-    let totalCost = 0;
     const invoiceStatus =
       totalAmount - payment.amount === 0
         ? InvoiceStatus.paid

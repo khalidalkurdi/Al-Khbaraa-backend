@@ -79,7 +79,6 @@ import { PayrollRecordsModule } from './payroll-records/payroll-records.module';
     // Finance
     FinanceModule,
 
-
     // Dashboard
     DashboardModule,
 
