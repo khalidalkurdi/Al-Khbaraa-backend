@@ -29,18 +29,31 @@ export class MovementsService {
     const executeMovement = async (
       client: Prisma.TransactionClient | PrismaService,
     ) => {
-      const part = await client.sparePart.findUnique({
-        where: { id: dto.partId },
-      });
+      const quantityDelta = this.getQuantityDelta(dto.movementType, dto.quantity);
 
-      if (!part) {
-        throw new NotFoundException('القطعة غير موجودة');
-      }
+      if (dto.movementType === MovementType.issue) {
+        const result = await client.sparePart.updateMany({
+          where: {
+            id: dto.partId,
+            quantity: { gte: dto.quantity },
+          },
+          data: { quantity: { decrement: dto.quantity } },
+        });
 
-      const newQuantity = part.quantity + quantityDelta;
-
-      if (newQuantity < 0) {
-        throw new BadRequestException('لا يمكن أن تكون الكمية النهائية سالبة');
+        if (result.count === 0) {
+          const part = await client.sparePart.findUnique({
+            where: { id: dto.partId },
+          });
+          if (!part) {
+            throw new NotFoundException('القطعة غير موجودة');
+          }
+          throw new BadRequestException('لا يمكن أن تكون الكمية النهائية سالبة');
+        }
+      } else {
+        await client.sparePart.update({
+          where: { id: dto.partId },
+          data: { quantity: { increment: dto.quantity } },
+        });
       }
 
       const movementNo = await this.movementNoUtil.generateUniqueMovementNo();
@@ -61,10 +74,6 @@ export class MovementsService {
         },
       });
 
-      await client.sparePart.update({
-        where: { id: dto.partId },
-        data: { quantity: newQuantity },
-      });
       this.logger.log(
         `Movement ${movementNo} created for part ${dto.partId} by user ${responsibleId}`,
       );
