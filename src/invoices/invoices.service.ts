@@ -214,7 +214,11 @@ export class InvoicesService {
           invoiceId: createdInvoice.id,
         };
         //create first payment
-        await this.paymentsService.create(dto, user, tx);
+        const invoiceWithPayments = await this.paymentsService.create(
+          dto,
+          user,
+          tx,
+        );
 
         if (locationURL !== undefined) {
           await tx.customer.update({
@@ -228,10 +232,6 @@ export class InvoicesService {
         await tx.request.update({
           where: { id: createInvoiceDto.requestId },
           data: { hasInvoice: true },
-        });
-        const invoiceWithPayments = await tx.invoice.findUnique({
-          where: { id: createdInvoice.id },
-          include: { items: true, payments: true },
         });
 
         return invoiceWithPayments;

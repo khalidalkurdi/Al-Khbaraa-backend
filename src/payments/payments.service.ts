@@ -157,7 +157,13 @@ export class PaymentsService {
           : latestInvoice.status;
 
       let updatedInvoice;
-      if (existingPayments !== 0) {
+      if (existingPayments === 0 && latestInvoice.paidAmount.greaterThan(0)) {
+        const invoiceWithPayments = await tx.invoice.findUnique({
+          where: { id: invoiceId },
+          include: { items: true, payments: true },
+        });
+        updatedInvoice = invoiceWithPayments;
+      } else {
         updatedInvoice = await tx.invoice.update({
           where: { id: invoiceId },
           data: {
@@ -165,7 +171,7 @@ export class PaymentsService {
             remainingAmount: { decrement: convertedAmount },
             status: latestNewStatus,
           },
-          include: { payments: true },
+          include: { items: true, payments: true },
         });
       }
 
