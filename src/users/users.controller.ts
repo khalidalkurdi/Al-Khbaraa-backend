@@ -259,9 +259,10 @@ export class UsersController {
         'حجم الصورة الشخصية يتجاوز 5 ميجابايت',
         'نوع ملف الصورة الشخصية غير صالح',
       );
-      const targetFilename = existingUser.profileImagePath
-        ? path.basename(existingUser.profileImagePath)
-        : await this.imageNumberUtil.getNextImageFilename(profileImage.originalname);
+      const targetFilename = this.imageNumberUtil.replaceImageExtension(
+        existingUser.profileImagePath,
+        profileImage.originalname,
+      );
       if (existingUser.profileImagePath) {
         const oldPath = path.join(process.cwd(), existingUser.profileImagePath);
         try {
@@ -269,7 +270,7 @@ export class UsersController {
         } catch {
         }
       }
-      await this.moveUploadedFile(profileImage, targetFilename);
+      await this.moveUploadedFile(profileImage, await targetFilename);
     }
 
     if (documentImage) {
@@ -278,9 +279,10 @@ export class UsersController {
         'حجم الصورة للوثيقة يتجاوز 5 ميجابايت',
         'نوع ملف صورة الوثيقة غير صالح',
       );
-      const targetFilename = existingUser.documentImagePath
-        ? path.basename(existingUser.documentImagePath)
-        : await this.imageNumberUtil.getNextImageFilename(documentImage.originalname);
+      const targetFilename = this.imageNumberUtil.replaceImageExtension(
+        existingUser.documentImagePath,
+        documentImage.originalname,
+      );
       if (existingUser.documentImagePath) {
         const oldPath = path.join(
           process.cwd(),
@@ -291,7 +293,7 @@ export class UsersController {
         } catch {
         }
       }
-      await this.moveUploadedFile(documentImage, targetFilename);
+      await this.moveUploadedFile(documentImage, await targetFilename);
     }
 
     const dataWithPaths: UpdateUserDto = { ...updateUserDto };
