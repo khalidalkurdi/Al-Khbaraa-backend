@@ -17,7 +17,7 @@ export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getSettings() {
-    const settings = await this.prisma.getCenterSettings();
+    const settings = await this.prisma.centerSettings.findFirst();
     if (!settings) {
       throw new NotFoundException('إعدادات المركز غير موجودة');
     }
@@ -25,7 +25,7 @@ export class SettingsService {
   }
 
   async updateSettings(payload: UpdateSettingsDto, file?: Express.Multer.File) {
-    const existing = await this.prisma.getCenterSettings();
+    const existing = await this.prisma.centerSettings.findFirst();
 
     let logoPath: string | undefined;
     if (file) {
@@ -47,7 +47,7 @@ export class SettingsService {
 
     // Clean payload to remove undefined and empty values
     const cleanPayload: Record<string, unknown> = Object.fromEntries(
-      Object.entries(payload).filter(([key, v]) => {
+      Object.entries(payload).filter(([, v]) => {
         if (v === undefined || v === '') {
           return false;
         }
