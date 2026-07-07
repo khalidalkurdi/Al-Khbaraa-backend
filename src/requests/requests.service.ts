@@ -878,8 +878,31 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async update(id: string, updateRequestDto: UpdateRequestDto, userId: string) {
-    const { devices, customer, technicianId, ...updateData } = updateRequestDto;
+  async update(
+    id: string,
+    updateRequestDto: UpdateRequestDto,
+    userId: string,
+    userRole?: string,
+  ) {
+    let dto = updateRequestDto;
+
+    if (userRole === 'Employee') {
+      const allowedFields = [
+        'technicianId',
+        'status',
+        'scheduledDate',
+        'priority',
+      ];
+      const filtered: Record<string, unknown> = {};
+      for (const field of allowedFields) {
+        if (updateRequestDto[field as keyof UpdateRequestDto] !== undefined) {
+          filtered[field] = updateRequestDto[field as keyof UpdateRequestDto];
+        }
+      }
+      dto = filtered as UpdateRequestDto;
+    }
+
+    const { devices, customer, technicianId, ...updateData } = dto;
 
     const existing = await this.prisma.request.findUnique({
       where: { id },

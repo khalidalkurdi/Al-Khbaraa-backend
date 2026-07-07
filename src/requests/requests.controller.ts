@@ -128,7 +128,12 @@ export class RequestsController {
     @Body() updateRequestDto: UpdateRequestDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.requestsService.update(id, updateRequestDto, req.user.id);
+    return this.requestsService.update(
+      id,
+      updateRequestDto,
+      req.user.id,
+      req.user.role,
+    );
   }
 
   @Get(':id/status-history')
