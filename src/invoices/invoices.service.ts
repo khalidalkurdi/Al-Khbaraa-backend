@@ -16,6 +16,7 @@ import {
   MovementType,
   RequestType,
   Prisma,
+  RequestStatus,
 } from '@prisma/client';
 import { CurrencyEnum } from './enums/currency.enum';
 import { MovementsService } from 'src/inventory/movements.service';
@@ -51,6 +52,17 @@ export class InvoicesService {
     if (!request) {
       throw new NotFoundException('الطلب غير موجود');
     }
+    const allowedStatuses: RequestStatus[] = [
+      RequestStatus.completed,
+      RequestStatus.incompleted,
+      RequestStatus.pulltocenter,
+    ];
+    if (!allowedStatuses.includes(request.status)) {
+      throw new BadRequestException(
+        'يجب تحديث حالة الطلب الى مكتمل او غير مكتمل او مسحوب للمركز قبل انشاء الفاتورة',
+      );
+    }
+
     const existingInvoice = await this.prisma.invoice.findUnique({
       where: { requestId: createInvoiceDto.requestId },
       select: { id: true, invoiceNumber: true, status: true },
@@ -205,7 +217,7 @@ export class InvoicesService {
           for (const item of items) {
             const dto: CreateStockMovementDto = {
               partId: item.sparePartId,
-              movementType: MovementType.issue,
+              movementType: MovementType.sale,
               quantity: item.quantity,
               reference: 'استهلاك فواتير',
             };
@@ -235,7 +247,10 @@ export class InvoicesService {
         );
         await tx.request.update({
           where: { id: createInvoiceDto.requestId },
-          data: { hasInvoice: true },
+          data: {
+            hasInvoice: true,
+            isCompleted: invoiceStatus === InvoiceStatus.paid ? true : false,
+          },
         });
 
         return invoiceWithPayments;
