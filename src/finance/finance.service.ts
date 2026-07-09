@@ -354,6 +354,71 @@ export class FinanceService {
     };
   }
 
+  async getSalesProfits(date: string) {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new BadRequestException('التاريخ غير صالح. يجب أن يكون بصيغة YYYY-MM-DD');
+    }
+
+    this.logger.log(`Generating sales profits report for date ${date}`);
+
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        createdAt: { gte: start, lte: end },
+        status: { not: 'refunded' },
+        isActive: true,
+      },
+      include: {
+        payments: {
+          where: { isActive: true },
+          orderBy: { paidAt: 'asc' },
+        },
+      },
+    });
+
+    let totalSales = 0;
+    let totalPaid = 0;
+    let totalRemaining = 0;
+    let totalPartsCost = 0;
+    let netProfit = 0;
+
+    for (const invoice of invoices) {
+      const firstPayment = invoice.payments[0];
+      const rate = firstPayment ? toDecimal(firstPayment.dollarExchangeRate) : 0;
+
+      const toSyp = (value: any) =>
+        invoice.totalCurrency === 'USD' ? toDecimal(value) * rate : toDecimal(value);
+
+      totalSales += toSyp(invoice.totalAmount);
+      totalRemaining += toSyp(invoice.remainingAmount);
+      netProfit += toSyp(invoice.netProfit);
+      totalPartsCost += toDecimal(invoice.totalCostSyp);
+
+      for (const payment of invoice.payments) {
+        const paidInSyp =
+          payment.currency === 'USD'
+            ? toDecimal(payment.convertedAmount)
+            : toDecimal(payment.amount);
+        totalPaid += paidInSyp;
+      }
+    }
+
+    return {
+      date: start.toISOString(),
+      totalSales: toFixed2(totalSales),
+      totalPaid: toFixed2(totalPaid),
+      totalRemaining: toFixed2(totalRemaining),
+      totalPartsCost: toFixed2(totalPartsCost),
+      netProfit: toFixed2(netProfit),
+      invoiceCount: invoices.length,
+    };
+  }
+
   async getSummary(startDate: string, endDate: string) {
     const start = new Date(startDate);
     const end = new Date(endDate);

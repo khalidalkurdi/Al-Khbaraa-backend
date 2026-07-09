@@ -26,6 +26,7 @@ import { FinanceService } from './finance.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { FinanceSummaryQueryDto } from './dto/finance-summary-query.dto';
+import { FinanceDateQueryDto } from './dto/finance-date-query.dto';
 
 interface AuthenticatedRequest {
   user: {
@@ -124,24 +125,19 @@ export class FinanceController {
   @Get('summary')
   @Roles('Admin')
   @ApiOperation({
-    summary: 'Generate monthly financial summary for a date range',
+    summary: 'تقرير المبيعات والأرباح لفواتير تاريخ محدد',
   })
   @ApiQuery({
-    name: 'startDate',
+    name: 'date',
     required: true,
-    description: 'Start date (ISO 8601)',
+    description: 'التاريخ (YYYY-MM-DD)',
   })
-  @ApiQuery({
-    name: 'endDate',
-    required: true,
-    description: 'End date (ISO 8601)',
-  })
-  @ApiResponse({ status: 200, description: 'الملخص المالي', type: Object })
-  @ApiResponse({ status: 400, description: 'طلب غير صالح - تواريخ غير صالحة' })
+  @ApiResponse({ status: 200, description: 'تقرير المبيعات والأرباح', type: Object })
+  @ApiResponse({ status: 400, description: 'طلب غير صالح - تاريخ غير صالح' })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
-  async getSummary(@Query() query: FinanceSummaryQueryDto) {
-    return this.financeService.getSummary(query.startDate, query.endDate);
+  async salesProfits(@Query() query: FinanceDateQueryDto) {
+    return this.financeService.getSalesProfits(query.date);
   }
 
   @Get('reports/pdf')
