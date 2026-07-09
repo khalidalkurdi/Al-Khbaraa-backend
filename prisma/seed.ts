@@ -22,12 +22,12 @@ async function main() {
   });
 
   if (!existingAdmin) {
-    const passwordHash = (await bcrypt.hash(adminPassword, 10)) as string;
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
     const adminRole = await prisma.role.findUnique({
       where: { name: 'Admin' },
     });
 
-    const adminUser = await prisma.user.create({
+    await prisma.user.create({
       data: {
         email: adminEmail,
         passwordHash,
@@ -38,7 +38,6 @@ async function main() {
         phone: '',
         salary: 0,
         tokenDevice: '',
-        lastLoginAt: new Date(),
       },
     });
   } else {

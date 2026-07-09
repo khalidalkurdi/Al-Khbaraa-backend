@@ -59,7 +59,7 @@ enum RequestStatus {
 
 enum MovementType {
   supply
-  issue
+  sale
   adjust
   return
 }
@@ -338,6 +338,7 @@ model Invoice {
   status      InvoiceStatus @default(paid_partial) // 'paid', 'paid_partial', 'refunded'
   isActive               Boolean  @default(true) @map("is_active")
   netProfit            Decimal  @default(0.00) @map("net_profit") @db.Decimal(12, 2)
+  totalCostSyp  Decimal   @default(0.0) @map("total_cost") @db.Decimal(12, 2)
   totalAmount            Decimal  @default(0.00) @map("total_amount") @db.Decimal(12, 2)
   totalCurrency          Currency @default(SYP) @map("total_currency")
   paidAmount             Decimal  @default(0.00) @map("paid_amount") @db.Decimal(12, 2)
