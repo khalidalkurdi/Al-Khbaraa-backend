@@ -346,11 +346,17 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         data: { isActive: false },
       });
 
-      const assignment = await tx.technicianAssignment.create({
-        data: {
+      const assignment = await tx.technicianAssignment.upsert({
+        where: { requestId_technicianId: { requestId: id, technicianId } },
+        create: {
           requestId: id,
           technicianId,
           assignedBy: userId,
+        },
+        update: {
+          isActive: true,
+          assignedBy: userId,
+          assignedAt: new Date(),
         },
         include: {
           technician: {
