@@ -32,13 +32,13 @@ export class MovementsService {
         dto.quantity,
       );
 
-      if (dto.movementType === MovementType.issue) {
+      if (dto.movementType === MovementType.return) {
         const result = await client.sparePart.updateMany({
           where: {
             id: dto.partId,
             quantity: { gte: dto.quantity },
           },
-          data: { quantity: { decrement: dto.quantity } },
+          data: { quantity: { increment: dto.quantity } },
         });
 
         if (result.count === 0) {
@@ -146,7 +146,7 @@ export class MovementsService {
     switch (movementType) {
       case MovementType.supply:
         return quantity;
-      case MovementType.issue:
+      case MovementType.sale:
         return -quantity;
       case MovementType.return:
         return quantity;
