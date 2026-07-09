@@ -180,6 +180,7 @@ export class InvoicesService {
         await validateStock(tx);
 
         const totalCost = calculateCost(totalCurrency);
+        const totalCostSyp = calculateCost(CurrencyEnum.SYP);
         const netProfit = totalAmount - totalCost;
 
         const invoiceNumber = await this.generateUniqueInvoiceNumber();
@@ -190,6 +191,7 @@ export class InvoicesService {
             type,
             status: invoiceStatus,
             netProfit,
+            totalCostSyp,
             totalAmount,
             totalCurrency,
             paidAmount,
@@ -261,6 +263,64 @@ export class InvoicesService {
     );
 
     return invoice;
+  }
+
+  async refund(id: string, user: AuthenticatedUser) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id },
+      select: { id: true, status: true, requestId: true },
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('الفاتورة غير موجودة');
+    }
+
+    if (
+      invoice.status !== InvoiceStatus.paid &&
+      invoice.status !== InvoiceStatus.paid_partial
+    ) {
+      throw new BadRequestException(
+        'لا يمكن استرجاع فاتورة غير مدفوعة أو غير مكتملة الدفع',
+      );
+    }
+
+    const invoiceItems = await this.prisma.invoiceItem.findMany({
+      where: { invoiceId: id, isActive: true },
+      select: { sparePartId: true, quantity: true },
+    });
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const refundedInvoice = await tx.invoice.update({
+          where: { id },
+          data: { status: InvoiceStatus.refunded },
+        });
+
+        await tx.request.update({
+          where: { id: invoice.requestId },
+          data: { isCompleted: false },
+        });
+
+        for (const item of invoiceItems) {
+          const dto: CreateStockMovementDto = {
+            partId: item.sparePartId,
+            movementType: MovementType.return,
+            quantity: item.quantity,
+            reference: 'استرجاع فاتورة',
+          };
+          await this.movementsService.create(dto, user.id, tx);
+        }
+
+        this.logger.log(
+          `Invoice ${refundedInvoice.invoiceNumber} refunded by user ${user.id}`,
+        );
+
+        return refundedInvoice;
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      },
+    );
   }
 
   async findAll(query: InvoiceQueryDto) {

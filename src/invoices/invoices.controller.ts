@@ -101,6 +101,22 @@ export class InvoicesController {
     return this.invoicesService.findOne(id, user.id, isTechnician);
   }
 
+  @Post(':id/refund')
+  @Roles('Admin')
+  @ApiOperation({ summary: 'Refund an invoice (Admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'تم استرجاع الفاتورة بنجاح',
+  })
+  @ApiResponse({ status: 400, description: 'الفاتورة غير قابلة للاسترجاع' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع - الصلاحيات غير كافية' })
+  @ApiResponse({ status: 404, description: 'الفاتورة غير موجودة' })
+  async refund(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+    const user = req.user;
+    return this.invoicesService.refund(id, user);
+  }
+
   @Get(':id/pdf')
   @Roles('Admin', 'Manager', 'Employee', 'Technician')
   @ApiBearerAuth()
