@@ -27,31 +27,44 @@ export class MovementsService {
     const executeMovement = async (
       client: Prisma.TransactionClient | PrismaService,
     ) => {
-      const quantityDelta = this.getQuantityDelta(
-        dto.movementType,
-        dto.quantity,
-      );
-
-      if (dto.movementType === MovementType.return) {
-        const result = await client.sparePart.updateMany({
-          where: {
-            id: dto.partId,
-            quantity: { gte: dto.quantity },
-          },
-          data: { quantity: { increment: dto.quantity } },
+      if (dto.movementType === MovementType.adjust) {
+        const part = await client.sparePart.findUnique({
+          where: { id: dto.partId },
         });
 
-        if (result.count === 0) {
-          const part = await client.sparePart.findUnique({
-            where: { id: dto.partId },
-          });
-          if (!part) {
-            throw new NotFoundException('القطعة غير موجودة');
-          }
+        if (!part) {
+          throw new NotFoundException('القطعة غير موجودة');
+        }
+
+        if (dto.quantity < 0 && part.quantity + dto.quantity < 0) {
           throw new BadRequestException(
             'لا يمكن أن تكون الكمية النهائية سالبة',
           );
         }
+
+        await client.sparePart.update({
+          where: { id: dto.partId },
+          data: { quantity: { increment: dto.quantity } },
+        });
+      } else if (dto.movementType === MovementType.sale) {
+        const part = await client.sparePart.findUnique({
+          where: { id: dto.partId },
+        });
+
+        if (!part) {
+          throw new NotFoundException('القطعة غير موجودة');
+        }
+
+        if (dto.quantity > part.quantity) {
+          throw new BadRequestException(
+            'لا يمكن أن تكون الكمية النهائية سالبة',
+          );
+        }
+
+        await client.sparePart.update({
+          where: { id: dto.partId },
+          data: { quantity: { increment: -dto.quantity } },
+        });
       } else {
         await client.sparePart.update({
           where: { id: dto.partId },
