@@ -1,6 +1,12 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as admin from 'firebase-admin';
+import {
+  cert,
+  getApps,
+  initializeApp,
+  ServiceAccount,
+} from 'firebase-admin/app';
+import { getMessaging, Messaging } from 'firebase-admin/messaging';
 
 @Injectable()
 export class FirebaseAdminProvider implements OnModuleInit {
@@ -23,10 +29,10 @@ export class FirebaseAdminProvider implements OnModuleInit {
     }
 
     try {
-      const credentials = JSON.parse(credentialsJson) as admin.ServiceAccount;
-      if (admin.apps.length === 0) {
-        admin.initializeApp({
-          credential: admin.credential.cert(credentials),
+      const credentials = JSON.parse(credentialsJson) as ServiceAccount;
+      if (getApps().length === 0) {
+        initializeApp({
+          credential: cert(credentials),
         });
       }
       this.fcmEnabled = true;
@@ -49,11 +55,11 @@ export class FirebaseAdminProvider implements OnModuleInit {
     return this.initError;
   }
 
-  getMessaging(): admin.messaging.Messaging | null {
+  getMessaging(): Messaging | null {
     if (!this.fcmEnabled) {
       return null;
     }
 
-    return admin.messaging();
+    return getMessaging();
   }
 }
