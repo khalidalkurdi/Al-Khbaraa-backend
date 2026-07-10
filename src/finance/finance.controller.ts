@@ -132,46 +132,15 @@ export class FinanceController {
     required: true,
     description: 'التاريخ (YYYY-MM-DD)',
   })
-  @ApiResponse({ status: 200, description: 'تقرير المبيعات والأرباح', type: Object })
+  @ApiResponse({
+    status: 200,
+    description: 'تقرير المبيعات والأرباح',
+    type: Object,
+  })
   @ApiResponse({ status: 400, description: 'طلب غير صالح - تاريخ غير صالح' })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
   async salesProfits(@Query() query: FinanceDateQueryDto) {
     return this.financeService.getSalesProfits(query.date);
-  }
-
-  @Get('reports/pdf')
-  @Roles('Admin')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Generate financial report PDF for a date range' })
-  @ApiQuery({
-    name: 'startDate',
-    required: true,
-    description: 'Start date (ISO 8601)',
-  })
-  @ApiQuery({
-    name: 'endDate',
-    required: true,
-    description: 'End date (ISO 8601)',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'تم إرجاع مستند PDF',
-    content: {
-      'application/pdf': { schema: { type: 'string', format: 'binary' } },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'طلب غير صالح - تواريخ غير صالحة' })
-  @ApiResponse({ status: 401, description: 'غير مصرح' })
-  @ApiResponse({ status: 403, description: 'ممنوع' })
-  async generateReportPdf(
-    @Query() query: FinanceSummaryQueryDto,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const data = await this.financeService.getFinancialReportPdfData(
-      query.startDate,
-      query.endDate,
-    );
-    return data;
   }
 }

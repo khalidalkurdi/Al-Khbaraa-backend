@@ -534,26 +534,4 @@ export class DashboardService {
 
     return { overall, technicians: techniciansResult };
   }
-
-  async getFinancialReport(query: FinancialReportQueryDto) {
-    this.logger.log(
-      `Fetching financial report from ${query.startDate} to ${query.endDate}`,
-    );
-
-    const data = await this.financeService.getFinancialReportPdfData(
-      query.startDate,
-      query.endDate,
-    );
-
-    return {
-      periodStart: data.periodStart,
-      periodEnd: data.periodEnd,
-      totalRevenues: data.totalRevenues,
-      fixedCosts: data.fixedCosts,
-      variableCosts: data.variableCosts,
-      partsCosts: data.partsCosts,
-      netProfit: data.netProfit,
-      assumptions: data.assumptions,
-    };
-  }
 }

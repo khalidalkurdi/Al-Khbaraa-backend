@@ -34,17 +34,4 @@ export class DashboardController {
   async getTechnicianPerformance(): Promise<TechnicianPerformanceResponseDto> {
     return this.dashboardService.getTechnicianPerformance();
   }
-
-  @Get('financial-report')
-  @Roles('Admin')
-  @UseGuards(RolesGuard)
-  @ApiBearerAuth()
-  @ApiResponse({ status: 401, description: 'غير مصرح' })
-  @ApiResponse({ status: 403, description: 'ممنوع' })
-  @ApiResponse({ status: 404, description: 'التقرير المالي غير موجود' })
-  async getFinancialReport(@Query() query: FinancialReportQueryDto) {
-    const data = await this.dashboardService.getFinancialReport(query);
-
-    return data;
-  }
 }
