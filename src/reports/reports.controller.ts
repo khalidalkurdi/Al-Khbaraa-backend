@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -25,7 +20,7 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('requests')
-  @Roles('Admin', 'Manager')
+  @Roles('Admin')
   @ApiOperation({ summary: 'تقرير الطلبات لفترة زمنية (بحد أقصى 3 أشهر)' })
   @ApiQuery({ name: 'startDate', required: true, description: 'تاريخ البداية' })
   @ApiQuery({ name: 'endDate', required: true, description: 'تاريخ النهاية' })
@@ -34,11 +29,14 @@ export class ReportsController {
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
   async requestsReport(@Query() query: ReportDateRangeQueryDto) {
-    return this.reportsService.getRequestsReport(query.startDate, query.endDate);
+    return this.reportsService.getRequestsReport(
+      query.startDate,
+      query.endDate,
+    );
   }
 
   @Get('technicians')
-  @Roles('Admin', 'Manager')
+  @Roles('Admin')
   @ApiOperation({ summary: 'تقارير الفنيين لفترة زمنية (بحد أقصى 3 أشهر)' })
   @ApiQuery({ name: 'startDate', required: true, description: 'تاريخ البداية' })
   @ApiQuery({ name: 'endDate', required: true, description: 'تاريخ النهاية' })
@@ -54,8 +52,10 @@ export class ReportsController {
   }
 
   @Get('inventory-movements')
-  @Roles('Admin', 'Manager')
-  @ApiOperation({ summary: 'تقارير حركة المخزون لفترة زمنية (بحد أقصى 3 أشهر)' })
+  @Roles('Admin')
+  @ApiOperation({
+    summary: 'تقارير حركة المخزون لفترة زمنية (بحد أقصى 3 أشهر)',
+  })
   @ApiQuery({ name: 'startDate', required: true, description: 'تاريخ البداية' })
   @ApiQuery({ name: 'endDate', required: true, description: 'تاريخ النهاية' })
   @ApiResponse({ status: 200, description: 'تقارير حركة المخزون' })
@@ -70,7 +70,7 @@ export class ReportsController {
   }
 
   @Get('financial')
-  @Roles('Admin', 'Manager')
+  @Roles('Admin')
   @ApiOperation({ summary: 'التقارير المالية لفترة زمنية (بحد أقصى 3 أشهر)' })
   @ApiQuery({ name: 'startDate', required: true, description: 'تاريخ البداية' })
   @ApiQuery({ name: 'endDate', required: true, description: 'تاريخ النهاية' })
