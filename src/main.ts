@@ -42,7 +42,11 @@ async function bootstrap() {
 
   // CORS — user has 2 origins, defaulting to placeholders they can update
   app.enableCors({
-    origin: ['http://localhost:3001', 'http://localhost:3002'],
+    origin: [
+      'http://localhost:3001',
+      'http://localhost:3000',
+      'https://maintenancees-sy.net',
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
