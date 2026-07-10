@@ -168,7 +168,7 @@ export class UsersController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles('Admin')
+  @Roles('Admin', 'Manager', 'Employee', 'Technician')
   @ApiBearerAuth()
   @ApiQuery({
     name: 'role',
