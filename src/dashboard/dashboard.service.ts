@@ -2,10 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DashboardStatsResponseDto } from './dto/dashboard-stats-response.dto';
 import { TechnicianPerformanceTimelineDto } from './dto/technician-performance-response.dto';
-import {
-  FinancialReportQueryDto,
-  FinancialReportResponseDto,
-} from './dto/financial-report-query.dto';
+
 import { FinanceService } from '../finance/finance.service';
 import { RequestStatus } from '@prisma/client';
 import { toSyriaDate } from '../common/utils/syria-date.util';
@@ -40,11 +37,10 @@ export class DashboardService {
       pulltocenterJobs,
       repeatedJobs,
       postponedJobs,
-      notrepairableJobs,
+      lostRequests,
       externalInvoices,
       internalInvoices,
       newCustomersToday,
-      totalRevenuesAgg,
     ] = await Promise.all([
       this.prisma.request.count({
         where: { createdAt: { gte: todayStart, lt: todayEnd }, isActive: true },
@@ -65,7 +61,7 @@ export class DashboardService {
       }),
       this.prisma.request.count({
         where: {
-          status: RequestStatus.completed,
+          isCompleted: true,
           createdAt: { gte: todayStart, lt: todayEnd },
           isActive: true,
         },
@@ -86,7 +82,7 @@ export class DashboardService {
       }),
       this.prisma.request.count({
         where: {
-          status: RequestStatus.repeated,
+          isRepeated: true,
           createdAt: { gte: todayStart, lt: todayEnd },
           isActive: true,
         },
@@ -100,7 +96,13 @@ export class DashboardService {
       }),
       this.prisma.request.count({
         where: {
-          status: RequestStatus.notrepairable,
+          status: {
+            in: [
+              RequestStatus.cancelled,
+              RequestStatus.notanswer,
+              RequestStatus.notrepairable,
+            ],
+          },
           createdAt: { gte: todayStart, lt: todayEnd },
           isActive: true,
         },
@@ -125,21 +127,12 @@ export class DashboardService {
           isActive: true,
         },
       }),
-      this.prisma.payment.aggregate({
-        _sum: { convertedAmount: true },
-        where: {
-          paidAt: { gte: todayStart, lt: todayEnd },
-          isActive: true,
-        },
-      }),
     ]);
 
     const toDecimal = (value: unknown): number => {
       if (value === null || value === undefined) return 0;
       return Number(value);
     };
-
-    const totalRevenuesSyp = toDecimal(totalRevenuesAgg._sum.convertedAmount);
 
     const todayPayments = await this.prisma.payment.findMany({
       where: {
@@ -165,8 +158,28 @@ export class DashboardService {
     const center = await this.prisma.centerSettings.findFirst();
     const exchangeRate = toDecimal(center?.dollarExchangeRate);
 
+    const paymentsForRevenue = await this.prisma.payment.findMany({
+      where: {
+        paidAt: { gte: todayStart, lt: todayEnd },
+        isActive: true,
+      },
+      select: {
+        amount: true,
+        currency: true,
+        dollarExchangeRate: true,
+      },
+    });
+
+    const totalRevenuesSyp = paymentsForRevenue.reduce((sum, payment) => {
+      const amount = toDecimal(payment.amount);
+      if (payment.currency === 'USD') {
+        const rate = toDecimal(payment.dollarExchangeRate);
+        return sum + amount * rate;
+      }
+      return sum + amount;
+    }, 0);
+
     let salesSyp = 0;
-    let partsCosts = 0;
     const processedInvoiceIds = new Set<string>();
 
     for (const payment of todayPayments) {
@@ -183,15 +196,35 @@ export class DashboardService {
       }
 
       salesSyp += invoiceTotalSyp;
-
-      const invoicePartsCost = invoice.items.reduce(
-        (sum, item) => sum + toDecimal(item.sparePart.costSyp) * item.quantity,
-        0,
-      );
-      partsCosts += invoicePartsCost;
     }
 
-    const netProfitTodaySyp = salesSyp - partsCosts;
+    const invoiceGroups = new Map<string, { invoice: any; payments: any[] }>();
+    for (const payment of todayPayments) {
+      const existing = invoiceGroups.get(payment.invoiceId);
+      if (existing) {
+        existing.payments.push(payment);
+      } else {
+        invoiceGroups.set(payment.invoiceId, {
+          invoice: payment.invoice,
+          payments: [payment],
+        });
+      }
+    }
+
+    let netProfitTodaySyp = 0;
+    for (const { invoice, payments } of invoiceGroups.values()) {
+      const netProfit = toDecimal(invoice.netProfit);
+      if (invoice.totalCurrency === 'USD') {
+        const sortedPayments = [...payments].sort(
+          (a, b) => a.paidAt.getTime() - b.paidAt.getTime(),
+        );
+        const firstPayment = sortedPayments[0];
+        const rate = toDecimal(firstPayment.dollarExchangeRate);
+        netProfitTodaySyp += netProfit * rate;
+      } else {
+        netProfitTodaySyp += netProfit;
+      }
+    }
 
     const lastRequestsRaw = await this.prisma.request.findMany({
       where: { isActive: true },
@@ -235,7 +268,7 @@ export class DashboardService {
       pulltocenterCount: pulltocenterJobs,
       repeatedCount: repeatedJobs,
       postponedCount: postponedJobs,
-      notrepairableCount: notrepairableJobs,
+      notrepairableCount: lostRequests,
       externalInvoicesCount: externalInvoices,
       internalInvoicesCount: internalInvoices,
       newCustomersToday: newCustomersToday,

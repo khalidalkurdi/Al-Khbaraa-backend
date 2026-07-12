@@ -2,7 +2,6 @@ import { Controller, Get, Query, UseGuards, Res } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { DashboardStatsResponseDto } from './dto/dashboard-stats-response.dto';
 import { TechnicianPerformanceResponseDto } from './dto/technician-performance-response.dto';
-import { FinancialReportQueryDto } from './dto/financial-report-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
