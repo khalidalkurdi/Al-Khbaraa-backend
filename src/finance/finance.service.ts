@@ -229,93 +229,69 @@ export class FinanceService {
     };
   }
 
-  async getSummary(startDate: string, endDate: string) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+  async getMonthlyDues(date: string) {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(date);
     end.setHours(23, 59, 59, 999);
 
-    if (start > end) {
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
       throw new BadRequestException(
-        'يجب أن يكون startDate قبل أو يساوي endDate',
+        'التاريخ غير صالح. يجب أن يكون بصيغة YYYY-MM-DD',
       );
     }
 
-    this.logger.log(
-      `Generating financial summary from ${startDate} to ${endDate}`,
-    );
+    this.logger.log(`Calculating monthly dues for date ${date}`);
 
-    const startMonth = start.getMonth() + 1;
-    const endMonth = end.getMonth() + 1;
-    const startYear = start.getFullYear();
-    const endYear = end.getFullYear();
+    const month = start.getMonth() + 1;
+    const year = start.getFullYear();
 
-    const [
-      revenuesResult,
-      salariesResult,
-      fixedExpensesResult,
-      variableExpensesResult,
-      partsCostsResult,
-    ] = await Promise.all([
-      this.prisma.payment.aggregate({
-        _sum: { convertedAmount: true },
-        where: {
-          paidAt: { gte: start, lte: end },
-          isActive: true,
+    const users = await this.prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        userNumber: true,
+        fullName: true,
+        salary: true,
+        payrollRecords: {
+          where: {
+            month,
+            year,
+            isActive: true,
+          },
         },
-      }),
-      this.prisma.user.aggregate({
-        _sum: { salary: true },
-        where: { isActive: true },
-      }),
-      this.prisma.expense.aggregate({
-        _sum: { amount: true },
-        where: { type: 'fixed', isActive: true },
-      }),
-      this.prisma.expense.aggregate({
-        _sum: { amount: true },
-        where: {
-          type: 'variable',
-          isActive: true,
-          ...buildExpenseMonthYearWhere(
-            startMonth,
-            startYear,
-            endMonth,
-            endYear,
-          ),
-        },
-      }),
+      },
+    });
 
-      this.prisma.$queryRaw<{ partsCost: number }[]>`
-        SELECT COALESCE(SUM(si.cost_syp * ii.quantity), 0) AS partsCost
-        FROM invoice_items ii
-        INNER JOIN invoices i ON ii.invoice_id = i.id
-        INNER JOIN spare_parts si ON ii.spare_part_id = si.id
-        INNER JOIN payments p ON p.invoice_id = i.id
-        WHERE p.paid_at >= ${start} AND p.paid_at <= ${end}
-          AND i.is_active = 1
-          AND ii.is_active = 1
-          AND p.is_active = 1
-      `,
-    ]);
+    const result = users.map((user) => {
+      const salary = toDecimal(user.salary);
+      let adjustments = 0;
 
-    const totalRevenues = toDecimal(revenuesResult._sum.convertedAmount);
-    const salariesSum = toDecimal(salariesResult._sum.salary);
-    const fixedExpensesSum = toDecimal(fixedExpensesResult._sum.amount);
-    const variableCosts = toDecimal(variableExpensesResult._sum.amount);
-    const partsCosts = toDecimal(partsCostsResult[0]?.partsCost);
+      for (const record of user.payrollRecords) {
+        const amount = toDecimal(record.amount);
+        if (record.type === 'deduction') {
+          adjustments -= amount;
+        } else {
+          adjustments += amount;
+        }
+      }
 
-    const fixedCosts = salariesSum + fixedExpensesSum;
-    const totalCosts = fixedCosts + variableCosts + partsCosts;
-    const netProfit = totalRevenues - totalCosts;
+      return {
+        userId: user.id,
+        userNumber: user.userNumber,
+        fullName: user.fullName,
+        salary: toFixed2(salary),
+        adjustments: toFixed2(adjustments),
+        monthlyDue: toFixed2(salary + adjustments),
+      };
+    });
 
     return {
-      totalRevenues: toFixed2(totalRevenues),
-      fixedCosts: toFixed2(fixedCosts),
-      variableCosts: toFixed2(variableCosts),
-      partsCosts: toFixed2(partsCosts),
-      netProfit: toFixed2(netProfit),
-      periodStart: start.toISOString(),
-      periodEnd: end.toISOString(),
+      date: start.toISOString(),
+      month,
+      year,
+      users: result,
     };
   }
 }

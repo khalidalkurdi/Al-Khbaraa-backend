@@ -143,4 +143,24 @@ export class FinanceController {
   async salesProfits(@Query() query: FinanceDateQueryDto) {
     return this.financeService.getSalesProfits(query.date);
   }
+
+  @Get('monthly-dues')
+  @Roles('Admin')
+  @ApiOperation({ summary: 'Get monthly dues for all active users' })
+  @ApiQuery({
+    name: 'date',
+    required: true,
+    description: 'التاريخ (YYYY-MM-DD)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'الرواتب الشهرية لجميع المستخدمين النشطين',
+    type: Object,
+  })
+  @ApiResponse({ status: 400, description: 'طلب غير صالح - تاريخ غير صالح' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  async monthlyDues(@Query() query: FinanceDateQueryDto) {
+    return this.financeService.getMonthlyDues(query.date);
+  }
 }
