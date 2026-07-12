@@ -12,6 +12,7 @@ import {
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { RequestType, PaymentMethod, InvoiceStatus } from '@prisma/client';
 import { CurrencyEnum } from '../enums/currency.enum';
+import { MinDate } from '../../common/validators/min-date.validator';
 
 export class InvoiceQueryDto {
   @ApiPropertyOptional({
@@ -63,6 +64,7 @@ export class InvoiceQueryDto {
   @IsOptional()
   @IsDateString({}, { message: 'تاريخ البداية غير صالح' })
   @MaxLength(10)
+  @MinDate({ message: 'تاريخ البداية يجب أن يكون في أو بعد 2026-07-10' })
   startDate?: string;
 
   @ApiPropertyOptional({
@@ -73,6 +75,7 @@ export class InvoiceQueryDto {
   @IsOptional()
   @IsDateString({}, { message: 'تاريخ النهاية غير صالح' })
   @MaxLength(10)
+  @MinDate({ message: 'تاريخ النهاية يجب أن يكون في أو بعد 2026-07-10' })
   endDate?: string;
 
   @ApiPropertyOptional({

@@ -1,7 +1,4 @@
-import {
-  ApiProperty,
-  ApiPropertyOptional,
-} from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   Validate,
@@ -10,11 +7,10 @@ import {
   ValidationArguments,
   ValidationOptions,
 } from 'class-validator';
+import { MinDate } from '../../common/validators/min-date.validator';
 
 @ValidatorConstraint({ name: 'maxDateRange', async: false })
-export class MaxDateRangeConstraint
-  implements ValidatorConstraintInterface
-{
+export class MaxDateRangeConstraint implements ValidatorConstraintInterface {
   validate(_value: unknown, args: ValidationArguments) {
     const object = args.object as ReportDateRangeQueryDto;
     const start = new Date(object.startDate);
@@ -59,6 +55,9 @@ export class ReportDateRangeQueryDto {
     {},
     { message: 'تاريخ البداية غير صالح. يجب أن يكون بصيغة YYYY-MM-DD' },
   )
+  @MinDate({
+    message: 'تاريخ البداية يجب أن يكون في أو بعد 2026-07-10',
+  })
   startDate: string;
 
   @ApiProperty({
@@ -70,6 +69,9 @@ export class ReportDateRangeQueryDto {
     {},
     { message: 'تاريخ النهاية غير صالح. يجب أن يكون بصيغة YYYY-MM-DD' },
   )
+  @MinDate({
+    message: 'تاريخ النهاية يجب أن يكون في أو بعد 2026-07-10',
+  })
   @MaxDateRange({
     message: 'الحد الأقصى للفترة بين startDate و endDate هو 3 أشهر',
   })

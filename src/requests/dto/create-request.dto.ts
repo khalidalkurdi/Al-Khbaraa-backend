@@ -12,6 +12,7 @@ import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateRequestDeviceDto } from './create-request-device.dto';
 import { RequestType, Priority } from '@prisma/client';
+import { MinDate } from '../../common/validators/min-date.validator';
 
 export class InlineCustomerDto {
   @ApiProperty({
@@ -124,6 +125,7 @@ export class CreateRequestDto {
   })
   @IsString()
   @IsOptional()
+  @MinDate({ message: 'التاريخ المحدد يجب أن يكون في أو بعد 2026-07-10' })
   scheduledDate?: string;
 
   @ApiProperty({

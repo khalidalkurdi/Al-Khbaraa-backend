@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'; // ✅ أضف هذا
 import { RequestStatus, Priority, RequestType } from '@prisma/client';
+import { MinDate } from '../../common/validators/min-date.validator';
 
 export class RequestQueryDto {
   @ApiPropertyOptional({
@@ -48,6 +49,7 @@ export class RequestQueryDto {
   })
   @IsOptional()
   @MaxLength(10)
+  @MinDate({ message: 'تاريخ البداية يجب أن يكون في أو بعد 2026-07-10' })
   startDate?: string;
 
   @ApiPropertyOptional({
@@ -57,6 +59,7 @@ export class RequestQueryDto {
   })
   @IsOptional()
   @MaxLength(10)
+  @MinDate({ message: 'تاريخ النهاية يجب أن يكون في أو بعد 2026-07-10' })
   endDate?: string;
 
   @ApiProperty({

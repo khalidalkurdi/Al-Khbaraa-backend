@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDateString } from 'class-validator';
+import { MinDate } from '../../common/validators/min-date.validator';
 
 export class FinanceDateQueryDto {
   @ApiProperty({
@@ -11,5 +12,8 @@ export class FinanceDateQueryDto {
     {},
     { message: 'التاريخ غير صالح. يجب أن يكون بصيغة YYYY-MM-DD' },
   )
+  @MinDate({
+    message: 'التاريخ يجب أن يكون في أو بعد 2026-07-10',
+  })
   date: string;
 }

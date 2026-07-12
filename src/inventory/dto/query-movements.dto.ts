@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsInt, Min, Max, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
+import { MinDate } from '../../common/validators/min-date.validator';
 
 export class QueryMovementsDto {
   @ApiPropertyOptional({
@@ -10,6 +11,7 @@ export class QueryMovementsDto {
   })
   @IsOptional()
   @MaxLength(10)
+  @MinDate({ message: 'تاريخ البداية يجب أن يكون في أو بعد 2026-07-10' })
   startDate?: string;
 
   @ApiPropertyOptional({
@@ -19,6 +21,7 @@ export class QueryMovementsDto {
   })
   @IsOptional()
   @MaxLength(10)
+  @MinDate({ message: 'تاريخ النهاية يجب أن يكون في أو بعد 2026-07-10' })
   endDate?: string;
   @ApiPropertyOptional({
     example: 1,
