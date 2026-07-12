@@ -166,7 +166,10 @@ export class RequestsController {
     status: 403,
     description: 'ممنوع - صلاحيات الدور غير كافية',
   })
-  @ApiResponse({ status: 200, description: 'تم إسناد الطلبات الموجودة وإرجاع الطلبات غير الموجودة' })
+  @ApiResponse({
+    status: 200,
+    description: 'تم إسناد الطلبات الموجودة وإرجاع الطلبات غير الموجودة',
+  })
   async assignBulk(
     @Body() assignTechnicianBulkDto: AssignTechnicianBulkDto,
     @Req() req: AuthenticatedRequest,

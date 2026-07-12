@@ -993,7 +993,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
           filtered[field] = updateRequestDto[field as keyof UpdateRequestDto];
         }
       }
-      dto = filtered as UpdateRequestDto;
+      dto = filtered;
     }
 
     const { devices, customer, technicianId, ...updateData } = dto;
