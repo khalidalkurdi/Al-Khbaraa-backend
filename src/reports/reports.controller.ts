@@ -11,6 +11,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ReportsService } from './reports.service';
 import { ReportDateRangeQueryDto } from './dto/report-date-range-query.dto';
+import { FinancialReportQueryDto } from './dto/financial-report-query.dto';
 
 @ApiTags('Reports')
 @ApiBearerAuth()
@@ -72,16 +73,24 @@ export class ReportsController {
   @Get('financial')
   @Roles('Admin')
   @ApiOperation({ summary: 'التقارير المالية لفترة زمنية (بحد أقصى 3 أشهر)' })
-  @ApiQuery({ name: 'startDate', required: true, description: 'تاريخ البداية' })
-  @ApiQuery({ name: 'endDate', required: true, description: 'تاريخ النهاية' })
+  @ApiQuery({
+    name: 'year',
+    required: true,
+    description: 'السنة',
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'months',
+    required: true,
+    description: 'قائمة الأشهر (بحد أقصى 3 أشهر)',
+    type: [Number],
+    example: [1, 2, 3],
+  })
   @ApiResponse({ status: 200, description: 'التقارير المالية' })
   @ApiResponse({ status: 400, description: 'طلب غير صالح - فترة غير صالحة' })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
-  async financialReport(@Query() query: ReportDateRangeQueryDto) {
-    return this.reportsService.getFinancialReport(
-      query.startDate,
-      query.endDate,
-    );
+  async financialReport(@Query() query: FinancialReportQueryDto) {
+    return this.reportsService.getFinancialReport(query.year, query.months);
   }
 }
