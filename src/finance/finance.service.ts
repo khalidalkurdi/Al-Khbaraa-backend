@@ -229,23 +229,8 @@ export class FinanceService {
     };
   }
 
-  async getMonthlyDues(date: string) {
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
-
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      throw new BadRequestException(
-        'التاريخ غير صالح. يجب أن يكون بصيغة YYYY-MM-DD',
-      );
-    }
-
-    this.logger.log(`Calculating monthly dues for date ${date}`);
-
-    const month = start.getMonth() + 1;
-    const year = start.getFullYear();
+  async getMonthlyDues(year: number, month: number) {
+    this.logger.log(`Calculating monthly dues for ${year}-${month}`);
 
     const users = await this.prisma.user.findMany({
       where: { isActive: true },
@@ -253,18 +238,30 @@ export class FinanceService {
         id: true,
         userNumber: true,
         fullName: true,
+        profileImagePath: true,
+        jobTitle: true,
         salary: true,
+        role: {
+          select: {
+            name: true,
+          },
+        },
         payrollRecords: {
           where: {
             month,
             year,
             isActive: true,
           },
+          select: {
+            type: true,
+            amount: true,
+            note: true,
+          },
         },
       },
     });
 
-    const result = users.map((user) => {
+    const result = users.map(user => {
       const salary = toDecimal(user.salary);
       let adjustments = 0;
 
@@ -280,17 +277,23 @@ export class FinanceService {
       return {
         userId: user.id,
         userNumber: user.userNumber,
+        profileImagePath: user.profileImagePath,
         fullName: user.fullName,
+        jobTitle: user.jobTitle,
+        roleName: user.role.name,
         salary: toFixed2(salary),
-        adjustments: toFixed2(adjustments),
+        payrolls: user.payrollRecords.map(record => ({
+          type: record.type,
+          amount: toFixed2(toDecimal(record.amount)),
+          note: record.note,
+        })),
         monthlyDue: toFixed2(salary + adjustments),
       };
     });
 
     return {
-      date: start.toISOString(),
-      month,
       year,
+      month,
       users: result,
     };
   }

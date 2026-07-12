@@ -27,6 +27,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { FinanceSummaryQueryDto } from './dto/finance-summary-query.dto';
 import { FinanceDateQueryDto } from './dto/finance-date-query.dto';
+import { MonthlyDuesQueryDto } from './dto/monthly-dues-query.dto';
 
 interface AuthenticatedRequest {
   user: {
@@ -148,19 +149,28 @@ export class FinanceController {
   @Roles('Admin')
   @ApiOperation({ summary: 'Get monthly dues for all active users' })
   @ApiQuery({
-    name: 'date',
+    name: 'year',
     required: true,
-    description: 'التاريخ (YYYY-MM-DD)',
+    description: 'السنة المالية',
+    example: 2024,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'month',
+    required: true,
+    description: 'الشهر (1-12)',
+    example: 6,
+    type: Number,
   })
   @ApiResponse({
     status: 200,
     description: 'الرواتب الشهرية لجميع المستخدمين النشطين',
     type: Object,
   })
-  @ApiResponse({ status: 400, description: 'طلب غير صالح - تاريخ غير صالح' })
+  @ApiResponse({ status: 400, description: 'طلب غير صالح - بيانات غير صالحة' })
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
-  async monthlyDues(@Query() query: FinanceDateQueryDto) {
-    return this.financeService.getMonthlyDues(query.date);
+  async monthlyDues(@Query() query: MonthlyDuesQueryDto) {
+    return this.financeService.getMonthlyDues(query.year, query.month);
   }
 }
