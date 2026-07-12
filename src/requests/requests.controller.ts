@@ -20,6 +20,7 @@ import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { UpdateRequestDto } from './dto/update-request.dto';
 import { RequestQueryDto } from './dto/request-query.dto';
+import { AssignTechnicianBulkDto } from './dto/assign-technician-bulk.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -149,5 +150,32 @@ export class RequestsController {
   })
   async getStatusHistory(@Param('id') id: string) {
     return this.requestsService.getStatusHistory(id);
+  }
+
+  @Post('assign-bulk')
+  @UseGuards(RolesGuard)
+  @Roles('Admin', 'Manager', 'Employee')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Assign multiple requests to a technician' })
+  @ApiResponse({ status: 201, description: 'تم إسناد الطلبات إلى الفني بنجاح' })
+  @ApiResponse({
+    status: 400,
+    description: 'بيانات غير صالحة - فني غير موجود أو غير نشط',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'ممنوع - صلاحيات الدور غير كافية',
+  })
+  @ApiResponse({ status: 200, description: 'تم إسناد الطلبات الموجودة وإرجاع الطلبات غير الموجودة' })
+  async assignBulk(
+    @Body() assignTechnicianBulkDto: AssignTechnicianBulkDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const { requestIds, technicianId } = assignTechnicianBulkDto;
+    return this.requestsService.assignTechnicianBulk(
+      requestIds,
+      technicianId,
+      req.user.id,
+    );
   }
 }

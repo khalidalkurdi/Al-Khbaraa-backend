@@ -395,6 +395,94 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     return { assignment: result };
   }
 
+  async assignTechnicianBulk(
+    requestIds: string[],
+    technicianId: string,
+    userId: string,
+  ) {
+    const technician = await this.prisma.user.findUnique({
+      where: { id: technicianId },
+    });
+
+    if (!technician) {
+      throw new BadRequestException('الفني غير موجود');
+    }
+
+    if (!technician.isActive) {
+      throw new BadRequestException('لا يمكن إسناد فني غير نشط');
+    }
+
+    const requests = await this.prisma.request.findMany({
+      where: { id: { in: requestIds } },
+      select: { id: true, requestNumber: true },
+    });
+
+    const foundIds = new Set(requests.map((r) => r.id));
+    const notFoundIds = requestIds.filter((id) => !foundIds.has(id));
+
+    const assignments = await this.prisma.$transaction(async (tx) => {
+      const result: Array<{ requestId: string; requestNumber: string }> = [];
+
+      for (const request of requests) {
+        await tx.technicianAssignment.updateMany({
+          where: { requestId: request.id, isActive: true },
+          data: { isActive: false },
+        });
+
+        await tx.technicianAssignment.upsert({
+          where: {
+            requestId_technicianId: {
+              requestId: request.id,
+              technicianId,
+            },
+          },
+          create: {
+            requestId: request.id,
+            technicianId,
+            assignedBy: userId,
+          },
+          update: {
+            isActive: true,
+            assignedBy: userId,
+            assignedAt: new Date(),
+          },
+        });
+
+        await tx.requestStatusHistory.create({
+          data: {
+            requestId: request.id,
+            status: 'new',
+            changedBy: userId,
+          },
+        });
+
+        result.push({
+          requestId: request.id,
+          requestNumber: request.requestNumber,
+        });
+      }
+
+      return result;
+    });
+
+    for (const request of assignments) {
+      void this.notificationsService
+        .sendPushNotification({
+          userId: technicianId,
+          title: 'تم تعيين طلب إصلاح جديد',
+          body: `تم تعيين الطلب رقم #${request.requestNumber} إليك`,
+        })
+        .catch((error: any) => {
+          this.logger.warn(`FCM push notification failed: ${error?.message}`);
+        });
+    }
+
+    return {
+      assignments,
+      notFoundRequestIds: notFoundIds,
+    };
+  }
+
   async removeAllAssignments(id: string, userId: string) {
     const request = await this.prisma.request.findUnique({
       where: { id },
