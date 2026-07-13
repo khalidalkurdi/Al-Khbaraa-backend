@@ -342,6 +342,10 @@ export class ReportsService {
     periodEnd.setHours(23, 59, 59, 999);
 
     const [
+      users,
+      payrolls,
+      fixedExpenses,
+      variableExpenses,
       salariesResult,
       fixedExpensesResult,
       variableExpensesResult,
@@ -349,6 +353,38 @@ export class ReportsService {
       payrollResult,
       paymentsForReport,
     ] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { isActive: true },
+        select: { fullName: true, salary: true },
+        orderBy: { fullName: 'asc' },
+      }),
+      this.prisma.payrollRecord.findMany({
+        where: {
+          year: year,
+          month: { in: months },
+          isActive: true,
+        },
+        include: {
+          user: {
+            select: { fullName: true },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.expense.findMany({
+        where: { type: 'fixed', isActive: true },
+        select: { type: true, amount: true, name: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.expense.findMany({
+        where: {
+          type: 'variable',
+          isActive: true,
+          OR: [{ year: year, month: { in: months } }],
+        },
+        select: { month: true, amount: true, name: true },
+        orderBy: { createdAt: 'asc' },
+      }),
       this.prisma.user.aggregate({
         _sum: { salary: true },
         where: { isActive: true },
@@ -400,7 +436,6 @@ export class ReportsService {
 
     let totalRevenuesSyp = 0;
     let totalSalesSyp = 0;
-    const invoiceFirstPaymentRate = new Map<string, number>();
     const processedSalesInvoices = new Set<string>();
 
     for (const payment of paymentsForReport) {
@@ -410,13 +445,6 @@ export class ReportsService {
         totalRevenuesSyp += amount * rate;
       } else {
         totalRevenuesSyp += amount;
-      }
-
-      if (!invoiceFirstPaymentRate.has(payment.invoiceId)) {
-        invoiceFirstPaymentRate.set(
-          payment.invoiceId,
-          toDecimal(payment.dollarExchangeRate),
-        );
       }
 
       if (!processedSalesInvoices.has(payment.invoiceId)) {
@@ -433,25 +461,48 @@ export class ReportsService {
 
     const salariesSum = toDecimal(salariesResult._sum.salary);
     const fixedExpensesSum = toDecimal(fixedExpensesResult._sum.amount);
-    const variableCosts = toDecimal(variableExpensesResult._sum.amount);
+    const variableExpenseSum = toDecimal(variableExpensesResult._sum.amount);
     const partsCosts = toDecimal(partsCostsResult[0]?.partsCost);
     const payrollAdjustment = toDecimal(payrollResult._sum.amount);
 
     const baseSalaryCost = salariesSum * months.length;
     const fixedCostsSyp = baseSalaryCost + fixedExpensesSum;
     const totalCosts =
-      fixedCostsSyp + variableCosts + partsCosts + payrollAdjustment;
+      fixedCostsSyp + variableExpenseSum + partsCosts + payrollAdjustment;
     const netProfitSyp = totalSalesSyp - totalCosts;
 
     return {
-      periodStart: periodStart.toISOString(),
-      periodEnd: periodEnd.toISOString(),
-      totalSalesSyp: toFixed2(totalSalesSyp),
-      totalRevenuesSyp: toFixed2(totalRevenuesSyp),
-      fixedCostsSyp: toFixed2(fixedCostsSyp),
-      variableCostsSyp: toFixed2(variableCosts),
-      partsCostsSyp: toFixed2(partsCosts),
-      netProfitSyp: toFixed2(netProfitSyp),
+      summary: {
+        periodStart: periodStart.toISOString(),
+        periodEnd: periodEnd.toISOString(),
+        totalRevenuesSyp: toFixed2(totalRevenuesSyp),
+        fixedCostsSyp: toFixed2(fixedCostsSyp),
+        fixedExpensesSum: toFixed2(fixedExpensesSum),
+        variableExpensesSum: toFixed2(variableExpenseSum),
+        partsCostsSyp: toFixed2(partsCosts),
+        totalSalesSyp: toFixed2(totalSalesSyp),
+        totalCostsSyp: toFixed2(totalCosts),
+        netProfitSyp: toFixed2(netProfitSyp),
+      },
+      salaries: users.map((user) => ({
+        fullName: user.fullName,
+        salary: toFixed2(toDecimal(user.salary)),
+      })),
+      payrolls: payrolls.map((record) => ({
+        user: { fullName: record.user.fullName },
+        type: record.type,
+        amount: toFixed2(toDecimal(record.amount)),
+      })),
+      fixedExpenses: fixedExpenses.map((expense) => ({
+        type: expense.type,
+        amount: toFixed2(toDecimal(expense.amount)),
+        note: expense.name ?? undefined,
+      })),
+      variableExpenses: variableExpenses.map((expense) => ({
+        month: expense.month,
+        amount: toFixed2(toDecimal(expense.amount)),
+        note: expense.name ?? undefined,
+      })),
     };
   }
 }
