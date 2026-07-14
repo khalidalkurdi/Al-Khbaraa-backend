@@ -173,4 +173,19 @@ export class FinanceController {
   async monthlyDues(@Query() query: MonthlyDuesQueryDto) {
     return this.financeService.getMonthlyDues(query.year, query.month);
   }
+
+  @Patch('monthly-dues/:id/arrest')
+  @Roles('Admin')
+  @ApiOperation({ summary: 'تسليم المستحقات الشهرية وتحديدها كمستلمة' })
+  @ApiResponse({
+    status: 200,
+    description: 'تم تسليم المستحقات الشهرية بنجاح',
+    type: Object,
+  })
+  @ApiResponse({ status: 404, description: 'المستحقات الشهرية غير موجودة' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  async arrestMonthlyDue(@Param('id') id: string) {
+    return this.financeService.arrestMonthlyDue(id);
+  }
 }

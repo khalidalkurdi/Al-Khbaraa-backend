@@ -8,6 +8,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { omitEmpty } from '../common/utils/object.util';
+import { SettlementType } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
+import { getSyriaNow } from '../common/utils/syria-date.util';
 
 function buildExpenseMonthYearWhere(
   startMonth: number,
@@ -49,7 +52,10 @@ function toFixed2(value: number): string {
 export class FinanceService {
   private readonly logger = new Logger(FinanceService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async createExpense(
     dto: CreateExpenseDto,
@@ -261,20 +267,49 @@ export class FinanceService {
       },
     });
 
-    const result = users.map(user => {
+    const result: any[] = [];
+
+    for (const user of users) {
       const salary = toDecimal(user.salary);
       let adjustments = 0;
 
       for (const record of user.payrollRecords) {
         const amount = toDecimal(record.amount);
-        if (record.type === 'deduction') {
+        if (
+          record.type === SettlementType.deduction ||
+          record.type === SettlementType.salary
+        ) {
           adjustments -= amount;
         } else {
           adjustments += amount;
         }
       }
 
-      return {
+      const monthlyDueAmount = salary + adjustments;
+
+      let monthlyDue = await this.prisma.monthlyDues.findUnique({
+        where: {
+          userId_year_month: { userId: user.id, year, month },
+        },
+      });
+
+      if (!monthlyDue) {
+        monthlyDue = await this.prisma.monthlyDues.create({
+          data: {
+            userId: user.id,
+            amount: monthlyDueAmount,
+            year,
+            month,
+          },
+        });
+      } else {
+        monthlyDue = await this.prisma.monthlyDues.update({
+          where: { id: monthlyDue.id },
+          data: { amount: monthlyDueAmount },
+        });
+      }
+
+      result.push({
         userId: user.id,
         userNumber: user.userNumber,
         profileImagePath: user.profileImagePath,
@@ -282,19 +317,72 @@ export class FinanceService {
         jobTitle: user.jobTitle,
         roleName: user.role.name,
         salary: toFixed2(salary),
-        payrolls: user.payrollRecords.map(record => ({
+        payrolls: user.payrollRecords.map((record) => ({
           type: record.type,
           amount: toFixed2(toDecimal(record.amount)),
           note: record.note,
         })),
-        monthlyDue: toFixed2(salary + adjustments),
-      };
-    });
+        monthlyDue: toFixed2(monthlyDueAmount),
+        monthlyDuesId: monthlyDue.id,
+        isArrested: monthlyDue.isArrested,
+        arrestedDate: monthlyDue.arrestedDate,
+      });
+    }
 
     return {
       year,
       month,
       users: result,
     };
+  }
+
+  async arrestMonthlyDue(id: string) {
+    const monthlyDue = await this.prisma.monthlyDues.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            isActive: true,
+            role: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (!monthlyDue) {
+      throw new NotFoundException(`المستحقات الشهرية بالمعرف ${id} غير موجودة`);
+    }
+
+    if (monthlyDue.isArrested) {
+      return {
+        message: 'هذه المستحقات الشهرية تم تسليمها مسبقاً',
+        monthlyDue,
+      };
+    }
+
+    const arrested = await this.prisma.monthlyDues.update({
+      where: { id },
+      data: {
+        isArrested: true,
+        arrestedDate: getSyriaNow(),
+      },
+    });
+
+    if (monthlyDue.user.role.name === 'Technician') {
+      void this.notificationsService
+        .sendPushNotification({
+          userId: monthlyDue.user.id,
+          title: 'استلام المستحقات الشهرية',
+          body: `لقد استلمت مستحقاتك للشهر الحالي ${monthlyDue.year} ${monthlyDue.month} والبالغة ${toFixed2(
+            toDecimal(monthlyDue.amount),
+          )} ل.س`,
+        })
+        .catch((error: any) => {
+          this.logger.warn(`FCM push notification failed: ${error?.message}`);
+        });
+    }
+
+    return arrested;
   }
 }

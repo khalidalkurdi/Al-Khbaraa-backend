@@ -111,6 +111,7 @@ model User {
   movements             InventoryMovement[]        @relation("responsibleId")
   notifications         Notification[]
   payrollRecords        PayrollRecord[]            @relation("UserPayrollRecords")
+  monthlyDues           MonthlyDues[]
 
   @@index([userNumber], map: "idx_user_number")
   @@index([email], map: "idx_email")
@@ -477,4 +478,21 @@ model Notification {
   @@index([isRead], map: "idx_is_read")
   @@index([createdAt], map: "idx_created_at")
   @@map("notifications")
+}
+
+model MonthlyDues {
+  id           String   @id @default(uuid()) @db.Char(36)
+  amount       Decimal  @db.Decimal(12, 2)
+  isArrested   Boolean  @default(false) @map("is_arrested")
+  userId       String   @map("user_id") @db.Char(36)
+  year         Int      @map("year")
+  month        Int      @map("month")
+  arrestedDate DateTime? @map("arrested_date") @db.Timestamp(0)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, month], map: "unique_user_monthly_due")
+  @@index([userId], map: "idx_user_id")
+  @@map("monthly_dues")
 }
