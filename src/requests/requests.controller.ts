@@ -83,6 +83,7 @@ export class RequestsController {
       requestQueryDto,
       req.user.id,
       isTechnician,
+      req.user.role,
     );
   }
 
@@ -95,7 +96,12 @@ export class RequestsController {
   @ApiResponse({ status: 404, description: 'الطلب غير موجود' })
   async findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const isTechnician = req.user.role === 'Technician';
-    return this.requestsService.findOne(id, req.user.id, isTechnician);
+    return this.requestsService.findOne(
+      id,
+      req.user.id,
+      isTechnician,
+      req.user.role,
+    );
   }
 
   @Get(':id/pdf')

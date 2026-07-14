@@ -730,7 +730,12 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
 
     return history;
   }
-  async findAll(query: RequestQueryDto, userId: string, isTechnician: boolean) {
+  async findAll(
+    query: RequestQueryDto,
+    userId: string,
+    isTechnician: boolean,
+    userRole: string,
+  ) {
     const { status, priority, type, startDate, endDate, page, limit, search } =
       query;
 
@@ -810,6 +815,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         include: {
           devices: true,
           customer: true,
+          ...(userRole === 'admin' ? { voiceRecords: true } : {}),
           assignments: {
             where: {
               isActive: true,
@@ -847,13 +853,18 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async findOne(id: string, userId: string, isTechnician: boolean) {
+  async findOne(
+    id: string,
+    userId: string,
+    isTechnician: boolean,
+    userRole: string,
+  ) {
     const request = await this.prisma.request.findUnique({
       where: { id },
       include: {
         devices: true,
         customer: true,
-        voiceRecords: true,
+        ...(userRole === 'admin' ? { voiceRecords: true } : {}),
         invoice: {
           include: {
             payments: true,
