@@ -146,7 +146,7 @@ export class FinanceController {
   }
 
   @Get('monthly-dues')
-  @Roles('Admin')
+  @Roles('Admin', 'Manager')
   @ApiOperation({ summary: 'Get monthly dues for all active users' })
   @ApiQuery({
     name: 'year',
@@ -175,7 +175,7 @@ export class FinanceController {
   }
 
   @Patch('monthly-dues/:id/arrest')
-  @Roles('Admin')
+  @Roles('Admin', 'Manager')
   @ApiOperation({ summary: 'تسليم المستحقات الشهرية وتحديدها كمستلمة' })
   @ApiResponse({
     status: 200,

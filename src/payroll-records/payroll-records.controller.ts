@@ -29,7 +29,7 @@ export class PayrollRecordsController {
   constructor(private readonly payrollRecordsService: PayrollRecordsService) {}
 
   @Post()
-  @Roles('Admin')
+  @Roles('Admin', 'Manager')
   @ApiOperation({ summary: 'Create a new payroll record' })
   @ApiResponse({ status: 201, description: 'تم إنشاء سجل الراتب بنجاح' })
   @ApiResponse({
@@ -43,7 +43,7 @@ export class PayrollRecordsController {
   }
 
   @Get()
-  @Roles('Admin')
+  @Roles('Admin', 'Manager')
   @ApiOperation({ summary: 'List payroll records with optional filters' })
   @ApiResponse({
     status: 200,
@@ -57,7 +57,7 @@ export class PayrollRecordsController {
   }
 
   @Delete(':id')
-  @Roles('Admin')
+  @Roles('Admin', 'Manager')
   @ApiOperation({ summary: 'Delete payroll record by ID' })
   @ApiResponse({ status: 204, description: 'تم حذف سجل الراتب' })
   @ApiResponse({ status: 404, description: 'سجل الراتب غير موجود' })
