@@ -177,6 +177,20 @@ export class UsersService {
       throw new NotFoundException('المستخدم غير موجود');
     }
 
+    if (user.role.name === 'Technician') {
+      const now = getSyriaNow();
+      const monthlyDues = await this.prisma.monthlyDues.findMany({
+        where: {
+          userId,
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return { ...this.stripPassword(user), monthlyDues };
+    }
+
     return this.stripPassword(user);
   }
 
