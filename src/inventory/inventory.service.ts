@@ -162,7 +162,7 @@ export class InventoryService {
           const key = item.id;
           if (!acc[key]) {
             acc[key] = {
-              name: item.name,
+              name: item.partName,
               totalQuantity: 0,
             };
           }
