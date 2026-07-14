@@ -374,7 +374,7 @@ export class FinanceService {
         .sendPushNotification({
           userId: monthlyDue.user.id,
           title: 'استلام المستحقات الشهرية',
-          body: `لقد استلمت مستحقاتك للشهر الحالي ${monthlyDue.year} ${monthlyDue.month} والبالغة ${toFixed2(
+          body: `لقد استلمت مستحقاتك للشهر الحالي ${monthlyDue.month} ${monthlyDue.year}  والبالغة ${toFixed2(
             toDecimal(monthlyDue.amount),
           )} ل.س`,
         })
