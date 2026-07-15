@@ -43,6 +43,23 @@ async function main() {
   } else {
     console.log('✓ Admin user already exists');
   }
+
+  const existingCenterSettings = await prisma.centerSettings.findFirst();
+
+  if (!existingCenterSettings) {
+    await prisma.centerSettings.create({
+      data: {
+        centerName: 'مركز الخبراء',
+        address: 'العنوان',
+        phone1: '0900000000',
+        email: 'center@example.com',
+        dollarExchangeRate: 100,
+      },
+    });
+    console.log('✓ Center settings created');
+  } else {
+    console.log('✓ Center settings already exist');
+  }
 }
 
 main()
