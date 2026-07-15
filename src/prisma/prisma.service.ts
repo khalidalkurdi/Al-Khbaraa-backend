@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { getSyriaNow } from '../common/utils/syria-date.util';
+import * as path from 'path';
+import * as fs from 'fs';
 
 type TimestampFields = {
   created: Map<string, string[]>;
@@ -11,22 +13,58 @@ function buildTimestampFields(): TimestampFields {
   const created = new Map<string, string[]>();
   const updated = new Map<string, string[]>();
 
-  for (const model of Prisma.dmmf.datamodel.models) {
-    const createdFields = model.fields
-      .filter(
-        (f) =>
-          f.type === 'DateTime' &&
-          f.default != null &&
-          (f.default as { name?: string }).name === 'now',
-      )
-      .map((f) => f.name);
+  let schemaContent: string | undefined;
+  const candidates = [
+    path.join(process.cwd(), 'prisma', 'schema.prisma'),
+    path.join(process.cwd(), 'schema.prisma'),
+    path.join(__dirname, '..', '..', 'prisma', 'schema.prisma'),
+  ];
 
-    const updatedFields = model.fields
-      .filter((f) => f.type === 'DateTime' && f.isUpdatedAt)
-      .map((f) => f.name);
+  for (const candidate of candidates) {
+    try {
+      schemaContent = fs.readFileSync(candidate, 'utf-8');
+      break;
+    } catch {
+      // try next candidate
+    }
+  }
 
-    if (createdFields.length) created.set(model.name, createdFields);
-    if (updatedFields.length) updated.set(model.name, updatedFields);
+  if (!schemaContent) return { created, updated };
+
+  try {
+    const modelRegex = /model\s+(\w+)\s*\{([^}]+)\}/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = modelRegex.exec(schemaContent)) !== null) {
+      const modelName = match[1];
+      const body = match[2];
+      const createdFields: string[] = [];
+      const updatedFields: string[] = [];
+
+      for (const rawLine of body.split('\n')) {
+        const trimmed = rawLine.trim();
+        if (!trimmed || trimmed.startsWith('//')) continue;
+        const line = trimmed.split('//')[0].trim();
+        if (!line) continue;
+
+        const createdMatch = line.match(
+          /^(\w+)\s+DateTime\b.*@default\(now\(\)\)/,
+        );
+        if (createdMatch) {
+          createdFields.push(createdMatch[1]);
+        }
+
+        const updatedMatch = line.match(/^(\w+)\s+DateTime\b.*@updatedAt/);
+        if (updatedMatch) {
+          updatedFields.push(updatedMatch[1]);
+        }
+      }
+
+      if (createdFields.length) created.set(modelName, createdFields);
+      if (updatedFields.length) updated.set(modelName, updatedFields);
+    }
+  } catch {
+    // parsing failed; return empty maps to avoid crashing
   }
 
   return { created, updated };
