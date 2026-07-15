@@ -82,9 +82,9 @@ export class CreateRequestDto {
     description: 'نوع الطلب (داخلي أو خارجي)',
   })
   @IsString()
+  @IsEnum(RequestType)
   @IsNotEmpty()
   @MaxLength(20)
-  @IsEnum(RequestType)
   type: string;
 
   @ApiPropertyOptional({
@@ -95,8 +95,8 @@ export class CreateRequestDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(20)
   @IsEnum(Priority)
+  @MaxLength(20)
   priority?: string;
 
   @ApiProperty({
