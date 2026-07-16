@@ -16,4 +16,5 @@ export default () => ({
     ttl: parseInt(process.env.THROTTLER_TTL || '60', 10),
     limit: parseInt(process.env.THROTTLER_LIMIT || '100', 10),
   },
+  swagger: process.env.NODE_ENV !== 'production',
 });

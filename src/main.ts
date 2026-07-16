@@ -40,13 +40,9 @@ async function bootstrap() {
     }),
   );
 
-  // CORS — user has 2 origins, defaulting to placeholders they can update
+  // CORS
   app.enableCors({
-    origin: [
-      'http://localhost:3001',
-      'http://localhost:3000',
-      'https://maintenancees-sy.net',
-    ],
+    origin: ['https://api.maintenancees-sy.net'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
@@ -67,19 +63,21 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ApiResponseInterceptor());
 
   // Swagger API documentation
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Al-Khbaraa API')
-    .setDescription('Electrical Appliance Repair Center Management System API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
+  if (configService.get('swagger') !== false) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Al-Khbaraa API')
+      .setDescription('Electrical Appliance Repair Center Management System API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document);
+    logger.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
+  }
 
   await app.listen(port);
   logger.log(`Application is running on: http://localhost:${port}`);
-  logger.log(`Swagger docs available at: http://localhost:${port}/api/docs`);
 }
 bootstrap().catch((err) => {
   const logger = new Logger('Bootstrap');
