@@ -115,19 +115,18 @@ export class PaymentsService {
       }
     }
 
+    const existingPayments = await prisma.payment.count({
+      where: { invoiceId, isActive: true },
+    });
     if (
       convertedAmount.greaterThan(invoice.remainingAmount) &&
-      invoice.status === InvoiceStatus.paid_partial
+      invoice.status === InvoiceStatus.paid_partial &&
+      existingPayments > 0
     ) {
       throw new BadRequestException(
         `المبلغ المدخل (${convertedAmount.toFixed(2)} ${currency}) يتجاوز المبلغ المتبقي (${invoice.remainingAmount.toFixed(2)} ${invoiceCurrency})`,
       );
     }
-
-    const existingPayments = await prisma.payment.count({
-      where: { invoiceId, isActive: true },
-    });
-
     const executePayment = async (tx: Prisma.TransactionClient) => {
       await tx.payment.create({
         data: {
