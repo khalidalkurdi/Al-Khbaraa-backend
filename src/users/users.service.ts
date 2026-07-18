@@ -79,7 +79,7 @@ export class UsersService {
     if (typeof salaryValue !== 'number' || isNaN(salaryValue)) {
       throw new BadRequestException('الراتب يجب أن يكون رقماً صحيحاً');
     }
-    if (salaryValue < 0 || salaryValue > 9999999999.99) {
+    if (salaryValue < 0.0 || salaryValue > 9999999999.99) {
       throw new BadRequestException('الراتب يجب أن يكون بين 0 و 9999999999.99');
     }
 

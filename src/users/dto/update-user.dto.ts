@@ -74,8 +74,7 @@ export class UpdateUserDto {
     required: false,
     description: 'Monthly salary in SYP',
   })
-  @IsNumber()
-  @Min(0)
+  @Min(0, { message: 'الراتب لا يجب أن يكون أقل من 0' })
   @Max(9999999999.99, { message: 'الراتب لا يجب أن يتجاوز 9999999999.99' })
   @IsOptional()
   salary?: number;
