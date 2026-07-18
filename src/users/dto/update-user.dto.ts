@@ -74,6 +74,11 @@ export class UpdateUserDto {
     required: false,
     description: 'Monthly salary in SYP',
   })
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    const num = Number(value);
+    return isNaN(num) ? undefined : num;
+  })
   @Min(0, { message: 'الراتب لا يجب أن يكون أقل من 0' })
   @Max(9999999999.99, { message: 'الراتب لا يجب أن يتجاوز 9999999999.99' })
   @IsOptional()
