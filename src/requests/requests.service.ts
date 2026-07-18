@@ -864,6 +864,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
       include: {
         devices: true,
         customer: true,
+        ...(userRole === 'Admin' ? { voiceRecords: true } : {}),
         invoice: {
           include: {
             payments: true,
@@ -900,7 +901,6 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
             },
           },
         },
-        voiceRecords: true,
       },
     });
 
