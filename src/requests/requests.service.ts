@@ -815,7 +815,7 @@ export class RequestsService implements OnModuleInit, OnModuleDestroy {
         include: {
           devices: true,
           customer: true,
-          ...(userRole === 'admin' ? { voiceRecords: true } : {}),
+          ...(userRole === 'Admin' ? { voiceRecords: true } : {}),
           assignments: {
             where: {
               isActive: true,
