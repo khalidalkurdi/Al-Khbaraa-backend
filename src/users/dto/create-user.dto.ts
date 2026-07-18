@@ -48,9 +48,16 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'رقم الهاتف مطلوب' })
   phone: string;
 
-  @ApiProperty({ example: 20000 })
-  @IsString()
-  salary: string;
+  @ApiPropertyOptional({
+    example: 600000,
+    required: false,
+    description: 'Monthly salary in SYP',
+  })
+  @IsNumber()
+  @Min(0)
+  @Max(9999999999.99, { message: 'الراتب لا يجب أن يتجاوز 9999999999.99' })
+  @IsOptional()
+  salary?: number;
 
   @ApiProperty({ example: 'Technician' })
   @IsString()
