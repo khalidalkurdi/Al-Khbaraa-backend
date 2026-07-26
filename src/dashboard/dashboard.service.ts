@@ -422,7 +422,19 @@ export class DashboardService {
           paymentsSypToday: 0,
           paymentsUsdToday: 0,
         },
-        technicians: [],
+        technicians: technicians.map((tech) => ({
+          technicianId: tech.id,
+          technicianName: tech.fullName,
+          userNumber: tech.userNumber,
+          completedCount: 0,
+          incompletedCount: 0,
+          activeCount: 0,
+          pulltocenterCount: 0,
+          timeline: [],
+          paymentsSyp: 0,
+          paymentsUsd: 0,
+          sales: 0,
+        })),
       };
     }
 
