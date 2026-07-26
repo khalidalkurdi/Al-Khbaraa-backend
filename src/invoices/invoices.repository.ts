@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, InvoiceType, InvoiceStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
+import { toSyriaDate } from '../common/utils/syria-date.util';
 
 @Injectable()
 export class InvoicesRepository {
@@ -47,14 +48,24 @@ export class InvoicesRepository {
       };
     }
 
-    // Date range filter
+    // Date range filter (convert Syrian dates to UTC midnight boundaries)
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) {
-        where.createdAt.gte = new Date(startDate);
+        const syriaStart = toSyriaDate(startDate);
+        where.createdAt.gte = new Date(
+          syriaStart.getUTCFullYear(),
+          syriaStart.getUTCMonth(),
+          syriaStart.getUTCDate(),
+        );
       }
       if (endDate) {
-        where.createdAt.lte = new Date(endDate);
+        const syriaEnd = toSyriaDate(endDate);
+        where.createdAt.lt = new Date(
+          syriaEnd.getUTCFullYear(),
+          syriaEnd.getUTCMonth(),
+          syriaEnd.getUTCDate() + 1,
+        );
       }
     }
 
