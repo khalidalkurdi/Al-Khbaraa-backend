@@ -291,196 +291,172 @@ export class DashboardService {
     const todayEnd = new Date(todayStart);
     todayEnd.setDate(todayEnd.getDate() + 1);
 
-    const [technicians, todayChanges] = await Promise.all([
-      this.prisma.user.findMany({
-        where: { isActive: true, role: { name: 'Technician' } },
-        select: { id: true, fullName: true, userNumber: true },
-      }),
-      this.prisma.requestStatusHistory.findMany({
-        where: {
-          changedAt: { gte: todayStart, lt: todayEnd },
-          status: {
-            in: [
-              RequestStatus.completed,
-              RequestStatus.incompleted,
-              RequestStatus.pulltocenter,
-              RequestStatus.accepted,
-              RequestStatus.ontheway,
-              RequestStatus.arrived,
-              RequestStatus.underrepair,
-            ],
-          },
-          isActive: true,
-        },
-        select: { requestId: true, status: true },
-      }),
+    const targetStatuses = [
+      RequestStatus.completed,
+      RequestStatus.incompleted,
+      RequestStatus.pulltocenter,
+      RequestStatus.accepted,
+      RequestStatus.ontheway,
+      RequestStatus.arrived,
+      RequestStatus.underrepair,
+    ];
+
+    const terminalStatuses = new Set<RequestStatus>([
+      RequestStatus.completed,
+      RequestStatus.incompleted,
+      RequestStatus.pulltocenter,
     ]);
+
+    const technicians = await this.prisma.user.findMany({
+      where: { isActive: true, role: { name: 'Technician' } },
+      select: { id: true, fullName: true, userNumber: true },
+    });
 
     const technicianIds = technicians.map((t) => t.id);
 
-    const changesByRequestId = new Map<string, Set<RequestStatus>>();
-    for (const change of todayChanges) {
-      const set =
-        changesByRequestId.get(change.requestId) || new Set<RequestStatus>();
-      set.add(change.status);
-      changesByRequestId.set(change.requestId, set);
-    }
+    const todayChanges = await this.prisma.requestStatusHistory.findMany({
+      where: {
+        changedAt: { gte: todayStart, lt: todayEnd },
+        status: { in: targetStatuses },
+        isActive: true,
+        changedBy: { not: null },
+      },
+      select: { requestId: true, status: true, changedBy: true },
+    });
 
-    const completedToday = new Set(
-      todayChanges
-        .filter((c) => c.status === RequestStatus.completed)
-        .map((c) => c.requestId),
-    ).size;
-    const incompletedToday = new Set(
-      todayChanges
-        .filter((c) => c.status === RequestStatus.incompleted)
-        .map((c) => c.requestId),
-    ).size;
-    const pulltocenterToday = new Set(
-      todayChanges
-        .filter((c) => c.status === RequestStatus.pulltocenter)
-        .map((c) => c.requestId),
-    ).size;
-    const activeToday = new Set(
-      todayChanges
-        .filter((c) => {
-          const activeStatuses = new Set<RequestStatus>([
-            RequestStatus.accepted,
-            RequestStatus.ontheway,
-            RequestStatus.arrived,
-            RequestStatus.underrepair,
-          ]);
-          return activeStatuses.has(c.status);
-        })
-        .map((c) => c.requestId),
-    ).size;
+    const [relevantAssignments, todayPayments, todayInvoices] =
+      await Promise.all([
+        this.prisma.technicianAssignment.findMany({
+          where: {
+            isActive: true,
+            requestId: { in: todayChanges.map((c) => c.requestId) },
+            technicianId: { in: technicianIds },
+          },
+          include: {
+            request: {
+              include: {
+                statusHistory: { orderBy: { changedAt: 'asc' } },
+                invoice: { include: { payments: true } },
+              },
+            },
+          },
+        }),
+        this.prisma.payment.findMany({
+          where: {
+            paidAt: { gte: todayStart, lt: todayEnd },
+            isActive: true,
+          },
+          include: {
+            invoice: {
+              include: {
+                request: {
+                  include: {
+                    assignments: {
+                      where: { isActive: true },
+                      select: { technicianId: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+        this.prisma.invoice.findMany({
+          where: {
+            createdAt: { gte: todayStart, lt: todayEnd },
+            isActive: true,
+          },
+          include: {
+            request: {
+              include: {
+                assignments: {
+                  where: { isActive: true },
+                  select: { technicianId: true },
+                },
+              },
+            },
+            payments: {
+              orderBy: { paidAt: 'asc' },
+              take: 1,
+            },
+          },
+        }),
+      ]);
+
+    const changesByRequestId = new Map<string, Set<RequestStatus>>();
+    const changesByTechnicianId = new Map<string, Set<RequestStatus>>();
+    for (const change of todayChanges) {
+      const requestSet =
+        changesByRequestId.get(change.requestId) || new Set<RequestStatus>();
+      requestSet.add(change.status);
+      changesByRequestId.set(change.requestId, requestSet);
+
+      if (change.changedBy) {
+        const techSet =
+          changesByTechnicianId.get(change.changedBy) ||
+          new Set<RequestStatus>();
+        techSet.add(change.status);
+        changesByTechnicianId.set(change.changedBy, techSet);
+      }
+    }
 
     const toDecimal = (value: unknown): number => {
       if (value === null || value === undefined) return 0;
       return Number(value);
     };
 
-    const [paymentsSypTodayAgg, paymentsUsdTodayAgg] = await Promise.all([
-      this.prisma.payment.aggregate({
-        _sum: { amount: true },
-        where: {
-          paidAt: { gte: todayStart, lt: todayEnd },
-          currency: 'SYP',
-          isActive: true,
-        },
-      }),
-      this.prisma.payment.aggregate({
-        _sum: { amount: true },
-        where: {
-          paidAt: { gte: todayStart, lt: todayEnd },
-          currency: 'USD',
-          isActive: true,
-        },
-      }),
-    ]);
+    const center = await this.prisma.centerSettings.findFirst();
+    const exchangeRate = toDecimal(center?.dollarExchangeRate);
 
-    const overall = {
-      completedToday,
-      incompletedToday,
-      pulltocenterToday,
-      activeToday,
-      paymentsSypToday: toDecimal(paymentsSypTodayAgg._sum.amount),
-      paymentsUsdToday: toDecimal(paymentsUsdTodayAgg._sum.amount),
-    };
+    const activeTechnicians = technicians.filter((tech) =>
+      changesByTechnicianId.has(tech.id),
+    );
 
-    if (technicianIds.length === 0) {
-      return { overall, technicians: [] };
-    }
-
-    const todayChangeRequestIds = Array.from(changesByRequestId.keys());
-
-    if (todayChangeRequestIds.length === 0) {
+    if (activeTechnicians.length === 0) {
       return {
-        overall,
-        technicians: technicians.map((tech) => ({
-          technicianId: tech.id,
-          technicianName: tech.fullName,
-          userNumber: tech.userNumber,
-          completedCount: 0,
-          incompletedCount: 0,
-          activeCount: 0,
-          pulltocenterCount: 0,
-          timeline: [],
-          paymentsSyp: 0,
-          paymentsUsd: 0,
-          sales: 0,
-        })),
+        overall: {
+          completedToday: 0,
+          incompletedToday: 0,
+          pulltocenterToday: 0,
+          activeToday: 0,
+          paymentsSypToday: 0,
+          paymentsUsdToday: 0,
+        },
+        technicians: [],
       };
     }
 
-    const relevantAssignments = await this.prisma.technicianAssignment.findMany(
-      {
-        where: {
-          requestId: { in: todayChangeRequestIds },
-          isActive: true,
-          technicianId: { in: technicianIds },
-        },
-        include: {
-          request: {
-            include: {
-              statusHistory: { orderBy: { changedAt: 'asc' } },
-              invoice: { include: { payments: true } },
-            },
-          },
-        },
-      },
-    );
-
-    const assignmentsByTechnician = new Map<
-      string,
-      typeof relevantAssignments
-    >();
-    for (const assignment of relevantAssignments) {
-      const list = assignmentsByTechnician.get(assignment.technicianId) || [];
-      list.push(assignment);
-      assignmentsByTechnician.set(assignment.technicianId, list);
-    }
-
-    const techniciansResult = technicians.map((tech) => {
-      const assignments = assignmentsByTechnician.get(tech.id) || [];
+    const techniciansResult = activeTechnicians.map((tech) => {
+      const technicianChanges =
+        changesByTechnicianId.get(tech.id) || new Set<RequestStatus>();
+      const assignments = relevantAssignments.filter(
+        (a) => a.technicianId === tech.id,
+      );
 
       const completedCount = new Set(
         assignments
-          .filter((a) =>
-            changesByRequestId.get(a.requestId)?.has(RequestStatus.completed),
-          )
+          .filter(() => technicianChanges.has(RequestStatus.completed))
           .map((a) => a.requestId),
       ).size;
       const incompletedCount = new Set(
         assignments
-          .filter((a) =>
-            changesByRequestId.get(a.requestId)?.has(RequestStatus.incompleted),
-          )
+          .filter(() => technicianChanges.has(RequestStatus.incompleted))
           .map((a) => a.requestId),
       ).size;
       const pulltocenterCount = new Set(
         assignments
-          .filter((a) =>
-            changesByRequestId
-              .get(a.requestId)
-              ?.has(RequestStatus.pulltocenter),
-          )
+          .filter(() => technicianChanges.has(RequestStatus.pulltocenter))
           .map((a) => a.requestId),
       ).size;
       const activeCount = new Set(
         assignments
-          .filter((a) => {
-            const statuses = changesByRequestId.get(a.requestId);
-            return (
-              statuses &&
-              [
-                RequestStatus.accepted,
-                RequestStatus.ontheway,
-                RequestStatus.arrived,
-                RequestStatus.underrepair,
-              ].some((s) => statuses.has(s))
-            );
-          })
+          .filter(
+            () =>
+              technicianChanges.has(RequestStatus.accepted) ||
+              technicianChanges.has(RequestStatus.ontheway) ||
+              technicianChanges.has(RequestStatus.arrived) ||
+              technicianChanges.has(RequestStatus.underrepair),
+          )
           .map((a) => a.requestId),
       ).size;
 
@@ -497,14 +473,9 @@ export class DashboardService {
         const underrepairChange = request.statusHistory.find(
           (h) => h.status === RequestStatus.underrepair,
         );
-        const finalChange = request.statusHistory.find((h) => {
-          const terminalStatuses = new Set<RequestStatus>([
-            RequestStatus.completed,
-            RequestStatus.incompleted,
-            RequestStatus.pulltocenter,
-          ]);
-          return terminalStatuses.has(h.status);
-        });
+        const finalChange = request.statusHistory.find((h) =>
+          terminalStatuses.has(h.status),
+        );
         const onthewayChange = request.statusHistory.find(
           (h) => h.status === RequestStatus.ontheway,
         );
@@ -514,7 +485,7 @@ export class DashboardService {
           maintenanceTime =
             (finalChange.changedAt.getTime() -
               underrepairChange.changedAt.getTime()) /
-            (1000 * 60);
+            (1000 * 60 * 60);
         }
 
         let completionTime: number | null = null;
@@ -525,7 +496,7 @@ export class DashboardService {
           startTime = onthewayChange.changedAt;
           endTime = request.invoice.createdAt;
           completionTime =
-            (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+            (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
         }
 
         timeline.push({
@@ -537,16 +508,38 @@ export class DashboardService {
           startTime,
           endTime,
         });
+      }
 
-        if (request.invoice) {
-          for (const payment of request.invoice.payments) {
-            if (payment.currency === 'SYP') {
-              paymentsSyp += toDecimal(payment.amount);
-            } else if (payment.currency === 'USD') {
-              paymentsUsd += toDecimal(payment.amount);
-            }
+      for (const payment of todayPayments) {
+        const isAssignedToTechnician =
+          payment.invoice?.request?.assignments?.some(
+            (a) => a.technicianId === tech.id,
+          );
+        if (isAssignedToTechnician) {
+          if (payment.currency === 'SYP') {
+            paymentsSyp += toDecimal(payment.amount);
+          } else if (payment.currency === 'USD') {
+            paymentsUsd += toDecimal(payment.amount);
           }
-          sales += toDecimal(request.invoice.totalAmount);
+        }
+      }
+
+      for (const invoice of todayInvoices) {
+        const isAssignedToTechnician = invoice.request?.assignments?.some(
+          (a) => a.technicianId === tech.id,
+        );
+        if (isAssignedToTechnician) {
+          let invoiceTotalSyp: number;
+          if (invoice.totalCurrency === 'USD') {
+            const firstPayment = invoice.payments?.[0];
+            const rate = firstPayment
+              ? toDecimal(firstPayment.dollarExchangeRate)
+              : exchangeRate;
+            invoiceTotalSyp = toDecimal(invoice.totalAmount) * rate;
+          } else {
+            invoiceTotalSyp = toDecimal(invoice.totalAmount);
+          }
+          sales += invoiceTotalSyp;
         }
       }
 
@@ -564,6 +557,30 @@ export class DashboardService {
         sales,
       };
     });
+
+    const overall = {
+      completedToday: techniciansResult.reduce(
+        (sum, t) => sum + t.completedCount,
+        0,
+      ),
+      incompletedToday: techniciansResult.reduce(
+        (sum, t) => sum + t.incompletedCount,
+        0,
+      ),
+      pulltocenterToday: techniciansResult.reduce(
+        (sum, t) => sum + t.pulltocenterCount,
+        0,
+      ),
+      activeToday: techniciansResult.reduce((sum, t) => sum + t.activeCount, 0),
+      paymentsSypToday: techniciansResult.reduce(
+        (sum, t) => sum + t.paymentsSyp,
+        0,
+      ),
+      paymentsUsdToday: techniciansResult.reduce(
+        (sum, t) => sum + t.paymentsUsd,
+        0,
+      ),
+    };
 
     return { overall, technicians: techniciansResult };
   }
