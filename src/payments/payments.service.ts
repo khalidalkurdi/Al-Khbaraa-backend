@@ -8,7 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { Decimal } from '@prisma/client/runtime/library';
-import { InvoiceStatus, Prisma } from '@prisma/client';
+import { InvoiceStatus, RequestStatus, Prisma } from '@prisma/client';
 import { CurrencyEnum } from '../invoices/enums/currency.enum';
 
 interface AuthenticatedUser {
@@ -171,6 +171,33 @@ export class PaymentsService {
           },
           include: { items: true, payments: true },
         });
+      }
+
+      if (latestNewStatus === InvoiceStatus.paid) {
+        const existingRequest = await tx.request.findUnique({
+          where: { id: invoice.requestId },
+          select: { status: true },
+        });
+
+        if (
+          existingRequest &&
+          existingRequest.status !== RequestStatus.completed
+        ) {
+          await tx.request.update({
+            where: { id: invoice.requestId },
+            data: {
+              status: RequestStatus.completed,
+              isCompleted: true,
+            },
+          });
+          await tx.requestStatusHistory.create({
+            data: {
+              requestId: invoice.requestId,
+              status: RequestStatus.completed,
+              changedBy: user.id,
+            },
+          });
+        }
       }
 
       return invoiceWithPayments;
