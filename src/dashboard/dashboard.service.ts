@@ -32,15 +32,10 @@ export class DashboardService {
       totalRequests,
       internalRequests,
       externalRequests,
-      completedJobs,
-      incompletedJobs,
-      pulltocenterJobs,
-      repeatedJobs,
-      postponedJobs,
-      lostRequests,
       externalInvoices,
       internalInvoices,
       newCustomersToday,
+      todayStatusChanges,
     ] = await Promise.all([
       this.prisma.request.count({
         where: { createdAt: { gte: todayStart, lt: todayEnd }, isActive: true },
@@ -55,54 +50,6 @@ export class DashboardService {
       this.prisma.request.count({
         where: {
           type: 'external',
-          createdAt: { gte: todayStart, lt: todayEnd },
-          isActive: true,
-        },
-      }),
-      this.prisma.request.count({
-        where: {
-          isCompleted: true,
-          createdAt: { gte: todayStart, lt: todayEnd },
-          isActive: true,
-        },
-      }),
-      this.prisma.request.count({
-        where: {
-          status: RequestStatus.incompleted,
-          createdAt: { gte: todayStart, lt: todayEnd },
-          isActive: true,
-        },
-      }),
-      this.prisma.request.count({
-        where: {
-          status: RequestStatus.pulltocenter,
-          createdAt: { gte: todayStart, lt: todayEnd },
-          isActive: true,
-        },
-      }),
-      this.prisma.request.count({
-        where: {
-          isRepeated: true,
-          createdAt: { gte: todayStart, lt: todayEnd },
-          isActive: true,
-        },
-      }),
-      this.prisma.request.count({
-        where: {
-          status: RequestStatus.postponed,
-          createdAt: { gte: todayStart, lt: todayEnd },
-          isActive: true,
-        },
-      }),
-      this.prisma.request.count({
-        where: {
-          status: {
-            in: [
-              RequestStatus.cancelled,
-              RequestStatus.notanswer,
-              RequestStatus.notrepairable,
-            ],
-          },
           createdAt: { gte: todayStart, lt: todayEnd },
           isActive: true,
         },
@@ -127,7 +74,52 @@ export class DashboardService {
           isActive: true,
         },
       }),
+      this.prisma.requestStatusHistory.findMany({
+        where: {
+          changedAt: { gte: todayStart, lt: todayEnd },
+          isActive: true,
+          request: { isActive: true },
+        },
+        select: {
+          requestId: true,
+          status: true,
+        },
+      }),
     ]);
+
+    const statusToRequestIds = new Map<RequestStatus, Set<string>>();
+    for (const change of todayStatusChanges) {
+      const set = statusToRequestIds.get(change.status) || new Set<string>();
+      set.add(change.requestId);
+      statusToRequestIds.set(change.status, set);
+    }
+
+    const completedJobs =
+      statusToRequestIds.get(RequestStatus.completed)?.size ?? 0;
+    const incompletedJobs =
+      statusToRequestIds.get(RequestStatus.incompleted)?.size ?? 0;
+    const pulltocenterJobs =
+      statusToRequestIds.get(RequestStatus.pulltocenter)?.size ?? 0;
+    const postponedJobs =
+      statusToRequestIds.get(RequestStatus.postponed)?.size ?? 0;
+
+    const lostRequestIds = new Set<string>();
+    for (const status of [
+      RequestStatus.cancelled,
+      RequestStatus.notanswer,
+      RequestStatus.notrepairable,
+    ]) {
+      const ids = statusToRequestIds.get(status);
+      if (ids) {
+        for (const id of ids) {
+          lostRequestIds.add(id);
+        }
+      }
+    }
+    const lostRequests = lostRequestIds.size;
+
+    const repeatedJobs =
+      statusToRequestIds.get(RequestStatus.repeated)?.size ?? 0;
 
     const toDecimal = (value: unknown): number => {
       if (value === null || value === undefined) return 0;
