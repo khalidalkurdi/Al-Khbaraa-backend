@@ -489,7 +489,7 @@ export class DashboardService {
           maintenanceTime =
             (finalChange.changedAt.getTime() -
               underrepairChange.changedAt.getTime()) /
-            (1000 * 60 * 60);
+            (1000 * 60);
         }
 
         let completionTime: number | null = null;
@@ -500,7 +500,7 @@ export class DashboardService {
           startTime = onthewayChange.changedAt;
           endTime = request.invoice.createdAt;
           completionTime =
-            (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+            (endTime.getTime() - startTime.getTime()) / (1000 * 60);
         }
 
         timeline.push({
