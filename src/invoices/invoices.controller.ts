@@ -74,7 +74,7 @@ export class InvoicesController {
   }
 
   @Patch(':id')
-  @Roles('Admin', 'Manager')
+  @Roles('Admin')
   @ApiOperation({ summary: 'Update invoice info and its payments' })
   @ApiResponse({
     status: 200,
