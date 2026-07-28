@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -18,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoiceDetailResponse } from './dto/invoice-detail-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -69,6 +71,33 @@ export class InvoicesController {
   ) {
     const user = req.user;
     return this.invoicesService.create(createInvoiceDto, user);
+  }
+
+  @Patch(':id')
+  @Roles('Admin', 'Manager')
+  @ApiOperation({ summary: 'Update invoice info and its payments' })
+  @ApiResponse({
+    status: 200,
+    description: 'تم تحديث الفاتورة بنجاح',
+    type: InvoiceDetailResponse,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'طلب غير صالح - خطأ في التحقق من صحة البيانات',
+  })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({
+    status: 403,
+    description: 'ممنوع - الصلاحيات غير كافية',
+  })
+  @ApiResponse({ status: 404, description: 'الفاتورة غير موجودة' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateInvoiceDto: UpdateInvoiceDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const user = req.user;
+    return this.invoicesService.update(id, updateInvoiceDto, user);
   }
 
   @Get()
