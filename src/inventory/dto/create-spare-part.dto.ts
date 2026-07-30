@@ -8,6 +8,7 @@ import {
   MaxLength,
   Matches,
   IsNumber,
+  IsDefined,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -50,23 +51,25 @@ export class CreateSparePartDto {
   @ApiProperty({
     example: 25000,
     description: 'تكلفة القطعة بالليرة السورية',
-    minimum: 0,
+    minimum: 1,
     type: 'integer',
   })
+  @IsDefined({ message: 'القيمة بالليرة وبالدولار مطلوبين' })
   @IsNumber({}, { message: 'تكلفة الليرة السورية يجب أن تكون رقماً' })
   @IsInt({ message: 'تكلفة الليرة السورية يجب أن تكون عدداً صحيحاً' })
-  @Min(0, { message: 'تكلفة الليرة السورية يجب أن تكون أكبر من أو تساوي 0' })
+  @Min(1, { message: 'تكلفة القطعة بالليرة مطلوبة' })
   @Type(() => Number)
   costSyp: number;
 
   @ApiProperty({
     example: 7.14,
     description: 'تكلفة القطعة بالدولار الأمريكي',
-    minimum: 0,
+    minimum: 1,
     type: 'number',
   })
+  @IsDefined({ message: 'القيمة بالليرة وبالدولار مطلوبين' })
   @IsNumber({}, { message: 'تكلفة الدولار يجب أن تكون رقماً' })
-  @Min(0, { message: 'تكلفة الدولار يجب أن تكون أكبر من أو تساوي 0' })
+  @Min(1, { message: 'تكلفة القطعة بالدولار مطلوبة' })
   @Type(() => Number)
   costUsd: number;
 }
