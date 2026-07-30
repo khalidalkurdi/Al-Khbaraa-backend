@@ -405,10 +405,21 @@ export class InvoicesService {
           ),
         ];
 
-        if (allSparePartIds.length > 0) {
+        if (allSparePartIds.length === 0) {
+          const existingSparePartIds = existingItems
+            .filter((item) => items.some((i) => i.id === item.id))
+            .map((item) => item.sparePartId);
+          allSparePartIds.push(...existingSparePartIds);
+        }
+
+        const uniqueSparePartIds = [
+          ...new Set(allSparePartIds.filter((id) => id)),
+        ];
+
+        if (uniqueSparePartIds.length > 0) {
           const spareParts = await tx.sparePart.findMany({
             where: {
-              id: { in: allSparePartIds },
+              id: { in: uniqueSparePartIds },
               isActive: true,
             },
             select: {
@@ -433,7 +444,7 @@ export class InvoicesService {
         }
 
         for (const item of items) {
-          if (!item.id || !item.sparePartId) continue;
+          if (!item.id) continue;
           const existing = existingById.get(item.id);
           if (!existing) {
             throw new BadRequestException(
@@ -441,10 +452,11 @@ export class InvoicesService {
             );
           }
 
-          const part = stockMap.get(item.sparePartId);
+          const sparePartId = item.sparePartId ?? existing.sparePartId;
+          const part = stockMap.get(sparePartId);
           if (!part) {
             throw new BadRequestException(
-              `قطعة الغيار ${item.sparePartId} غير موجودة أو غير نشطة`,
+              `قطعة الغيار ${sparePartId} غير موجودة أو غير نشطة`,
             );
           }
 
@@ -458,7 +470,7 @@ export class InvoicesService {
               );
             }
             const dto: CreateStockMovementDto = {
-              partId: item.sparePartId,
+              partId: sparePartId,
               movementType: MovementType.sale,
               quantity: qtyDiff,
               reference: 'تعديل فاتورة - زيادة كمية',
@@ -466,7 +478,7 @@ export class InvoicesService {
             await this.movementsService.create(dto, user.id, tx);
           } else if (qtyDiff < 0) {
             const dto: CreateStockMovementDto = {
-              partId: item.sparePartId,
+              partId: sparePartId,
               movementType: MovementType.return,
               quantity: Math.abs(qtyDiff),
               reference: 'تعديل فاتورة - تقليل كمية',
