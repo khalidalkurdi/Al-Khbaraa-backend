@@ -1,6 +1,7 @@
 import { Controller, Get, Query, UseGuards, Res } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { DashboardStatsResponseDto } from './dto/dashboard-stats-response.dto';
+import { TechnicianPerformanceQueryDto } from './dto/technician-performance-query.dto';
 import { TechnicianPerformanceResponseDto } from './dto/technician-performance-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -30,7 +31,13 @@ export class DashboardController {
   @ApiResponse({ status: 401, description: 'غير مصرح' })
   @ApiResponse({ status: 403, description: 'ممنوع' })
   @ApiResponse({ status: 404, description: 'الاداء غير موجود' })
-  async getTechnicianPerformance(): Promise<TechnicianPerformanceResponseDto> {
-    return this.dashboardService.getTechnicianPerformance();
+  async getTechnicianPerformance(
+    @Query() query: TechnicianPerformanceQueryDto,
+  ): Promise<TechnicianPerformanceResponseDto> {
+    return this.dashboardService.getTechnicianPerformance(
+      query.year,
+      query.month,
+      query.day,
+    );
   }
 }

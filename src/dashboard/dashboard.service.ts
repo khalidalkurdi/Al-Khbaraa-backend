@@ -271,15 +271,15 @@ export class DashboardService {
     };
   }
 
-  async getTechnicianPerformance() {
+  async getTechnicianPerformance(year?: number, month?: number, day?: number) {
     this.logger.log(`Fetching technician performance`);
 
     const now = toSyriaDate(new Date());
-    const todayStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    );
+    const targetYear = year ?? now.getFullYear();
+    const targetMonth = month ?? now.getMonth() + 1;
+    const targetDay = day ?? now.getDate();
+
+    const todayStart = new Date(targetYear, targetMonth - 1, targetDay);
     const todayEnd = new Date(todayStart);
     todayEnd.setDate(todayEnd.getDate() + 1);
 
