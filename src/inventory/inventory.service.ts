@@ -3,10 +3,13 @@ import {
   Logger,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateInventoryDto } from './dto/create-inventory.dto';
-import { Prisma } from '@prisma/client';
+import { WalletMovementType, ExpenseType, Prisma } from '@prisma/client';
+import { CreateInventoryDto, UpdateInventoryDto, CreateWalletMovementDto } from './dto/create-inventory.dto';
+import { QuerySoldItemsDto } from './dto/query-sold-items.dto';
+import { QueryWalletMovementsDto } from './dto/query-wallet-movements.dto';
 
 @Injectable()
 export class InventoryService {
@@ -14,8 +17,8 @@ export class InventoryService {
 
   constructor(private prisma: PrismaService) {}
 
-  async createInventory(dto: CreateInventoryDto) {
-    const { technicianId, toolsGiven, notes } = dto;
+  async createInventory(dto: CreateInventoryDto, userId: string) {
+    const { technicianId, notes, items } = dto;
 
     const technician = await this.prisma.user.findUnique({
       where: { id: technicianId },
@@ -25,21 +28,76 @@ export class InventoryService {
       throw new NotFoundException('الفني غير موجود');
     }
 
-    const existing = await this.prisma.technicianDailyInventory.findFirst({
-      where: {
-        technicianId: dto.technicianId,
-      },
+    const existing = await this.prisma.technicianInventory.findFirst({
+      where: { technicianId },
     });
+
     if (existing) {
-      throw new ConflictException(
-        'يوجد مخزون يومي لهذا الفني لهذا الفني حاليا',
-      );
+      throw new ConflictException('يوجد مخزون لهذا الفني حالياً');
     }
-    try {
-      const inventory = await this.prisma.technicianDailyInventory.create({
+
+    const inventory = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.technicianInventory.create({
         data: {
           technicianId,
-          toolsGiven,
+          notes,
+          walletAmount: 0.00,
+        },
+        include: {
+          technician: {
+            select: {
+              fullName: true,
+            },
+          },
+          items: {
+            include: {
+              sparePart: {
+                select: {
+                  id: true,
+                  name: true,
+                  sparePartNumber: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (items && items.length > 0) {
+        await tx.technicianInventoryItem.createMany({
+          data: items.map((item) => ({
+            technicianInventoryId: created.id,
+            sparePartId: item.sparePartId,
+            quantity: item.quantity,
+          })),
+        });
+      }
+
+      return created;
+    });
+
+    this.logger.log(`Inventory created for technician ${technicianId} by user ${userId}`);
+    return inventory;
+  }
+
+  async updateInventory(id: string, dto: UpdateInventoryDto) {
+    const { notes, items } = dto;
+
+    const existing = await this.prisma.technicianInventory.findUnique({
+      where: { id },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('مخزون الفني غير موجود');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const inventory = await tx.technicianInventory.update({
+        where: { id },
+        data: {
           notes,
         },
         include: {
@@ -51,30 +109,178 @@ export class InventoryService {
         },
       });
 
-      this.logger.log(`Inventory log created for technician ${technicianId}`);
+      if (items) {
+        await tx.technicianInventoryItem.deleteMany({
+          where: { technicianInventoryId: id },
+        });
+
+        if (items.length > 0) {
+          await tx.technicianInventoryItem.createMany({
+            data: items.map((item) => ({
+              technicianInventoryId: id,
+              sparePartId: item.sparePartId,
+              quantity: item.quantity,
+            })),
+          });
+        }
+      }
 
       return inventory;
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new ConflictException('يوجد سجل جرد لهذا الفني حاليا');
-      }
-      throw error;
-    }
+    });
+
+    this.logger.log(`Inventory ${id} updated`);
+    return updated;
   }
 
-  async getTechnicianDailyInventoryWithUsage() {
-    const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+  async deleteInventory(id: string) {
+    const inventory = await this.prisma.technicianInventory.findUnique({
+      where: { id },
+    });
 
-    const inventories = await this.prisma.technicianDailyInventory.findMany({
+    if (!inventory) {
+      throw new NotFoundException('مخزون الفني غير موجود');
+    }
+
+    await this.prisma.technicianInventory.delete({
+      where: { id },
+    });
+
+    this.logger.log(`Inventory ${id} deleted`);
+    return { message: 'تم حذف مخزون الفني بنجاح' };
+  }
+
+  async createWalletMovement(dto: CreateWalletMovementDto, userId: string) {
+    const { technicianInventoryId, amount, type, notes } = dto;
+
+    const inventory = await this.prisma.technicianInventory.findUnique({
+      where: { id: technicianInventoryId },
+    });
+
+    if (!inventory) {
+      throw new NotFoundException('مخزون الفني غير موجود');
+    }
+
+    const movementType = type as WalletMovementType;
+    const amountDecimal = new Prisma.Decimal(amount);
+
+    const movement = await this.prisma.$transaction(async (tx) => {
+      let walletDelta = new Prisma.Decimal(0);
+      let expense: any = null;
+
+      switch (movementType) {
+        case WalletMovementType.addition:
+          walletDelta = amountDecimal;
+          break;
+        case WalletMovementType.deduction:
+          walletDelta = amountDecimal.negated();
+          if (inventory.walletAmount < amountDecimal) {
+            throw new BadRequestException('رصيد المحفظة لا يكفي لهذه العملية');
+          }
+          break;
+        default:
+          throw new BadRequestException('نوع حركة غير صالح');
+      }
+
+      const newWalletAmount = inventory.walletAmount.add(walletDelta);
+
+      const created = await tx.walletMovement.create({
+        data: {
+          technicianInventoryId,
+          amount,
+          responsibleId: userId,
+          type: movementType,
+          notes,
+        },
+        include: {
+          responsible: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      });
+
+      await tx.technicianInventory.update({
+        where: { id: technicianInventoryId },
+        data: {
+          walletAmount: newWalletAmount,
+        },
+      });
+
+      if (movementType === WalletMovementType.addition) {
+        const technician = await tx.user.findUnique({
+          where: { id: inventory.technicianId },
+          select: { fullName: true },
+        });
+
+        const now = new Date();
+        expense = await tx.expense.create({
+          data: {
+            type: ExpenseType.variable,
+            name: `إضافة لمحفظة الفني ${technician?.fullName ?? ''}`,
+            amount: amountDecimal,
+            month: now.getMonth() + 1,
+            year: now.getFullYear(),
+          },
+        });
+      }
+
+      return { ...created, newWalletAmount, expense };
+    });
+
+    this.logger.log(`Wallet movement created for inventory ${technicianInventoryId} by user ${userId}`);
+    return movement;
+  }
+
+  async getTechnicianInventory(id: string) {
+    const inventory = await this.prisma.technicianInventory.findUnique({
+      where: { id },
       include: {
         technician: {
           select: {
+            id: true,
             fullName: true,
+          },
+        },
+        items: {
+          include: {
+            sparePart: {
+              select: {
+                id: true,
+                name: true,
+                sparePartNumber: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!inventory) {
+      throw new NotFoundException('مخزون الفني غير موجود');
+    }
+
+    return inventory;
+  }
+
+  async getAllTechnicianInventories() {
+    const inventories = await this.prisma.technicianInventory.findMany({
+      include: {
+        technician: {
+          select: {
+            id: true,
+            fullName: true,
+          },
+        },
+        items: {
+          include: {
+            sparePart: {
+              select: {
+                id: true,
+                name: true,
+                sparePartNumber: true,
+              },
+            },
           },
         },
       },
@@ -83,43 +289,22 @@ export class InventoryService {
       },
     });
 
-    const usedParts = await this.prisma.invoiceItem.findMany({
+    const assignments = await this.prisma.technicianAssignment.findMany({
       where: {
-        invoice: {
-          request: {
-            assignments: {
-              some: {
-                isActive: true,
-              },
-            },
-          },
-          createdAt: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-        },
+        isActive: true,
       },
-      select: {
-        quantity: true,
-        sparePart: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        invoice: {
-          select: {
-            id: true,
-            invoiceNumber: true,
-            requestId: true,
-            request: {
-              select: {
-                id: true,
-                requestNumber: true,
-                assignments: {
-                  select: {
-                    technicianId: true,
-                    isActive: true,
+      include: {
+        request: {
+          include: {
+            invoice: {
+              include: {
+                items: {
+                  include: {
+                    sparePart: {
+                      select: {
+                        name: true,
+                      },
+                    },
                   },
                 },
               },
@@ -129,44 +314,46 @@ export class InventoryService {
       },
     });
 
-    // 3. تجميع القطع المستخدمة حسب الفني
-    const technicianPartsMap: Record<string, any[]> = {};
+    const technicianInvoicesMap: Record<string, any[]> = {};
 
-    for (const item of usedParts) {
-      // الحصول على الفني النشط من التخصيصات
-      const activeAssignment = item.invoice.request.assignments.find(
-        (a) => a.isActive === true,
-      );
+    for (const assignment of assignments) {
+      const technicianId = assignment.technicianId;
+      const invoice = assignment.request.invoice;
 
-      if (!activeAssignment) continue;
+      if (!invoice) continue;
 
-      const technicianId = activeAssignment.technicianId;
+      for (const item of invoice.items) {
+        if (!technicianInvoicesMap[technicianId]) {
+          technicianInvoicesMap[technicianId] = [];
+        }
 
-      if (!technicianPartsMap[technicianId]) {
-        technicianPartsMap[technicianId] = [];
+        technicianInvoicesMap[technicianId].push({
+          partName: item.sparePart.name,
+          quantity: item.quantity,
+          reference: invoice.invoiceNumber,
+        });
       }
-
-      technicianPartsMap[technicianId].push({
-        id: item.sparePart.id,
-        partName: item.sparePart.name,
-        quantity: item.quantity,
-      });
     }
 
-    const result = inventories.map((inventory) => {
-      const partsUsed = technicianPartsMap[inventory.technicianId] || [];
+    const data = inventories.map((inventory) => {
+      const invoiceItems = technicianInvoicesMap[inventory.technicianId] || [];
 
-      // تجميع القطع حسب sparePartId
-      const aggregatedParts = partsUsed.reduce(
+      const aggregatedItems = invoiceItems.reduce(
         (acc, item) => {
-          const key = item.id;
+          const key = item.partName;
           if (!acc[key]) {
             acc[key] = {
-              name: item.partName,
+              partName: item.partName,
               totalQuantity: 0,
+              references: [],
             };
           }
+
           acc[key].totalQuantity += item.quantity;
+
+          if (!acc[key].references.includes(item.reference)) {
+            acc[key].references.push(item.reference);
+          }
 
           return acc;
         },
@@ -175,33 +362,155 @@ export class InventoryService {
 
       return {
         ...inventory,
-        dailyUsage: {
-          parts: Object.values(aggregatedParts),
+        returns: {
+          items: Object.values(aggregatedItems),
         },
       };
     });
 
     return {
-      totalTechnicians: result.length,
-      technicians: result,
+      total: data.length,
+      data,
     };
   }
 
-  async deleteInventory(id: string) {
-    const inventory = await this.prisma.technicianDailyInventory.findUnique({
-      where: { id },
+  async getTechnicianSoldItems(technicianId: string, query: QuerySoldItemsDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const technician = await this.prisma.user.findUnique({
+      where: { id: technicianId },
+      select: { id: true, fullName: true },
+    });
+
+    if (!technician) {
+      throw new NotFoundException('الفني غير موجود');
+    }
+
+    const assignments = await this.prisma.technicianAssignment.findMany({
+      where: {
+        technicianId,
+        isActive: true,
+      },
+      select: {
+        requestId: true,
+      },
+    });
+
+    const requestIds = assignments.map((a) => a.requestId);
+
+    const [invoiceItems, total] = await Promise.all([
+      this.prisma.invoiceItem.findMany({
+        where: {
+          invoice: {
+            requestId: { in: requestIds },
+          },
+          isActive: true,
+        },
+        include: {
+          sparePart: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          invoice: {
+            select: {
+              invoiceNumber: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.invoiceItem.count({
+        where: {
+          invoice: {
+            requestId: { in: requestIds },
+          },
+          isActive: true,
+        },
+      }),
+    ]);
+
+    const data = invoiceItems.map((item) => ({
+      id: item.id,
+      partName: item.sparePart.name,
+      quantity: item.quantity,
+      reference: item.invoice.invoiceNumber,
+      soldAt: item.invoice.createdAt,
+    }));
+
+    return {
+      page,
+      limit,
+      total,
+      data,
+    };
+  }
+
+  async getTechnicianWalletMovements(
+    technicianInventoryId: string,
+    query: QueryWalletMovementsDto,
+  ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const inventory = await this.prisma.technicianInventory.findUnique({
+      where: { id: technicianInventoryId },
+      select: { id: true, technicianId: true },
     });
 
     if (!inventory) {
-      throw new NotFoundException('سجل الجرد غير موجود');
+      throw new NotFoundException('مخزون الفني غير موجود');
     }
 
-    await this.prisma.technicianDailyInventory.delete({
-      where: { id },
-    });
+    const [movements, total] = await Promise.all([
+      this.prisma.walletMovement.findMany({
+        where: {
+          technicianInventoryId,
+        },
+        include: {
+          responsible: {
+            select: {
+              id: true,
+              fullName: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.walletMovement.count({
+        where: {
+          technicianInventoryId,
+        },
+      }),
+    ]);
 
-    this.logger.log(`Inventory log ${id} deleted`);
+    const data = movements.map((movement) => ({
+      id: movement.id,
+      amount: Number(movement.amount),
+      type: movement.type,
+      notes: movement.notes,
+      createdAt: movement.createdAt,
+      responsible: movement.responsible,
+    }));
 
-    return { message: 'تم حذف سجل الجرد بنجاح' };
+    return {
+      page,
+      limit,
+      total,
+      data,
+    };
   }
 }

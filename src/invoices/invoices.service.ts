@@ -233,6 +233,65 @@ export class InvoicesService {
           }
         }
 
+        const technicianAssignments = await tx.technicianAssignment.findMany({
+          where: {
+            requestId,
+            isActive: true,
+          },
+          select: {
+            technicianId: true,
+          },
+        });
+
+        if (technicianAssignments.length > 0 && items && items.length > 0) {
+          const technicianIds = technicianAssignments.map(
+            (a) => a.technicianId,
+          );
+
+          const technicianInventories = await tx.technicianInventory.findMany({
+            where: {
+              technicianId: { in: technicianIds },
+            },
+            select: {
+              id: true,
+              technicianId: true,
+            },
+          });
+
+          const inventoryMap = new Map(
+            technicianInventories.map((inv) => [inv.technicianId, inv.id]),
+          );
+
+          for (const item of items) {
+            for (const assignment of technicianAssignments) {
+              const inventoryId = inventoryMap.get(assignment.technicianId);
+              if (!inventoryId) continue;
+
+              const existingItem =
+                await tx.technicianInventoryItem.findFirst({
+                  where: {
+                    technicianInventoryId: inventoryId,
+                    sparePartId: item.sparePartId,
+                  },
+                });
+
+              if (existingItem) {
+                const newQuantity = existingItem.quantity - item.quantity;
+                if (newQuantity < 0) {
+                  throw new BadRequestException(
+                    `الكمية غير كافية في مخزون الفني للقطعة`,
+                  );
+                }
+
+                await tx.technicianInventoryItem.update({
+                  where: { id: existingItem.id },
+                  data: { quantity: newQuantity },
+                });
+              }
+            }
+          }
+        }
+
         const dto: CreatePaymentDto = {
           ...payment,
           invoiceId: createdInvoice.id,
@@ -309,6 +368,8 @@ export class InvoicesService {
             convertedAmount: true,
             dollarExchangeRate: true,
             paymentMethod: true,
+            isCollected: true,
+            collectedAt: true,
           },
           orderBy: { paidAt: 'asc' },
         },
@@ -740,7 +801,7 @@ export class InvoicesService {
     return invoice;
   }
 
-  async getInvoicePdfData(id: string, userId: string, isTechnician: boolean) {
+  async getInvoicePdfData(id: string, userId: string, isTechnician: boolean) { 
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: {

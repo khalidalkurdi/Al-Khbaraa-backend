@@ -58,6 +58,16 @@ export class PaymentResponse {
   convertedAmount?: number;
   @ApiProperty({ description: 'Payment timestamp', format: 'date-time' })
   paidAt: Date;
+
+  @ApiProperty({ description: 'Whether payment has been collected' })
+  isCollected: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Timestamp when payment was collected',
+    nullable: true,
+    format: 'date-time',
+  })
+  collectedAt?: Date;
 }
 
 export class InvoiceDetailResponse {
