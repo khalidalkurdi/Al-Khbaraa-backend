@@ -25,4 +25,10 @@ export class PaymentResponseDto {
 
   @ApiProperty()
   paidAt: Date;
+
+  @ApiProperty()
+  isCollected: boolean;
+
+  @ApiProperty()
+  collectedAt: Date | null;
 }

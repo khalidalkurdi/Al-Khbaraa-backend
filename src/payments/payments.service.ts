@@ -7,9 +7,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 import { InvoiceStatus, RequestStatus, Prisma } from '@prisma/client';
 import { CurrencyEnum } from '../invoices/enums/currency.enum';
+import { getSyriaNow } from '../common/utils/syria-date.util';
 
 interface AuthenticatedUser {
   id: string;
@@ -260,5 +262,42 @@ export class PaymentsService {
       },
       orderBy: { paidAt: 'desc' },
     });
+  }
+
+  async update(id: string, dto: UpdatePaymentDto) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      include: {
+        invoice: {
+          select: {
+            id: true,
+            requestId: true,
+          },
+        },
+      },
+    });
+
+    if (!payment) {
+      throw new NotFoundException('الدفعة غير موجودة');
+    }
+
+    if (
+      dto.isCollected !== undefined &&
+      dto.isCollected !== payment.isCollected
+    ) {
+      const data: Prisma.PaymentUpdateInput = {
+        isCollected: dto.isCollected,
+      };
+      if (dto.isCollected) {
+        data.collectedAt = getSyriaNow();
+      }
+      const updatedPayment = await this.prisma.payment.update({
+        where: { id },
+        data,
+      });
+      return updatedPayment;
+    }
+
+    return payment;
   }
 }

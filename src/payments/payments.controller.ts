@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Param,
   Query,
@@ -18,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { PaymentResponseDto } from './dto/payment-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -68,7 +70,7 @@ export class PaymentsController {
     return this.paymentsService.create(createPaymentDto, user);
   }
 
-  @Get('invoice/:invoiceId')
+@Get('invoice/:invoiceId')
   @Roles('Admin', 'Manager', 'Employee', 'Technician')
   @ApiOperation({ summary: 'List payments for an invoice' })
   @ApiQuery({ name: 'currency', required: false, enum: ['SYP', 'USD'] })
@@ -100,5 +102,24 @@ export class PaymentsController {
       currency,
       paymentMethod,
     );
+  }
+
+  @Patch(':id')
+  @Roles('Admin')
+  @ApiOperation({ summary: 'Update payment collection status' })
+  @ApiResponse({
+    status: 200,
+    description: 'تم تحديث الدفعة بنجاح',
+    type: PaymentResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'طلب غير صالح' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 403, description: 'ممنوع' })
+  @ApiResponse({ status: 404, description: 'الدفعة غير موجودة' })
+  async update(
+    @Param('id') id: string,
+    @Body() updatePaymentDto: UpdatePaymentDto,
+  ) {
+    return this.paymentsService.update(id, updatePaymentDto);
   }
 }
