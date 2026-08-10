@@ -100,7 +100,7 @@ export class InventoryController {
 
   @Post('wallet/movement')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Admin', 'Manager', 'Employee')
+  @Roles('Admin', 'Manager', 'Employee', 'Technician')
   @ApiOperation({ summary: 'Create wallet movement and update wallet amount' })
   @ApiResponse({ status: 201, description: 'تم إنشاء حركة المحفظة بنجاح' })
   @ApiResponse({ status: 400, description: 'طلب غير صالح' })

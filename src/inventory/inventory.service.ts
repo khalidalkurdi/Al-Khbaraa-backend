@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletMovementType, ExpenseType, Prisma } from '@prisma/client';
@@ -158,6 +159,25 @@ export class InventoryService {
 
     if (!inventory) {
       throw new NotFoundException('مخزون الفني غير موجود');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { roleId: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('المستخدم غير موجود');
+    }
+
+    const role = await this.prisma.role.findUnique({
+      where: { id: user.roleId },
+      select: { name: true },
+    });
+
+    const isTechnician = role?.name === 'Technician';
+    if (isTechnician && inventory.technicianId !== userId) {
+      throw new ForbiddenException('لا يمكنك إنشاء حركة لمخزون فني آخر');
     }
 
     const movementType = type as WalletMovementType;
