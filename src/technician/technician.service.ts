@@ -203,4 +203,94 @@ export class TechnicianService {
 
     return { message: 'تم تحديث حالة الطلب بنجاح' };
   }
+
+  async getMyWalletAmount(technicianId: string) {
+    const inventory = await this.prisma.technicianInventory.findFirst({
+      where: { technicianId },
+      select: { id: true, walletAmount: true },
+    });
+
+    if (!inventory) {
+      throw new NotFoundException('مخزون الفني غير موجود');
+    }
+
+    const assignments = await this.prisma.technicianAssignment.findMany({
+      where: {
+        technicianId,
+        isActive: true,
+      },
+      select: {
+        requestId: true,
+      },
+    });
+
+    const requestIds = assignments.map((a) => a.requestId);
+
+    const [invoiceItems, walletMovements] = await Promise.all([
+      this.prisma.invoiceItem.findMany({
+        where: {
+          invoice: {
+            requestId: { in: requestIds },
+          },
+          isActive: true,
+        },
+        include: {
+          sparePart: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          invoice: {
+            select: {
+              invoiceNumber: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: {
+          id: 'desc',
+        },
+        take: 10,
+      }),
+      this.prisma.walletMovement.findMany({
+        where: {
+          technicianInventoryId: inventory.id,
+        },
+        include: {
+          responsible: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 10,
+      }),
+    ]);
+
+    const soldItems = invoiceItems.map((item) => ({
+      id: item.id,
+      partName: item.sparePart.name,
+      quantity: item.quantity,
+      reference: item.invoice.invoiceNumber,
+      soldAt: item.invoice.createdAt,
+    }));
+
+    const movements = walletMovements.map((movement) => ({
+      id: movement.id,
+      amount: Number(movement.amount),
+      type: movement.type,
+      notes: movement.notes,
+      createdAt: movement.createdAt,
+    }));
+
+    return {
+      walletAmount: Number(inventory.walletAmount),
+      latestSoldItems: soldItems,
+      latestWalletMovements: movements,
+    };
+  }
 }

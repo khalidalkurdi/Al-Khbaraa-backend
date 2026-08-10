@@ -55,6 +55,16 @@ export class TechnicianController {
     return this.technicianService.getMyRequests(req.user.id, query);
   }
 
+  @Get('wallet/amount')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get authenticated technician wallet amount' })
+  @ApiResponse({ status: 200, description: 'رصيد المحفظة' })
+  @ApiResponse({ status: 401, description: 'غير مصرح' })
+  @ApiResponse({ status: 404, description: 'مخزون الفني غير موجود' })
+  async getWalletAmount(@Req() req: AuthenticatedRequest) {
+    return this.technicianService.getMyWalletAmount(req.user.id);
+  }
+
   @Put('requests/:id/status')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update status of an assigned request' })
