@@ -64,6 +64,11 @@ enum MovementType {
   return
 }
 
+enum WalletMovementType {
+  addition
+  deduction
+}
+
 enum SettlementType {
   salary
   bonus
@@ -103,12 +108,13 @@ model User {
   // Relationships
   role                  Role                       @relation(fields: [roleId], references: [id], onDelete: Restrict)
   refreshTokens         RefreshToken[]
-  inventories           TechnicianDailyInventory[]
+  inventories           TechnicianInventory[]
   createdRequests       Request[]                  @relation("CreatedByRequests")
   assignedTechnicians   TechnicianAssignment[]     @relation("TechnicianAssignments")
   assignedByAssignments TechnicianAssignment[]     @relation("AssignedByAssignments")
   statusChanges         RequestStatusHistory[]     @relation("ChangedByHistory")
   movements             InventoryMovement[]        @relation("responsibleId")
+  walletMovements       WalletMovement[]
   notifications         Notification[]
   payrollRecords        PayrollRecord[]            @relation("UserPayrollRecords")
   monthlyDues           MonthlyDues[]
@@ -145,17 +151,52 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-model TechnicianDailyInventory {
-  id           String   @id @default(uuid()) @db.Char(36)
-  technicianId String   @map("technician_id") @db.Char(36)
-  notes        String?  @db.Text
-  toolsGiven   String   @map("tools_given") @db.Text
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+model TechnicianInventory {
+  id           String    @id @default(uuid()) @db.Char(36)
+  technicianId String    @map("technician_id") @db.Char(36)
+  walletAmount Decimal   @default(0.00) @db.Decimal(12, 2)
+  notes        String?   @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
 
-  technician User @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  technician       User                      @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  items            TechnicianInventoryItem[]
+  walletMovements  WalletMovement[]
 
   @@index([technicianId], map: "idx_technician_id")
-  @@map("technician_daily_inventory")
+  @@map("technician_inventory")
+}
+
+model TechnicianInventoryItem {
+  id                    String   @id @default(uuid()) @db.Char(36)
+  technicianInventoryId String   @map("technician_inventory_id") @db.Char(36)
+  sparePartId           String   @map("spare_part_id") @db.Char(36)
+  quantity              Int      @default(1)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  technicianInventory TechnicianInventory @relation(fields: [technicianInventoryId], references: [id], onDelete: Cascade)
+  sparePart           SparePart           @relation(fields: [sparePartId], references: [id], onDelete: Restrict)
+
+  @@index([technicianInventoryId], map: "idx_technician_inventory_id")
+  @@index([sparePartId], map: "idx_spare_part_id")
+  @@map("technician_inventory_items")
+}
+
+model WalletMovement {
+  id                    String           @id @default(uuid()) @db.Char(36)
+  technicianInventoryId String           @map("technician_inventory_id") @db.Char(36)
+  amount                Decimal          @db.Decimal(12, 2)
+  responsibleId         String           @map("responsible_id") @db.Char(36)
+  type                  WalletMovementType
+  notes                 String?          @db.Text
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
+
+  technicianInventory TechnicianInventory @relation(fields: [technicianInventoryId], references: [id], onDelete: Cascade)
+  responsible         User                @relation(fields: [responsibleId], references: [id], onDelete: Restrict)
+
+  @@index([technicianInventoryId], map: "idx_technician_inventory_id")
+  @@index([responsibleId], map: "idx_responsible_id")
+  @@index([type], map: "idx_type")
+  @@map("wallet_movements")
 }
 
 model CenterSettings {
@@ -323,6 +364,7 @@ model SparePart {
   updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
   invoiceItems    InvoiceItem[]
   movements       InventoryMovement[]
+  technicianInventoryItems TechnicianInventoryItem[]
 
   @@index([sparePartNumber], map: "idx_spare_part_number")
   @@index([sku], map: "idx_sku")
@@ -390,6 +432,8 @@ model Payment {
   dollarExchangeRate Decimal  @map("dollar_exchange_rate") @db.Decimal(12, 4)
   convertedAmount    Decimal  @map("converted_amount") @db.Decimal(12, 2)
   isActive           Boolean  @default(true) @map("is_active")
+  isCollected           Boolean  @default(false) @map("is_collected")
+  collectedAt             DateTime @default(now()) @map("collected_at") @db.Timestamp(0)
   paidAt             DateTime @default(now()) @map("paid_at") @db.Timestamp(0)
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
