@@ -68,7 +68,10 @@ export class PaymentsService {
     if (!invoice) {
       throw new NotFoundException('الفاتورة غير موجودة');
     }
-    if (invoice.totalAmount === invoice.paidAmount) {
+    if (
+      invoice.status === InvoiceStatus.paid ||
+      invoice.paidAmount.greaterThanOrEqualTo(invoice.totalAmount)
+    ) {
       throw new BadRequestException('الفاتورة مدفوعة بالكامل بالفعل');
     }
 
