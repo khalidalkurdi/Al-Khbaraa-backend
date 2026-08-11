@@ -226,7 +226,7 @@ export class TechnicianService {
 
     const requestIds = assignments.map((a) => a.requestId);
 
-    const [invoiceItems, walletMovements] = await Promise.all([
+    const [invoiceItems, walletMovements, inventoryItems] = await Promise.all([
       this.prisma.invoiceItem.findMany({
         where: {
           invoice: {
@@ -269,11 +269,35 @@ export class TechnicianService {
         },
         take: 10,
       }),
+      this.prisma.technicianInventoryItem.findMany({
+        where: {
+          technicianInventoryId: inventory.id,
+        },
+        include: {
+          sparePart: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          sparePart: {
+            name: 'asc',
+          },
+        },
+      }),
     ]);
+
+    const items = inventoryItems.map((item) => ({
+      id: item.id,
+      name: item.sparePart.name,
+      quantity: item.quantity,
+    }));
 
     const soldItems = invoiceItems.map((item) => ({
       id: item.id,
-      partName: item.sparePart.name,
+      name: item.sparePart.name,
       quantity: item.quantity,
       reference: item.invoice.invoiceNumber,
       soldAt: item.invoice.createdAt,
@@ -289,6 +313,8 @@ export class TechnicianService {
 
     return {
       walletAmount: Number(inventory.walletAmount),
+      technicianInventoryId: inventory.id,
+      items,
       latestSoldItems: soldItems,
       latestWalletMovements: movements,
     };
