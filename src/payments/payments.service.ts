@@ -64,14 +64,14 @@ export class PaymentsService {
         },
       },
     });
+    const existingPayments = await prisma.payment.count({
+      where: { invoiceId, isActive: true },
+    });
 
     if (!invoice) {
       throw new NotFoundException('الفاتورة غير موجودة');
     }
-    if (
-      invoice.status === InvoiceStatus.paid ||
-      invoice.paidAmount.greaterThanOrEqualTo(invoice.totalAmount)
-    ) {
+    if (invoice.status === InvoiceStatus.paid && existingPayments > 0) {
       throw new BadRequestException('الفاتورة مدفوعة بالكامل بالفعل');
     }
 
@@ -120,9 +120,6 @@ export class PaymentsService {
       }
     }
 
-    const existingPayments = await prisma.payment.count({
-      where: { invoiceId, isActive: true },
-    });
     if (
       convertedAmount.greaterThan(invoice.remainingAmount) &&
       invoice.status === InvoiceStatus.paid_partial &&
