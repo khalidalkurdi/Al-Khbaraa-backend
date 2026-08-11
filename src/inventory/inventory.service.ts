@@ -193,7 +193,7 @@ export class InventoryService {
           break;
         case WalletMovementType.deduction:
           walletDelta = amountDecimal.negated();
-          if (inventory.walletAmount < amountDecimal) {
+          if (inventory.walletAmount.lessThan(amountDecimal)) {
             throw new BadRequestException('رصيد المحفظة لا يكفي لهذه العملية');
           }
           break;
