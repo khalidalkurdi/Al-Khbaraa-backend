@@ -337,6 +337,7 @@ export class DashboardService {
           where: {
             paidAt: { gte: todayStart, lt: todayEnd },
             isActive: true,
+            isCollected: false,
           },
           include: {
             invoice: {

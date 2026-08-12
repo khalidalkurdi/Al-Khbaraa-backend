@@ -12,6 +12,7 @@ import {
 import { UpdateTechnicianStatusDto } from './dto/update-status.dto';
 import { RequestStatus } from '@prisma/client';
 import { skip } from 'node:test';
+import { toSyriaDate } from '../common/utils/syria-date.util';
 
 @Injectable()
 export class TechnicianService {
@@ -226,68 +227,103 @@ export class TechnicianService {
 
     const requestIds = assignments.map((a) => a.requestId);
 
-    const [invoiceItems, walletMovements, inventoryItems] = await Promise.all([
-      this.prisma.invoiceItem.findMany({
-        where: {
-          invoice: {
-            requestId: { in: requestIds },
+    const [invoiceItems, walletMovements, inventoryItems, todayPayments] =
+      await Promise.all([
+        this.prisma.invoiceItem.findMany({
+          where: {
+            invoice: {
+              requestId: { in: requestIds },
+            },
+            isActive: true,
           },
-          isActive: true,
-        },
-        include: {
-          sparePart: {
-            select: {
-              id: true,
-              name: true,
+          include: {
+            sparePart: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            invoice: {
+              select: {
+                invoiceNumber: true,
+                createdAt: true,
+              },
             },
           },
-          invoice: {
-            select: {
-              invoiceNumber: true,
-              createdAt: true,
+          orderBy: {
+            id: 'desc',
+          },
+          take: 10,
+        }),
+        this.prisma.walletMovement.findMany({
+          where: {
+            technicianInventoryId: inventory.id,
+          },
+          include: {
+            responsible: {
+              select: {
+                fullName: true,
+              },
             },
           },
-        },
-        orderBy: {
-          id: 'desc',
-        },
-        take: 10,
-      }),
-      this.prisma.walletMovement.findMany({
-        where: {
-          technicianInventoryId: inventory.id,
-        },
-        include: {
-          responsible: {
-            select: {
-              fullName: true,
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 10,
+        }),
+        this.prisma.technicianInventoryItem.findMany({
+          where: {
+            technicianInventoryId: inventory.id,
+          },
+          include: {
+            sparePart: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 10,
-      }),
-      this.prisma.technicianInventoryItem.findMany({
-        where: {
-          technicianInventoryId: inventory.id,
-        },
-        include: {
-          sparePart: {
-            select: {
-              id: true,
-              name: true,
+          orderBy: {
+            sparePart: {
+              name: 'asc',
             },
           },
-        },
-        orderBy: {
-          sparePart: {
-            name: 'asc',
-          },
-        },
-      }),
-    ]);
+        }),
+        (async () => {
+          const now = toSyriaDate(new Date());
+          const todayStart = new Date(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+          );
+          const todayEnd = new Date(todayStart);
+          todayEnd.setDate(todayEnd.getDate() + 1);
+
+          return this.prisma.payment.findMany({
+            where: {
+              paidAt: { gte: todayStart, lt: todayEnd },
+              isActive: true,
+              invoice: {
+                requestId: { in: requestIds },
+              },
+            },
+            select: {
+              amount: true,
+              currency: true,
+            },
+          });
+        })(),
+      ]);
+
+    let paymentsSyp = 0;
+    let paymentsUsd = 0;
+    for (const payment of todayPayments) {
+      if (payment.currency === 'SYP') {
+        paymentsSyp += Number(payment.amount);
+      } else if (payment.currency === 'USD') {
+        paymentsUsd += Number(payment.amount);
+      }
+    }
 
     const items = inventoryItems.map((item) => ({
       id: item.id,
@@ -317,6 +353,8 @@ export class TechnicianService {
       items,
       latestSoldItems: soldItems,
       latestWalletMovements: movements,
+      paymentsSyp,
+      paymentsUsd,
     };
   }
 }
