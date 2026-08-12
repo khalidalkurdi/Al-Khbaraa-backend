@@ -285,6 +285,11 @@ export class InventoryService {
 
   async getAllTechnicianInventories() {
     const inventories = await this.prisma.technicianInventory.findMany({
+      where: {
+        technician: {
+          isActive: true,
+        },
+      },
       include: {
         technician: {
           select: {
