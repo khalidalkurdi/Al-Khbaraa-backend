@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { FirebaseAdminProvider } from './firebase-admin.provider';
 import { NotificationListQueryDto } from './dto/notification-list-query.dto';
-import { getSyriaNow } from '../common/utils/syria-date.util';
+import { formatSyriaDate, getSyriaNow } from '../common/utils/syria-date.util';
 
 export interface SendPushNotificationInput {
   userId: string;
@@ -105,8 +105,13 @@ export class NotificationsService {
       this.prisma.notification.count({ where }),
     ]);
 
+    const formattedData = data.map((notification) => ({
+      ...notification,
+      createdAt: formatSyriaDate(notification.createdAt),
+    }));
+
     return {
-      data,
+      data: formattedData,
       total,
       page,
       limit,
