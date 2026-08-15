@@ -303,6 +303,7 @@ export class TechnicianService {
             where: {
               paidAt: { gte: todayStart, lt: todayEnd },
               isActive: true,
+              isCollected: false,
               invoice: {
                 requestId: { in: requestIds },
               },
