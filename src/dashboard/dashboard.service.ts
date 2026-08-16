@@ -521,10 +521,12 @@ export class DashboardService {
             (a) => a.technicianId === tech.id,
           );
         if (isAssignedToTechnician) {
-          if (payment.currency === 'SYP') {
-            paymentsSyp += toDecimal(payment.amount);
-          } else if (payment.currency === 'USD') {
-            paymentsUsd += toDecimal(payment.amount);
+          if (!payment.isCollected) {
+            if (payment.currency === 'SYP') {
+              paymentsSyp += toDecimal(payment.amount);
+            } else if (payment.currency === 'USD') {
+              paymentsUsd += toDecimal(payment.amount);
+            }
           }
         }
       }
