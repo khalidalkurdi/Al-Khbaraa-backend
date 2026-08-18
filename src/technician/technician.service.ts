@@ -290,18 +290,8 @@ export class TechnicianService {
           },
         }),
         (async () => {
-          const now = toSyriaDate(new Date());
-          const todayStart = new Date(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate(),
-          );
-          const todayEnd = new Date(todayStart);
-          todayEnd.setDate(todayEnd.getDate() + 1);
-
           return this.prisma.payment.findMany({
             where: {
-              paidAt: { gte: todayStart, lt: todayEnd },
               isActive: true,
               isCollected: false,
               invoice: {

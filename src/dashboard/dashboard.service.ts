@@ -335,7 +335,6 @@ export class DashboardService {
         }),
         this.prisma.payment.findMany({
           where: {
-            paidAt: { gte: todayStart, lt: todayEnd },
             isActive: true,
             isCollected: false,
           },
